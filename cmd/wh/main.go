@@ -2,7 +2,12 @@ package main
 
 type config struct {
 	port string
-	env string
+	env  string
+	dsn  string
+}
+
+type application struct {
+	cfg config
 }
 
 func main() {
