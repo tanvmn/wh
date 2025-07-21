@@ -8,13 +8,13 @@ import (
 )
 
 func (ap *application) routes() http.Handler {
-	mux := http.NewServeMux()
+	mx := http.NewServeMux()
 
-	mux.Handle("GET /static/", http.FileServerFS(ui.Files))
-	mux.Handle("GET /rec/", http.FileServerFS(rec.Files))
+	mx.Handle("GET /static/", http.FileServerFS(ui.Files))
+	mx.Handle("GET /rec/", http.StripPrefix("/rec", http.FileServerFS(rec.Files)))
 
-	mux.HandleFunc("GET /health", ap.healthCheck)
-	mux.HandleFunc("GET /{$}", ap.homePage)
+	mx.HandleFunc("GET /health", ap.healthCheck)
+	mx.HandleFunc("GET /{$}", ap.homePage)
 
-	return mux
+	return mx
 }
