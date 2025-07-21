@@ -1,4 +1,4 @@
-package img
+package rec
 
 import "embed"
 

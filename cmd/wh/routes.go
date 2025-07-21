@@ -3,18 +3,18 @@ package main
 import (
 	"net/http"
 
-	"github.com/tanNguyen2220022/wh/img"
+	"github.com/tanNguyen2220022/wh/rec"
 	"github.com/tanNguyen2220022/wh/ui"
 )
 
 func (ap *application) routes() http.Handler {
-	sm := http.NewServeMux()
+	mux := http.NewServeMux()
 
-	sm.Handle("GET /static/", http.FileServerFS(ui.Files))
-	sm.Handle("GET /img/", http.FileServerFS(img.Files))
+	mux.Handle("GET /static/", http.FileServerFS(ui.Files))
+	mux.Handle("GET /rec/", http.FileServerFS(rec.Files))
 
-	sm.HandleFunc("GET /health", ap.healthCheck)
-	sm.HandleFunc("GET /{$}", ap.homePage)
+	mux.HandleFunc("GET /health", ap.healthCheck)
+	mux.HandleFunc("GET /{$}", ap.homePage)
 
-	return sm
+	return mux
 }
