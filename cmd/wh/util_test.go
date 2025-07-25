@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func testUnique(t *testing.T) {
+func TestUnique(t *testing.T) {
 	want := []int{1, 2, 3}
 	got := unique([]int{1, 1, 2, 3}...)
 
