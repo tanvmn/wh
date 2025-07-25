@@ -23,31 +23,31 @@ type application struct {
 }
 
 func main() {
-	var cf config
+	var c config
 	var err error
 
-	flag.IntVar(&cf.port, "port", 4000, "HTTP server port")
-	flag.StringVar(&cf.env, "env", "development", "Enviroment (development|staging|production)")
+	flag.IntVar(&c.port, "port", 4000, "HTTP server port")
+	flag.StringVar(&c.env, "env", "development", "Enviroment (development|staging|production)")
 	flag.Parse()
 
-	lg := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{AddSource: true, Level: slog.LevelDebug}))
+	l := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{AddSource: true, Level: slog.LevelDebug}))
 
-	ap := &application{
-		config: cf,
-		logger: lg,
+	a := &application{
+		config: c,
+		logger: l,
 	}
 
-	sv := &http.Server{
-		Addr:         fmt.Sprintf(":%d", cf.port),
-		Handler:      ap.routes(),
-		IdleTimeout:  time.Minute,
-		ReadTimeout:  5 * time.Second,
+	s := &http.Server{
+		Addr:         fmt.Sprintf(":%d", c.port),
+		Handler:      a.routes(),
+		IdleTimeout:  5 * time.Minute,
+		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
-		ErrorLog:     slog.NewLogLogger(lg.Handler(), slog.LevelError),
+		ErrorLog:     slog.NewLogLogger(l.Handler(), slog.LevelError),
 	}
 
-	lg.Info(fmt.Sprintf("http://localhost:%v", cf.port), "env", cf.env)
-	err = sv.ListenAndServe()
-	lg.Error(err.Error())
+	l.Info(fmt.Sprintf("http://localhost:%v", c.port), "env", c.env)
+	err = s.ListenAndServe()
+	l.Error(err.Error())
 	os.Exit(1)
 }
