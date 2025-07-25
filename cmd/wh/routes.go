@@ -15,7 +15,7 @@ func (a *application) routes() http.Handler {
 	mux.HandleFunc("GET /health", a.healthCheck)
 	mux.HandleFunc("GET /{$}", a.homePage)
 
-	preMux := middlewares{a.recoverPanic, a.logRequest, a.addCommondHeaders}
+	pre:= middlewares{a.recoverPanic, a.logRequest, a.addCommondHeaders}
 
-	return preMux.then(mux)
+	return pre.then(mux)
 }
