@@ -14,7 +14,7 @@ const version = "1.0.0"
 type config struct {
 	port int
 	env  string
-	dsn  string
+	dsn  string // data source name
 }
 
 type application struct {
