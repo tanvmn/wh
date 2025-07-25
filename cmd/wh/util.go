@@ -1,9 +1,9 @@
-package util
+package main
 
 import "slices"
 
-// Unique returns a slice of unique T values
-func Unique[T comparable](vs ...T) []T {
+// unique returns a slice of unique T values
+func unique[T comparable](vs ...T) []T {
 	if len(vs) == 0 {
 		return nil
 	}
