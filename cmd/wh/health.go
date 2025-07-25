@@ -5,8 +5,8 @@ import (
 	"net/http"
 )
 
-func (ap *application) healthCheck(rw http.ResponseWriter, rq *http.Request) {
-	fmt.Fprintln(rw, "status: available")
-	fmt.Fprintln(rw, "enviroment:", ap.config.env)
-	fmt.Fprintln(rw, "version:", version)
+func (a *application) healthCheck(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintln(w, "status: available")
+	fmt.Fprintln(w, "enviroment:", a.config.env)
+	fmt.Fprintln(w, "version:", version)
 }

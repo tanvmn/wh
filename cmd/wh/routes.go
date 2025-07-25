@@ -3,18 +3,19 @@ package main
 import (
 	"net/http"
 
-	"github.com/tanNguyen2220022/wh/rec"
 	"github.com/tanNguyen2220022/wh/ui"
 )
 
-func (ap *application) routes() http.Handler {
-	mx := http.NewServeMux()
+func (a *application) routes() http.Handler {
+	mux := http.NewServeMux()
 
-	mx.Handle("GET /static/", http.FileServerFS(ui.Files))
-	mx.Handle("GET /rec/", http.StripPrefix("/rec", http.FileServerFS(rec.Files)))
+	mux.Handle("GET /static/", http.FileServerFS(ui.Files))
+	// mux.Handle("GET /rec/", http.StripPrefix("/rec", http.FileServerFS(rec.Files)))
 
-	mx.HandleFunc("GET /health", ap.healthCheck)
-	mx.HandleFunc("GET /{$}", ap.homePage)
+	mux.HandleFunc("GET /health", a.healthCheck)
+	mux.HandleFunc("GET /{$}", a.homePage)
 
-	return mx
+	preMux := middlewares{a.recoverPanic, a.logRequest, a.addCommondHeaders}
+
+	return preMux.then(mux)
 }
