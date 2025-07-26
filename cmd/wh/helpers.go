@@ -21,7 +21,7 @@ func (a *application) render(
 
 	bf := new(bytes.Buffer)
 
-	// write to a temp buffer first, if there's an error, response 500,
+	// write to a temp buffer first in case there's an error
 	err := tmpl.ExecuteTemplate(bf, "base", data)
 	if err != nil {
 		a.logger.Error(err.Error())

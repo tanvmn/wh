@@ -34,7 +34,7 @@ func newTemplCache(lg *slog.Logger) (map[string]*template.Template, error) {
 		name = name[:strings.Index(name, ".tmpl")]
 
 		// get the paths of all tmpls needed to make a page,
-		// note that base has to be the first element
+		// note that 'base' has to be the first element
 		paths := []string{
 			"html/base.tmpl.html",
 			page,
