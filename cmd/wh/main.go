@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"html/template"
 	"log/slog"
 	"net/http"
 	"os"
@@ -12,14 +13,15 @@ import (
 const version = "1.0.0"
 
 type config struct {
-	port int
 	env  string
 	dsn  string // data source name
+	port int
 }
 
 type application struct {
-	config config
-	logger *slog.Logger
+	config     config
+	logger     *slog.Logger
+	templCache map[string]*template.Template
 }
 
 func main() {
@@ -32,9 +34,16 @@ func main() {
 
 	l := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{AddSource: true, Level: slog.LevelDebug}))
 
+	cache, err := newTemplCache(l)
+	if err != nil {
+		l.Error(errLine)
+		os.Exit(1)
+		return
+	}
 	a := &application{
-		config: c,
-		logger: l,
+		config:     c,
+		logger:     l,
+		templCache: cache,
 	}
 
 	s := &http.Server{

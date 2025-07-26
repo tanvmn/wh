@@ -2,6 +2,8 @@ package main
 
 import "slices"
 
+const errLine = "<==LOOK to the LEFT"
+
 // unique returns a slice of unique T values
 func unique[T comparable](vs ...T) []T {
 	if len(vs) == 0 {

@@ -34,7 +34,7 @@ func (a *application) recoverPanic(next http.Handler) http.Handler {
 	})
 }
 
-func (a *application) addCommondHeaders(next http.Handler) http.Handler {
+func (a *application) addCommonHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		// w.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'self' fonts.googleapis.com; font-src fonts.gstatic.com")
