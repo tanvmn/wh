@@ -32,8 +32,7 @@ class Scanner {
     }, 20);
   }
 
-  // scan initializes document 'keydown' listenner on DOMContentLoaded, focus ,and
-  // remove on blur
+  // scan initializes document 'keydown' listenner on DOMContentLoaded, focus and remove on blur
   static scan() {
     if (Scanner.handleFunc === undefined) {
       console.error("Scanner.handleFunc is NOT initialized");
@@ -41,15 +40,13 @@ class Scanner {
     }
     document.addEventListener("DOMContentLoaded", function () {
       Scanner.title.textContent = Scanner.titleTxt;
-      let temp = "QR - " + Scanner.titleTxt;
-      Scanner.title.textContent = temp;
+      Scanner.title.textContent = "QR - " + Scanner.titleTxt;
       document.onkeydown = Scanner.qrListen;
     });
 
     window.onfocus = function () {
       Scanner.title.textContent = Scanner.titleTxt;
-      let temp = "QR - " + Scanner.titleTxt;
-      Scanner.title.textContent = temp;
+      Scanner.title.textContent = "QR - " + Scanner.titleTxt;
       document.onkeydown = Scanner.qrListen;
     };
 
