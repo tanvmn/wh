@@ -29,7 +29,7 @@ func newTemplCache(lg *slog.Logger) (map[string]*template.Template, error) {
 	}
 
 	for _, page := range pages {
-		// get the *.tmpl.html part of the path, then get the * part of that
+		// get the *.tmpl.html part of the path, then the * part
 		name := filepath.Base(page)
 		name = name[:strings.Index(name, ".tmpl")]
 
