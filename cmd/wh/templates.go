@@ -35,12 +35,12 @@ func newTemplCache(lg *slog.Logger) (map[string]*template.Template, error) {
 
 		// get the paths of all tmpls needed to make a page,
 		// note that 'base' has to be the first element
-		paths := []string{
+		patterns := []string{
 			"html/base.tmpl.html",
 			page,
 		}
 
-		tmpl, err := template.ParseFS(ui.Files, paths...)
+		tmpl, err := template.ParseFS(ui.Files, patterns...)
 		if err != nil {
 			lg.Error(err.Error())
 			return nil, err
