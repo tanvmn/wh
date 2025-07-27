@@ -14,7 +14,7 @@ import (
 type templData struct {
 }
 
-func (a *application) newTemplData(r *http.Request) templData {
+func (ap *application) newTemplData(r *http.Request) templData {
 	return templData{}
 }
 

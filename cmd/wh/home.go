@@ -4,6 +4,6 @@ import (
 	"net/http"
 )
 
-func (a *application) homePage(w http.ResponseWriter, q *http.Request) {
-	a.render(w, http.StatusOK, "home", templData{})
+func (ap *application) homePage(rw http.ResponseWriter, rq *http.Request) {
+	ap.render(rw, http.StatusOK, "home", templData{})
 }

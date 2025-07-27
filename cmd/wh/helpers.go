@@ -6,16 +6,16 @@ import (
 	"net/http"
 )
 
-func (a *application) render(
-	w http.ResponseWriter,
+func (ap *application) render(
+	rw http.ResponseWriter,
 	status int,
 	page string,
 	data templData) {
-	tmpl, exist := a.templCache[page]
+	tmpl, exist := ap.templCache[page]
 	if !exist {
 		s := fmt.Sprintf("template %v does not exist", page)
-		a.logger.Error(s)
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		ap.logger.Error(s)
+		http.Error(rw, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
@@ -24,12 +24,12 @@ func (a *application) render(
 	// write to a temp buffer first in case there's an error
 	err := tmpl.ExecuteTemplate(bf, "base", data)
 	if err != nil {
-		a.logger.Error(err.Error())
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		ap.logger.Error(err.Error())
+		http.Error(rw, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
 	// if there aren't any errors, write from temp buffer to ResponseWriter
-	w.WriteHeader(status)
-	bf.WriteTo(w)
+	rw.WriteHeader(status)
+	bf.WriteTo(rw)
 }

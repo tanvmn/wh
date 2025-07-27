@@ -18,25 +18,25 @@ func (m middlewares) then(final http.Handler) http.Handler {
 	return final
 }
 
-func (a *application) recoverPanic(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func (ap *application) recoverPanic(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, rq *http.Request) {
 		defer func() {
 			if err := recover(); err != nil {
-				a.logger.Error(fmt.Sprint(err))
+				ap.logger.Error(fmt.Sprint(err))
 				fmt.Println(string(debug.Stack()))
-				w.Header().Set("Connection", "Close")
-				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				rw.Header().Set("Connection", "Close")
+				http.Error(rw, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				return
 			}
 		}()
 
-		next.ServeHTTP(w, r)
+		next.ServeHTTP(rw, rq)
 	})
 }
 
-func (a *application) addCommonHeaders(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+func (ap *application) addCommonHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, rq *http.Request) {
+		rw.Header().Set("Access-Control-Allow-Origin", "*")
 		// w.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'self' fonts.googleapis.com; font-src fonts.gstatic.com")
 		// w.Header().Set("Referrer-Policy", "origin-when-cross-origin")
 		// w.Header().Set("X-Content-Type-Options", "nosniff")
@@ -45,14 +45,14 @@ func (a *application) addCommonHeaders(next http.Handler) http.Handler {
 
 		// w.Header().Set("Server", "Go")
 
-		next.ServeHTTP(w, r)
+		next.ServeHTTP(rw, rq)
 	})
 }
 
-func (a *application) logRequest(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		a.logger.Info("request", "ip", r.RemoteAddr, "method", r.Method, "uri", r.URL.RequestURI(), "proto", r.Proto)
+func (ap *application) logRequest(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, rq *http.Request) {
+		ap.logger.Info("request", "ip", rq.RemoteAddr, "method", rq.Method, "uri", rq.URL.RequestURI(), "proto", rq.Proto)
 
-		next.ServeHTTP(w, r)
+		next.ServeHTTP(rw, rq)
 	})
 }
