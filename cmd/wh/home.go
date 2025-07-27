@@ -29,7 +29,6 @@ func (ap *application) writeJSON(
 		return err
 	}
 
-	// ranging from a nil slice, map won't throw an error
 	// add to or replace exsting k/v in response's headers
 	maps.Copy(rw.Header(), headers)
 
