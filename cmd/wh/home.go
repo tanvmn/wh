@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"maps"
 	"net/http"
 
 	"github.com/tanNguyen2220022/wh/internal/util"
@@ -29,9 +30,8 @@ func (ap *application) writeJSON(
 	}
 
 	// ranging from a nil slice, map won't throw an error
-	for k, v := range headers {
-		rw.Header()[k] = v
-	}
+	// add to or replace exsting k/v in response's headers
+	maps.Copy(rw.Header(), headers)
 
 	rw.Header().Set("Content-Type", "application/json")
 	rw.WriteHeader(status)
