@@ -10,13 +10,13 @@ func (ap *application) render(
 	rw http.ResponseWriter,
 	status int,
 	page string,
-	data templData) {
+	data templData) error {
 	tmpl, exist := ap.templCache[page]
 	if !exist {
-		s := fmt.Sprintf("template %v does not exist", page)
-		ap.logger.Error(s)
+		err := fmt.Errorf("template %v does not exist", page)
+		ap.logger.Error(err.Error())
 		http.Error(rw, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
+		return err
 	}
 
 	bf := new(bytes.Buffer)
@@ -26,10 +26,12 @@ func (ap *application) render(
 	if err != nil {
 		ap.logger.Error(err.Error())
 		http.Error(rw, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
+		return err
 	}
 
 	// if there aren't any errors, write from temp buffer to ResponseWriter
 	rw.WriteHeader(status)
 	bf.WriteTo(rw)
+
+	return nil
 }
