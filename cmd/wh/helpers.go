@@ -43,7 +43,7 @@ func (ap *application) writeJSON(
 	rw http.ResponseWriter,
 	status int,
 	data any,
-	headers http.Header,
+	hd http.Header,
 ) error {
 	js, err := json.Marshal(data)
 	if err != nil {
@@ -53,7 +53,7 @@ func (ap *application) writeJSON(
 	}
 
 	// add to or replace exsting k/v in response's headers
-	maps.Copy(rw.Header(), headers)
+	maps.Copy(rw.Header(), hd)
 
 	rw.Header().Set("Content-Type", "application/json")
 	rw.WriteHeader(status)
