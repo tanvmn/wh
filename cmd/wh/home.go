@@ -1,8 +1,6 @@
 package main
 
 import (
-	"encoding/json"
-	"maps"
 	"net/http"
 
 	"github.com/tanNguyen2220022/wh/internal/util"
@@ -14,27 +12,4 @@ func (ap *application) homePage(rw http.ResponseWriter, rq *http.Request) {
 		ap.logger.Error(util.ErrLine)
 		return
 	}
-}
-
-func (ap *application) writeJSON(
-	rw http.ResponseWriter,
-	status int,
-	data any,
-	headers http.Header,
-) error {
-	js, err := json.Marshal(data)
-	if err != nil {
-		ap.logger.Error(err.Error())
-		http.Error(rw, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return err
-	}
-
-	// add to or replace exsting k/v in response's headers
-	maps.Copy(rw.Header(), headers)
-
-	rw.Header().Set("Content-Type", "application/json")
-	rw.WriteHeader(status)
-	rw.Write(js)
-
-	return nil
 }
