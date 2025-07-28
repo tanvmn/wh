@@ -8,7 +8,7 @@ import (
 	"net/http"
 )
 
-func (ap *application) render(
+func (ap *application) servePage(
 	rw http.ResponseWriter,
 	status int,
 	page string,
@@ -16,7 +16,7 @@ func (ap *application) render(
 ) error {
 	tmpl, exist := ap.templCache[page]
 	if !exist {
-		err := fmt.Errorf("template %v does not exist", page)
+		err := fmt.Errorf("template '%v' does not exist", page)
 		ap.logger.Error(err.Error())
 		http.Error(rw, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return err

@@ -7,7 +7,7 @@ import (
 )
 
 func (ap *application) homePage(rw http.ResponseWriter, rq *http.Request) {
-	err := ap.render(rw, http.StatusOK, "home", templData{})
+	err := ap.servePage(rw, http.StatusOK, "home", templData{})
 	if err != nil {
 		ap.logger.Error(util.ErrLine)
 		return

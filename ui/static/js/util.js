@@ -7,8 +7,8 @@ class Scanner {
   static title = document.querySelector("title");
   static titleTxt = document.querySelector("title").textContent;
 
-  // qrListen process keydown characters
-  static qrListen(e) {
+  // process processes keydown characters
+  static process(e) {
     if (Scanner.handleFunc === undefined) {
       console.error("Scanner.handleFunc is NOT initialized");
       return;
@@ -38,21 +38,28 @@ class Scanner {
       console.error("Scanner.handleFunc is NOT initialized");
       return;
     }
+
     document.addEventListener("DOMContentLoaded", function () {
       Scanner.title.textContent = Scanner.titleTxt;
       Scanner.title.textContent = "QR - " + Scanner.titleTxt;
-      document.onkeydown = Scanner.qrListen;
+
+      Scanner.code = "";
+      document.onkeydown = Scanner.process;
     });
 
     window.onfocus = function () {
       Scanner.title.textContent = Scanner.titleTxt;
       Scanner.title.textContent = "QR - " + Scanner.titleTxt;
-      document.onkeydown = Scanner.qrListen;
+
+      Scanner.code = "";
+      document.onkeydown = Scanner.process;
     };
 
     window.onblur = function () {
       Scanner.title.textContent = Scanner.titleTxt;
-      document.removeEventListener("keydown", Scanner.qrListen);
+
+      Scanner.code = "";
+      document.removeEventListener("keydown", Scanner.process);
     };
   }
 }

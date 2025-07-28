@@ -6,7 +6,7 @@ import (
 )
 
 func (ap *application) health(rw http.ResponseWriter, rq *http.Request) {
-	fmt.Fprintln(rw, "status: available")
-	fmt.Fprintln(rw, "enviroment:", ap.config.env)
-	fmt.Fprintln(rw, "version:", version)
+	js := `{"status":"available","environment":"%v","version":"%v"}`
+	rw.Header().Set("Content-Type", "application/json")
+	fmt.Fprintf(rw, js, ap.config.env, version)
 }
