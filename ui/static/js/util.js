@@ -32,8 +32,8 @@ class Scanner {
     }, 20);
   }
 
-  // scan initializes document 'keydown' listenner on DOMContentLoaded, focus and remove on blur
-  static scan() {
+  // init initializes document's 'keydown' listenner on DOMContentLoaded, focus and remove on blur
+  static init() {
     if (Scanner.handleFunc === undefined) {
       console.error("Scanner.handleFunc is NOT initialized");
       return;
