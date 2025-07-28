@@ -5,8 +5,8 @@ import (
 	"net/http"
 )
 
-func (ap *application) health(rw http.ResponseWriter, rq *http.Request) {
+func (ap *application) health(w http.ResponseWriter, r *http.Request) {
 	js := `{"status":"available","environment":"%v","version":"%v"}`
-	rw.Header().Set("Content-Type", "application/json")
-	fmt.Fprintf(rw, js, ap.config.env, version)
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprintf(w, js, ap.config.env, version)
 }

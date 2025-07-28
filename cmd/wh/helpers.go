@@ -9,7 +9,7 @@ import (
 )
 
 func (ap *application) servePage(
-	rw http.ResponseWriter,
+	w http.ResponseWriter,
 	status int,
 	page string,
 	data templData,
@@ -18,46 +18,46 @@ func (ap *application) servePage(
 	if !exist {
 		err := fmt.Errorf("template '%v' does not exist", page)
 		ap.logger.Error(err.Error())
-		http.Error(rw, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return err
 	}
 
-	bf := new(bytes.Buffer)
+	buf := new(bytes.Buffer)
 
 	// write to a temp buffer first in case there's an error
-	err := tmpl.ExecuteTemplate(bf, "base", data)
+	err := tmpl.ExecuteTemplate(buf, "base", data)
 	if err != nil {
 		ap.logger.Error(err.Error())
-		http.Error(rw, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return err
 	}
 
 	// if there aren't any errors, write from temp buffer to ResponseWriter
-	rw.WriteHeader(status)
-	bf.WriteTo(rw)
+	w.WriteHeader(status)
+	buf.WriteTo(w)
 
 	return nil
 }
 
 func (ap *application) writeJSON(
-	rw http.ResponseWriter,
+	w http.ResponseWriter,
 	status int,
 	data any,
-	hd http.Header,
+	h http.Header,
 ) error {
 	js, err := json.Marshal(data)
 	if err != nil {
 		ap.logger.Error(err.Error())
-		http.Error(rw, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return err
 	}
 
 	// add to or replace exsting k/v in response's headers
-	maps.Copy(rw.Header(), hd)
+	maps.Copy(w.Header(), h)
 
-	rw.Header().Set("Content-Type", "application/json")
-	rw.WriteHeader(status)
-	rw.Write(js)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	w.Write(js)
 
 	return nil
 }
