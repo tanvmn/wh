@@ -14,7 +14,10 @@ func (ap *application) routes() http.Handler {
 	mux.Handle("GET /rec/", http.StripPrefix("/rec", http.FileServerFS(rec.Files)))
 
 	mux.HandleFunc("GET /health", ap.health)
-	mux.HandleFunc("GET /{$}", ap.homePage)
+	mux.Handle("GET /{$}", ap.homePage())
+
+	// Account
+	mux.Handle("GET /account", ap.account())
 
 	pre := middlewares{ap.recoverPanic, ap.logRequest, ap.addCommonHeaders}
 

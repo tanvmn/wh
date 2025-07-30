@@ -12,6 +12,7 @@ import (
 	"time"
 
 	_ "github.com/lib/pq"
+	"github.com/tanNguyen2220022/wh/internal/data"
 	"github.com/tanNguyen2220022/wh/internal/util"
 )
 
@@ -32,6 +33,7 @@ type application struct {
 	config     config
 	logger     *slog.Logger
 	templCache map[string]*template.Template
+	data       *data.Data
 }
 
 func main() {
@@ -70,6 +72,7 @@ func main() {
 		config:     cf,
 		logger:     lg,
 		templCache: cache,
+		data:       data.NewData(db, lg),
 	}
 
 	sv := &http.Server{
@@ -88,7 +91,7 @@ func main() {
 }
 
 func openDB(cf *config, lg *slog.Logger) (*sql.DB, error) {
-	// create a empty connection pool
+	// create a empty connection pool, which means no connections are established with database
 	db, err := sql.Open("postgres", cf.db.dsn)
 	if err != nil {
 		lg.Error(err.Error())
@@ -102,7 +105,7 @@ func openDB(cf *config, lg *slog.Logger) (*sql.DB, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	// try establishing a connection to db.
+	// try establishing a connection to database.
 	// A case of err != nil, is a connection couldn't be established within 5 seconds
 	err = db.PingContext(ctx)
 	if err != nil {
