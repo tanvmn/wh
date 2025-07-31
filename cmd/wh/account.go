@@ -10,23 +10,35 @@ import (
 	"github.com/tanNguyen2220022/wh/internal/util"
 )
 
+var (
+	ErrAccountNotFound = errors.New("account not found")
+)
+
 func (ap *application) account() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ac, err := ap.data.Account.Get(1)
+		sID := r.URL.Query().Get("id")
+		id, err := ap.parseID(sID)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, ErrInvalidID.Error()+", ACC-"+sID, http.StatusBadRequest)
+			return
+		}
+
+		ac, err := ap.data.Account(id)
 		if errors.Is(err, sql.ErrNoRows) {
-			s := fmt.Sprintf("Account ACC-%v not found", 1)
-			ap.logger.Info(s)
+			s := fmt.Sprintf("%v, ACC-%v", ErrAccountNotFound.Error(), id)
+			ap.logger.Error(s)
 			http.Error(w, s, http.StatusNotFound)
 			return
 		} else if err != nil {
-			ap.logger.Error(util.ErrLine)
+			ap.logger.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
-		ac.BDate, err = util.FormatRFC3339(ac.BDate, time.DateOnly, ap.logger)
+		ac.BDate, err = util.FormatRFC3339(ac.BDate, time.DateOnly)
 		if err != nil {
-			ap.logger.Error(util.ErrLine)
+			ap.logger.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}

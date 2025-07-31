@@ -1,7 +1,6 @@
 package util
 
 import (
-	"log/slog"
 	"slices"
 	"time"
 )
@@ -28,10 +27,9 @@ func Set[T comparable](vs ...T) []T {
 	return s
 }
 
-func FormatRFC3339(rfc3339 string, layout string, lg *slog.Logger) (string, error) {
+func FormatRFC3339(rfc3339 string, layout string) (string, error) {
 	t, err := time.Parse(time.RFC3339, rfc3339)
 	if err != nil {
-		lg.Error(err.Error())
 		return "", err
 	}
 

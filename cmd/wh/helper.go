@@ -3,9 +3,16 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"maps"
 	"net/http"
+	"strconv"
+)
+
+var (
+	// ErrIDLessThan1 = errors.New("ID less than 1")
+	ErrInvalidID = errors.New("invalid ID")
 )
 
 func (ap *application) servePage(
@@ -60,4 +67,17 @@ func (ap *application) writeJSON(
 	w.Write(js)
 
 	return nil
+}
+
+// parseID parses the string id to a base 10 int64
+func (ap *application) parseID(s string) (int64, error) {
+	id, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+		return 0, err
+	}
+	if id < 1 {
+		return 0, ErrInvalidID
+	}
+
+	return id, nil
 }
