@@ -12,7 +12,7 @@ import (
 
 var (
 	// ErrIDLessThan1 = errors.New("ID less than 1")
-	ErrInvalidID = errors.New("invalid ID")
+	ErrInvalidID = errors.New("ID không hợp lệ")
 )
 
 func (ap *application) servePage(
@@ -72,11 +72,8 @@ func (ap *application) writeJSON(
 // parseID parses the string id to a base 10 int64
 func (ap *application) parseID(s string) (int64, error) {
 	id, err := strconv.ParseInt(s, 10, 64)
-	if err != nil {
-		return 0, err
-	}
-	if id < 1 {
-		return 0, ErrInvalidID
+	if err != nil || id < 1 {
+		return 0, fmt.Errorf("ID ACC-%v không hợp lệ", s)
 	}
 
 	return id, nil

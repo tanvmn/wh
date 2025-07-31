@@ -1,32 +1,29 @@
 package main
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
 	"net/http"
 	"time"
 
+	"github.com/tanNguyen2220022/wh/internal/data"
 	"github.com/tanNguyen2220022/wh/internal/util"
 )
 
-var (
-	ErrAccountNotFound = errors.New("account not found")
-)
-
+// account handles GET /account?id= and response a JSON of internal/data.Account
 func (ap *application) account() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sID := r.URL.Query().Get("id")
 		id, err := ap.parseID(sID)
 		if err != nil {
 			ap.logger.Error(err.Error())
-			http.Error(w, ErrInvalidID.Error()+", ACC-"+sID, http.StatusBadRequest)
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
 		ac, err := ap.data.Account(id)
-		if errors.Is(err, sql.ErrNoRows) {
-			s := fmt.Sprintf("%v, ACC-%v", ErrAccountNotFound.Error(), id)
+		if errors.Is(err, data.ErrNoAccounts) {
+			s := fmt.Sprintf("không tìm thấy tài khoản, ACC-%v", id)
 			ap.logger.Error(s)
 			http.Error(w, s, http.StatusNotFound)
 			return

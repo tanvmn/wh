@@ -1,5 +1,10 @@
 package data
 
+import (
+	"database/sql"
+	"errors"
+)
+
 type Account struct {
 	ID          int64  `json:"id,omitempty,omitzero"`
 	BDate       string `json:"bdate,omitempty,omitzero"`
@@ -8,6 +13,10 @@ type Account struct {
 	WarehouseID int64  `json:"warehouseID,omitempty,omitzero"`
 	StoreID     int64  `json:"storeID,omitempty,omitzero"`
 }
+
+var (
+	ErrNoAccounts = errors.New("account not found")
+)
 
 func (d *Data) Account(id int64) (*Account, error) {
 	stmt := `select
@@ -25,7 +34,9 @@ func (d *Data) Account(id int64) (*Account, error) {
 		&ac.Name,
 		&ac.Phone,
 	)
-	if err != nil {
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrNoAccounts
+	} else if err != nil {
 		return nil, err
 	}
 
