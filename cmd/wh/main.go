@@ -11,9 +11,12 @@ import (
 	"os"
 	"time"
 
-	_ "github.com/lib/pq"
 	"github.com/tanNguyen2220022/wh/internal/data"
 	"github.com/tanNguyen2220022/wh/internal/util"
+
+	"github.com/alexedwards/scs/postgresstore"
+	"github.com/alexedwards/scs/v2"
+	_ "github.com/lib/pq"
 )
 
 const version = "1.0.0"
@@ -30,10 +33,11 @@ type config struct {
 }
 
 type application struct {
-	config     config
-	logger     *slog.Logger
-	templCache map[string]*template.Template
-	data       *data.Data
+	config          config
+	logger          *slog.Logger
+	templCache      map[string]*template.Template
+	data            *data.Data
+	sessionsManager *scs.SessionManager
 }
 
 func main() {
@@ -68,11 +72,18 @@ func main() {
 		lg.Error(util.ErrLine)
 		os.Exit(1)
 	}
+
+	// A session manager with lifetime of 12 hours, that stores tokens in postgres
+	sessionManager := scs.New()
+	sessionManager.Store = postgresstore.New(db)
+	sessionManager.Lifetime = 12 * time.Hour
+
 	ap := &application{
-		config:     cf,
-		logger:     lg,
-		templCache: cache,
-		data:       data.NewData(db, lg),
+		config:          cf,
+		logger:          lg,
+		templCache:      cache,
+		data:            data.NewData(db, lg),
+		sessionsManager: sessionManager,
 	}
 
 	sv := &http.Server{
@@ -91,7 +102,7 @@ func main() {
 }
 
 func openDB(cf *config, lg *slog.Logger) (*sql.DB, error) {
-	// create a empty connection pool, which means no connections are established with database
+	// Create a empty connection pool, which means no connections are established with database
 	db, err := sql.Open("postgres", cf.db.dsn)
 	if err != nil {
 		lg.Error(err.Error())
@@ -105,7 +116,7 @@ func openDB(cf *config, lg *slog.Logger) (*sql.DB, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	// try establishing a connection to database.
+	// Try establishing a connection to database.
 	// A case of err != nil, is a connection couldn't be established within 5 seconds
 	err = db.PingContext(ctx)
 	if err != nil {

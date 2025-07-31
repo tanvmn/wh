@@ -32,14 +32,17 @@ func (ap *application) routes() http.Handler {
 		w.Write([]byte(js))
 	})
 
+	protect := middlewares{ap.sessionsManager.LoadAndSave}
+
+	// File server
 	mux.Handle("GET /static/", http.FileServerFS(ui.Files))
-	mux.Handle("GET /rec/", http.StripPrefix("/rec", http.FileServerFS(rec.Files)))
+	mux.Handle("GET /rec/", protect.then(http.StripPrefix("/rec", http.FileServerFS(rec.Files))))
 
 	mux.HandleFunc("GET /health", ap.health)
-	mux.Handle("GET /{$}", ap.homePage())
+	mux.Handle("GET /{$}", protect.then(ap.homePage()))
 
 	// Account
-	mux.Handle("GET /account", ap.account())
+	mux.Handle("GET /account", protect.then(ap.account()))
 
 	pre := middlewares{ap.recoverPanic, ap.logRequest, ap.addCommonHeaders}
 
