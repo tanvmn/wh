@@ -14,6 +14,7 @@ import (
 func (ap *application) account() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sID := r.URL.Query().Get("id")
+
 		id, err := ap.parseID(sID)
 		if err != nil {
 			ap.logger.Error(err.Error())
@@ -42,7 +43,7 @@ func (ap *application) account() http.Handler {
 
 		err = ap.writeJSON(w, http.StatusOK, ac, nil)
 		if err != nil {
-			ap.logger.Error(util.ErrLine)
+			ap.logger.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}

@@ -2,23 +2,28 @@ package data
 
 import (
 	"database/sql"
-	"errors"
 	"log/slog"
 )
 
-var (
-	ErrNoRecords = errors.New("không tìm thấy dũ liệu")
-)
+func IDAcronyms() map[string]string {
+	m := make(map[string]string)
+	m["account"] = "ACC-"
+	m["item"] = "ITM-"
+	m["bin"] = "BIN-"
+	m["tote"] = "TOT-"
+	m["box"] = "BOX-"
+	m["staff"] = "STF-"
+
+	return m
+}
 
 type Data struct {
-	// Account *accountDB
 	db     *sql.DB
 	logger *slog.Logger
 }
 
 func NewData(db *sql.DB, lg *slog.Logger) *Data {
 	return &Data{
-		// Account: &accountDB{db: db, logger: lg},
 		db:     db,
 		logger: lg,
 	}

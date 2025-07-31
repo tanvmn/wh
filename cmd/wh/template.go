@@ -14,8 +14,8 @@ import (
 type templData struct {
 }
 
-func (ap *application) newTemplData(r *http.Request) templData {
-	return templData{}
+func (ap *application) newTemplData(r *http.Request) *templData {
+	return &templData{}
 }
 
 func newTemplCache(lg *slog.Logger) (map[string]*template.Template, error) {

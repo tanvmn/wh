@@ -54,8 +54,6 @@ func (ap *application) writeJSON(
 ) error {
 	js, err := json.Marshal(data)
 	if err != nil {
-		ap.logger.Error(err.Error())
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return err
 	}
 
@@ -69,7 +67,7 @@ func (ap *application) writeJSON(
 	return nil
 }
 
-// parseID parses the string id to a base 10 int64
+// parseID, if err == nil, return an id >= 1
 func (ap *application) parseID(s string) (int64, error) {
 	id, err := strconv.ParseInt(s, 10, 64)
 	if err != nil || id < 1 {

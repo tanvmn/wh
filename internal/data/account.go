@@ -6,21 +6,23 @@ import (
 )
 
 type Account struct {
-	ID          int64  `json:"id,omitempty,omitzero"`
-	BDate       string `json:"bdate,omitempty,omitzero"`
-	Name        string `json:"name,omitempty,omitzero"`
-	Phone       string `json:"phone,omitempty,omitzero"`
-	WarehouseID int64  `json:"warehouseID,omitempty,omitzero"`
-	StoreID     int64  `json:"storeID,omitempty,omitzero"`
+	ID           string  `json:"id,omitempty,omitzero"`
+	BDate        string `json:"bdate,omitempty,omitzero"`
+	Name         string `json:"name,omitempty,omitzero"`
+	Phone        string `json:"phone,omitempty,omitzero"`
+	PasswordHash []byte `json:"-"`
+	WarehouseID  int64  `json:"warehouseID,omitempty,omitzero"`
+	StoreID      int64  `json:"storeID,omitempty,omitzero"`
 }
 
 var (
 	ErrNoAccounts = errors.New("account not found")
 )
 
+// Account only receives the integer part of the ID, not the whole string ID
 func (d *Data) Account(id int64) (*Account, error) {
 	stmt := `select
-	id,
+	'ACC-'||id,
 	bdate,
 	name,
 	phone
