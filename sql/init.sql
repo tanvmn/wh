@@ -4,6 +4,7 @@ alter table account drop constraint if exists fk_warehouse;
 
 drop table if exists account;
 drop table if exists warehouse;
+drop table if exists sessions;
 
 
 create table account (
@@ -24,6 +25,14 @@ create table warehouse (
 
 	primary key(id)
 );
+
+CREATE TABLE sessions (
+	token TEXT PRIMARY KEY,
+	data BYTEA NOT NULL,
+	expiry TIMESTAMPTZ NOT NULL
+);
+
+CREATE INDEX sessions_expiry_idx ON sessions (expiry);
 
 
 insert into account (role, bdate, name, phone, password_hash) values

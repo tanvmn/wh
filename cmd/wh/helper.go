@@ -15,7 +15,7 @@ var (
 	ErrInvalidID = errors.New("ID không hợp lệ")
 )
 
-func (ap *application) servePage(
+func (ap *application) render(
 	w http.ResponseWriter,
 	status int,
 	page string,

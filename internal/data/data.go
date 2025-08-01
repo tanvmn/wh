@@ -18,13 +18,13 @@ func IDAcronyms() map[string]string {
 }
 
 type Data struct {
-	db     *sql.DB
+	DB     *sql.DB
 	logger *slog.Logger
 }
 
 func NewData(db *sql.DB, lg *slog.Logger) *Data {
 	return &Data{
-		db:     db,
+		DB:     db,
 		logger: lg,
 	}
 }
