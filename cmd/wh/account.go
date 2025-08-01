@@ -85,6 +85,7 @@ func (ap *application) login() http.Handler {
 			return
 		}
 
+		// Renew token everytime authentication status or permission changes is good practice
 		err = ap.sessionsManager.RenewToken(r.Context())
 		if err != nil {
 			ap.logger.Error(err.Error())

@@ -56,3 +56,17 @@ func (ap *application) logRequest(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
+
+func (ap *application) authenticate(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		id := ap.sessionsManager.GetInt64(r.Context(), "authenticatedID")
+		if id == 0 {
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			return
+		}
+
+		
+
+		next.ServeHTTP(w, r)
+	})
+}
