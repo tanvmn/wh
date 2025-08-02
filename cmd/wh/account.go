@@ -16,7 +16,7 @@ func (ap *application) account() http.Handler {
 		i, err := ap.validateID(id, data.IDCodes()["account"])
 		if err != nil {
 			ap.logger.Error(err.Error())
-			http.Error(w, data.ErrInvalidID.Error(), http.StatusBadRequest)
+			http.Error(w, fmt.Sprintf("Tài khoản ID %v không hợp lệ", id), http.StatusBadRequest)
 			return
 		}
 
@@ -24,7 +24,7 @@ func (ap *application) account() http.Handler {
 		if errors.Is(err, data.ErrNoAccounts) {
 			s := fmt.Sprintf("Account ACC-%v not found", i)
 			ap.logger.Error(s)
-			http.Error(w, data.ErrNoAccounts.Error()+" "+id, http.StatusNotFound)
+			http.Error(w, "Không tìm thấy tài khoản "+id, http.StatusNotFound)
 			return
 		} else if err != nil {
 			ap.logger.Error(err.Error())

@@ -19,11 +19,10 @@ type Account struct {
 }
 
 var (
-	ErrNoAccounts         = errors.New("không tìm thấy tài khoản")
+	ErrNoAccounts         = errors.New("account not found")
 	ErrInvalidCredentials = errors.New("invalid credentials")
 )
 
-// Account only receives the integer part of the ID, not the whole string ID
 func (d *Data) Account(id int64) (*Account, error) {
 	stmt := `select
 	'ACC-'||id,

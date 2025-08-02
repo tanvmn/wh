@@ -37,6 +37,7 @@ func newTemplCache(lg *slog.Logger) (map[string]*template.Template, error) {
 		// note that 'base' tmpl has to be the first element
 		patterns := []string{
 			"html/base.tmpl.html",
+			"html/partials/*.tmpl.html",
 			path,
 		}
 
@@ -49,11 +50,11 @@ func newTemplCache(lg *slog.Logger) (map[string]*template.Template, error) {
 		cache[name] = tmpl
 	}
 
-	// cache["login"], err = template.ParseFS(ui.Files, "html/login.html")
-	// if err != nil {
-	// 	lg.Error(err.Error())
-	// 	return nil, err
-	// }
+	cache["login"], err = template.ParseFS(ui.Files, "html/*.tmpl.html")
+	if err != nil {
+		lg.Error(err.Error())
+		return nil, err
+	}
 
 	return cache, nil
 }

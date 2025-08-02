@@ -16,7 +16,7 @@ const (
 )
 
 var (
-	ErrInvalidID = errors.New("ID không hợp lệ")
+	ErrInvalidID = errors.New("invalid ID")
 )
 
 func IDCodes() map[string]string {
