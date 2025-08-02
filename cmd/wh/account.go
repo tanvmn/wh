@@ -13,7 +13,7 @@ func (ap *application) account() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id := r.URL.Query().Get("id")
 
-		i, err := ap.validateID(id, data.IDCodes()["account"])
+		i, err := ap.validateID(id, data.AccountIDCode)
 		if err != nil {
 			ap.logger.Error(err.Error())
 			http.Error(w, fmt.Sprintf("Tài khoản ID %v không hợp lệ", id), http.StatusBadRequest)

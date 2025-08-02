@@ -14,14 +14,14 @@ import (
 type templData struct {
 }
 
-func (ap *application) newTemplData(r *http.Request) *templData {
-	return &templData{}
+func (ap *application) newTemplData(r *http.Request) templData {
+	return templData{}
 }
 
 func newTemplCache(lg *slog.Logger) (map[string]*template.Template, error) {
 	cache := make(map[string]*template.Template)
 
-	// get all the paths of the tmpl pages
+	// Get all the paths of the tmpl pages
 	paths, err := fs.Glob(ui.Files, "html/pages/*.tmpl.html")
 	if err != nil {
 		lg.Error(err.Error())
@@ -29,11 +29,11 @@ func newTemplCache(lg *slog.Logger) (map[string]*template.Template, error) {
 	}
 
 	for _, path := range paths {
-		// get the *.tmpl.html part of the path, then the * part
+		// Get the *.tmpl.html part of the path, then the * part
 		name := filepath.Base(path)
 		name = name[:strings.Index(name, ".tmpl")]
 
-		// get the paths of all tmpls needed for a page,
+		// Get the paths of all tmpls needed for a page,
 		// note that 'base' tmpl has to be the first element
 		patterns := []string{
 			"html/base.tmpl.html",
@@ -50,6 +50,7 @@ func newTemplCache(lg *slog.Logger) (map[string]*template.Template, error) {
 		cache[name] = tmpl
 	}
 
+	// Parse the login page
 	cache["login"], err = template.ParseFS(ui.Files, "html/*.tmpl.html")
 	if err != nil {
 		lg.Error(err.Error())

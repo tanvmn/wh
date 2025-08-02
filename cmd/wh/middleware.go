@@ -76,7 +76,7 @@ func (ap *application) authenticate(next http.Handler) http.Handler {
 		ac, err := ap.data.Account(id)
 		if err != nil {
 			if errors.Is(err, data.ErrNoAccounts) {
-				ap.logger.Error(fmt.Sprintf("Account %v-%v not found in db, but id is in session data", data.IDCodes()["account"], id))
+				ap.logger.Error(fmt.Sprintf("Account %v%v not found in db, but id is in session data", data.AccountIDCode, id))
 				http.Error(w, "Tài khoản có thể không còn tồn tại từ sau phiên đăng nhập trước", http.StatusUnauthorized)
 				return
 			} else {
@@ -86,8 +86,8 @@ func (ap *application) authenticate(next http.Handler) http.Handler {
 			}
 		}
 		if ac != nil {
-			r = r.WithContext(context.WithValue(r.Context(), authenticatedID, ac.ID))
-			r = r.WithContext(context.WithValue(r.Context(), authenticatedRole, ac.Role))
+			r = r.WithContext(context.WithValue(r.Context(), authenticatedCtxID, ac.ID))
+			r = r.WithContext(context.WithValue(r.Context(), authenticatedCtxRole, ac.Role))
 		}
 
 		// Set the "Cache-Control: no-store" header so that
@@ -107,9 +107,9 @@ func (ap *application) authenticate(next http.Handler) http.Handler {
 func (ap *application) authorize(roles ...string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			role, ok := r.Context().Value(authenticatedRole).(string)
+			role, ok := r.Context().Value(authenticatedCtxRole).(string)
 			if !ok {
-				ap.logger.Error("Cannot convert authenticatedRole ctx key to string")
+				ap.logger.Error("Cannot convert authenticatedCtxRole key to string")
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				return
 			}

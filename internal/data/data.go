@@ -16,17 +16,17 @@ const (
 )
 
 var (
-	ErrInvalidID = errors.New("invalid ID")
+	ErrInvalidID = errors.New("data: invalid ID")
 )
 
 func IDCodes() map[string]string {
 	m := make(map[string]string)
-	m["account"] = "ACC-"
-	m["item"] = "ITM-"
-	m["bin"] = "BIN-"
-	m["tote"] = "TOT-"
-	m["box"] = "BOX-"
-	m["staff"] = "STF-"
+	m["account"] = AccountIDCode 
+	m["item"] = ItemIDCode
+	m["bin"] = BinIDCode
+	m["tote"] = ToteIDCode
+	m["box"] = BoxIDCode
+	m["staff"] = StaffIDCode
 
 	return m
 }

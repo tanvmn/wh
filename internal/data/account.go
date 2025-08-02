@@ -19,8 +19,8 @@ type Account struct {
 }
 
 var (
-	ErrNoAccounts         = errors.New("account not found")
-	ErrInvalidCredentials = errors.New("invalid credentials")
+	ErrNoAccounts         = errors.New("data: account not found")
+	ErrInvalidCredentials = errors.New("data: invalid credentials")
 )
 
 func (d *Data) Account(id int64) (*Account, error) {
@@ -43,9 +43,11 @@ func (d *Data) Account(id int64) (*Account, error) {
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNoAccounts
+	} else if err != nil {
+		return nil, err
 	}
 
-	return &ac, err
+	return &ac, nil
 }
 
 func (d *Data) Authenticate(phone, password string) (id int64, err error) {

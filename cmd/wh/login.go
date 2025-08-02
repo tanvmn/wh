@@ -11,7 +11,6 @@ import (
 
 func (ap *application) loginPage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// http.ServeFileFS(w, r, ui.Files, "html/login.html")
 		if err := ap.render(w, http.StatusOK, "login", templData{}); err != nil {
 			ap.logger.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -46,7 +45,7 @@ func (ap *application) login() http.Handler {
 		id, err := ap.data.Authenticate(phone, password)
 		if errors.Is(err, data.ErrInvalidCredentials) {
 			s := fmt.Sprintf("%v:%v\nThông tin đăng nhập không chính xác", phone, password)
-			ap.logger.Error(s)
+			ap.logger.Error(data.ErrInvalidCredentials.Error() + ", " + phone + ":" + password)
 			http.Error(w, s, http.StatusUnprocessableEntity)
 			return
 		} else if err != nil {
