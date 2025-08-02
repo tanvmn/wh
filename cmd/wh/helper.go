@@ -7,7 +7,11 @@ import (
 	"fmt"
 	"maps"
 	"net/http"
+	"slices"
 	"strconv"
+
+	"github.com/tanNguyen2220022/wh/internal/data"
+	"github.com/tanNguyen2220022/wh/internal/validator"
 )
 
 var (
@@ -67,11 +71,48 @@ func (ap *application) writeJSON(
 	return nil
 }
 
-// parseID, if err == nil, return an id >= 1
-func (ap *application) parseID(s string) (int64, error) {
-	id, err := strconv.ParseInt(s, 10, 64)
+// validateID validate the code part and parses the integer into an int64
+func (ap *application) validateID(s string) (int64, error) {
+	// codeValid := false
+	// for _, v := range data.IDCodes() {
+	// 	if s[:4] == v {
+	// 		codeValid = true
+	// 		break
+	// 	}
+	// }
+	// if !codeValid {
+	// 	return 0, fmt.Errorf("ID %v không hợp lệ", s)
+	// }
+	va := validator.Validator{}
+	va.Check(
+		validator.MinChars(s, 4) && validator.Permitted(s[:4], slices.Collect(maps.Values(data.IDCodes()))...),
+		fmt.Sprintf("ID %v, mã %v không tồn tại", s, s[:4]),
+	)
+	if !va.Valid() {
+		return 0, errors.New(va.Message())
+	}
+
+	id, err := strconv.ParseInt(s[4:], 10, 64)
 	if err != nil || id < 1 {
-		return 0, fmt.Errorf("ID ACC-%v không hợp lệ", s)
+		return 0, fmt.Errorf("ID %v, số %v không hợp lệ", s, s[4:])
+	}
+
+	return id, nil
+}
+
+func (ap *application) validateIDWithCode(s, code string) (int64, error) {
+	va := validator.Validator{}
+	va.Check(validator.MinChars(s, 4) && validator.Permitted(s[:4], code), fmt.Sprintf("ID %v, mã %v không phải Account ID", s, s[:4]))
+	if !va.Valid() {
+		return 0, errors.New(va.Message())
+	}
+	// if s[:4] != code {
+	// 	return 0, fmt.Errorf("%v không thuộc mã %v", s, code)
+	// }
+
+	id, err := ap.validateID(s)
+	if err != nil {
+		return 0, err
 	}
 
 	return id, nil

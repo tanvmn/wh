@@ -26,9 +26,10 @@ func (v *Validator) AddFieldErr(k, msg string) {
 	}
 
 	if _, exists := v.FieldErrs[k]; !exists {
-		v.FieldErrs[k] = msg
+		v.FieldErrs[k] += msg
+	} else {
+		v.FieldErrs[k] += "\n" + msg
 	}
-	// v.FieldErrs[k] += msg + "\n"
 }
 
 func (v *Validator) AddNonFieldErr(msg string) {
@@ -107,26 +108,4 @@ func (v *Validator) Message() string {
 	}
 
 	return msg
-
-	// if len(v.FieldErrs) > 0 {
-	// 	for key, val := range v.FieldErrs {
-	// 		if v.Errs == "" {
-	// 			v.Errs += key + ": " + val
-	// 		} else {
-	// 			v.Errs += "\n" + key + ": " + val
-	// 		}
-	// 	}
-	// }
-
-	// if len(v.NonFieldErrs) > 0 {
-	// 	for _, err := range v.NonFieldErrs {
-	// 		if v.Errs == "" {
-	// 			v.Errs += err
-	// 		} else {
-	// 			v.Errs += "\n" + err
-	// 		}
-	// 	}
-	// }
-
-	// return v.Errs
 }

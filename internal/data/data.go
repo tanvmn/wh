@@ -5,7 +5,16 @@ import (
 	"log/slog"
 )
 
-func IDAcronyms() map[string]string {
+const (
+	AccountIDCode = "ACC-"
+	ItemIDCode    = "ITM-"
+	BinIDCode     = "BIN-"
+	ToteIDCode    = "TOT-"
+	BoxIDCode     = "BOX-"
+	StaffIDCode   = "STF-"
+)
+
+func IDCodes() map[string]string {
 	m := make(map[string]string)
 	m["account"] = "ACC-"
 	m["item"] = "ITM-"

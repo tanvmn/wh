@@ -27,7 +27,7 @@ var (
 func (d *Data) Account(id int64) (*Account, error) {
 	stmt := `select
 	'ACC-'||id,
-	bdate,
+	substring(to_char(bdate, 'YYYY-MM-DD') from 1 for 10),
 	name,
 	role,
 	phone

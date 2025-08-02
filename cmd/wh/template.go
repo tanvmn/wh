@@ -49,5 +49,11 @@ func newTemplCache(lg *slog.Logger) (map[string]*template.Template, error) {
 		cache[name] = tmpl
 	}
 
+	// cache["login"], err = template.ParseFS(ui.Files, "html/login.html")
+	// if err != nil {
+	// 	lg.Error(err.Error())
+	// 	return nil, err
+	// }
+
 	return cache, nil
 }

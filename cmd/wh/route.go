@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/tanNguyen2220022/wh/rec"
@@ -26,29 +25,29 @@ func (ap *application) routes() http.Handler {
 		// 	}
 		// }
 
-		id, err := ap.data.Authenticate("0000000001", "pa55word")
-		if err != nil {
-			fmt.Println(err.Error())
-			return
-		}
-		fmt.Println(id)
+		println(r.URL.RequestURI())
 	})
 
-	protect := middlewares{ap.sessionsManager.LoadAndSave}
+	authenticate := middlewares{ap.sessionsManager.LoadAndSave, ap.authenticate}
 
 	// File server
 	mux.Handle("GET /static/", http.FileServerFS(ui.Files))
-	mux.Handle("GET /rec/", protect.then(http.StripPrefix("/rec", http.FileServerFS(rec.Files))))
+	mux.Handle("GET /rec/", authenticate.then(http.StripPrefix("/rec", http.FileServerFS(rec.Files))))
 
-	// Public
+	// Health
 	mux.HandleFunc("GET /health", ap.health)
-	mux.Handle("GET /{$}", protect.then(ap.homePage()))
+
+	// Home
+	mux.Handle("GET /{$}", authenticate.then(ap.homePage()))
+
+	// mux.Handle("GET /az", append(authenticate, ap.authorize("Kế toán trưởng")).then(ap.homePage()))
 
 	// Login, logout
-	mux.Handle("POST /login", protect.then(ap.login()))
+	mux.Handle("GET /login", authenticate.then(ap.loginPage()))
+	mux.Handle("POST /login", authenticate.then(ap.login()))
 
 	// Account
-	mux.Handle("GET /account", protect.then(ap.account()))
+	mux.Handle("GET /account", authenticate.then(ap.account()))
 
 	pre := middlewares{ap.recoverPanic, ap.logRequest, ap.addCommonHeaders}
 
