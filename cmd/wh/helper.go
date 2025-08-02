@@ -7,16 +7,9 @@ import (
 	"fmt"
 	"maps"
 	"net/http"
-	"slices"
 	"strconv"
 
-	"github.com/tanNguyen2220022/wh/internal/data"
 	"github.com/tanNguyen2220022/wh/internal/validator"
-)
-
-var (
-	// ErrIDLessThan1 = errors.New("ID less than 1")
-	ErrInvalidID = errors.New("ID không hợp lệ")
 )
 
 func (ap *application) render(
@@ -28,8 +21,6 @@ func (ap *application) render(
 	tmpl, exist := ap.templCache[page]
 	if !exist {
 		err := fmt.Errorf("template '%v' does not exist", page)
-		ap.logger.Error(err.Error())
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return err
 	}
 
@@ -38,8 +29,6 @@ func (ap *application) render(
 	// write to a temp buffer first in case there's an error
 	err := tmpl.ExecuteTemplate(buf, "base", data)
 	if err != nil {
-		ap.logger.Error(err.Error())
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return err
 	}
 
@@ -71,49 +60,23 @@ func (ap *application) writeJSON(
 	return nil
 }
 
-// validateID validate the code part and parses the integer into an int64
-func (ap *application) validateID(s string) (int64, error) {
-	// codeValid := false
-	// for _, v := range data.IDCodes() {
-	// 	if s[:4] == v {
-	// 		codeValid = true
-	// 		break
-	// 	}
-	// }
-	// if !codeValid {
-	// 	return 0, fmt.Errorf("ID %v không hợp lệ", s)
-	// }
+// validateID checks if id is at least 5 chars, if the code part is within permittedCodes,
+// then parses the number part to an int64
+func (ap *application) validateID(id string, permittedCodes ...string) (int64, error) {
 	va := validator.Validator{}
+
 	va.Check(
-		validator.MinChars(s, 4) && validator.Permitted(s[:4], slices.Collect(maps.Values(data.IDCodes()))...),
-		fmt.Sprintf("ID %v, mã %v không tồn tại", s, s[:4]),
+		validator.MinChars(id, 5) && validator.Permitted(id[:4], permittedCodes...),
+		fmt.Sprintf("ID %v is less than 5 chars or the code is not within %v", id, permittedCodes),
 	)
 	if !va.Valid() {
 		return 0, errors.New(va.Message())
 	}
 
-	id, err := strconv.ParseInt(s[4:], 10, 64)
-	if err != nil || id < 1 {
-		return 0, fmt.Errorf("ID %v, số %v không hợp lệ", s, s[4:])
+	i, err := strconv.ParseInt(id[4:], 10, 64)
+	if err != nil || i < 1 {
+		return 0, fmt.Errorf("ID %v, the number must be >= 1", id)
 	}
 
-	return id, nil
-}
-
-func (ap *application) validateIDWithCode(s, code string) (int64, error) {
-	va := validator.Validator{}
-	va.Check(validator.MinChars(s, 4) && validator.Permitted(s[:4], code), fmt.Sprintf("ID %v, mã %v không phải Account ID", s, s[:4]))
-	if !va.Valid() {
-		return 0, errors.New(va.Message())
-	}
-	// if s[:4] != code {
-	// 	return 0, fmt.Errorf("%v không thuộc mã %v", s, code)
-	// }
-
-	id, err := ap.validateID(s)
-	if err != nil {
-		return 0, err
-	}
-
-	return id, nil
+	return i, nil
 }

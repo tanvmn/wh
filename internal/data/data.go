@@ -2,6 +2,7 @@ package data
 
 import (
 	"database/sql"
+	"errors"
 	"log/slog"
 )
 
@@ -12,6 +13,10 @@ const (
 	ToteIDCode    = "TOT-"
 	BoxIDCode     = "BOX-"
 	StaffIDCode   = "STF-"
+)
+
+var (
+	ErrInvalidID = errors.New("ID không hợp lệ")
 )
 
 func IDCodes() map[string]string {

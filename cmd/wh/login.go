@@ -7,24 +7,26 @@ import (
 
 	"github.com/tanNguyen2220022/wh/internal/data"
 	"github.com/tanNguyen2220022/wh/internal/validator"
-	"github.com/tanNguyen2220022/wh/ui"
 )
 
 func (ap *application) loginPage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// path := filepath.Join()
-		// http.ServeFile(w,r,)
-		http.ServeFileFS(w, r, ui.Files, "html/login.html")
+		// http.ServeFileFS(w, r, ui.Files, "html/login.html")
+		if err := ap.render(w, http.StatusOK, "login", templData{}); err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
 	})
 }
 
-// login handles login by form
+// login handles login form
 func (ap *application) login() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err := r.ParseForm()
 		if err != nil {
 			ap.logger.Error(err.Error())
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			http.Error(w, "Không thể xử lý form đăng nhập", http.StatusBadRequest)
 			return
 		}
 

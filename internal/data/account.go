@@ -19,12 +19,12 @@ type Account struct {
 }
 
 var (
-	ErrNoAccounts         = errors.New("account not found")
+	ErrNoAccounts         = errors.New("không tìm thấy tài khoản")
 	ErrInvalidCredentials = errors.New("invalid credentials")
 )
 
 // Account only receives the integer part of the ID, not the whole string ID
-func (d *Data) Account(id int64) (*Account, error) {
+func (d *Data) Account(i int64) (*Account, error) {
 	stmt := `select
 	'ACC-'||id,
 	substring(to_char(bdate, 'YYYY-MM-DD') from 1 for 10),
@@ -35,7 +35,7 @@ func (d *Data) Account(id int64) (*Account, error) {
 	where id=$1`
 
 	var ac Account
-	err := d.DB.QueryRow(stmt, id).Scan(
+	err := d.DB.QueryRow(stmt, i).Scan(
 		&ac.ID,
 		&ac.BDate,
 		&ac.Name,
