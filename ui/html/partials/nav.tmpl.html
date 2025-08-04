@@ -1,4 +1,4 @@
-{{define "head"}}
+<!-- {{define "head"}}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 <style>
 	body {
@@ -79,35 +79,35 @@
 		}
 	}
 </style>
-{{end}}
+{{end}} -->
 
 {{define "nav"}}
-<div class="sidenav">
+<div class="sidenav-w3">
 	<a href="/">Home</a>
 
-	<button class="dropdown-btn">Dropdown
+	<button class="dropdown-btn-w3">Dropdown
 		<i class="fa fa-caret-down"></i>
 	</button>
-	<div class="dropdown-container">
+	<div class="dropdown-container-w3">
 		<a href="https://example.com/">Example.com</a>
 	</div>
 
-	<button class="dropdown-btn">Google
+	<button class="dropdown-btn-w3">Google
 		<i class="fa fa-caret-down"></i>
 	</button>
-	<div class="dropdown-container">
+	<div class="dropdown-container-w3">
 		<a href="https://google.com/">Google.com</a>
 	</div>
 </div>
 
 <script>
 	/* Loop through all dropdown buttons to toggle between hiding and showing its dropdown content - This allows the user to have multiple dropdowns without any conflict */
-	var dropdown = document.getElementsByClassName("dropdown-btn");
+	var dropdown = document.getElementsByClassName("dropdown-btn-w3");
 	var i;
 
 	for (i = 0; i < dropdown.length; i++) {
 		dropdown[i].addEventListener("click", function () {
-			this.classList.toggle("active");
+			this.classList.toggle("active-w3");
 			var dropdownContent = this.nextElementSibling;
 			if (dropdownContent.style.display === "block") {
 				dropdownContent.style.display = "none";
