@@ -3,11 +3,12 @@
 	<form action="/login" method="post">
 		<div class="mb-3">
 			<label for="phone" class="form-label">Phone</label>
-			<input type="number" class="form-control" id="phone" name="phone" aria-describedby="phoneHelp">
+			<input type="tel" class="form-control" id="phone" name="phone" pattern="[0-9]{10,12}"
+				aria-describedby="phoneHelp" required>
 		</div>
 		<div class="mb-3">
 			<label for="password" class="form-label">Password</label>
-			<input type="password" class="form-control" id="password" name="password">
+			<input type="password" class="form-control" id="password" name="password" required>
 		</div>
 		<button type="submit" class="btn btn-primary">Login</button>
 	</form>
@@ -18,7 +19,7 @@
 Login
 {{end}}
 
-{{define "head"}}
-{{end}}
+<!-- {{define "head"}}
+{{end}} -->
 {{define "nav"}}
 {{end}}

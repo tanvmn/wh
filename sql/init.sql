@@ -147,7 +147,7 @@ create table if not exists purchase_item (
 -- create type size as enum ('S', 'M', 'L', 'XL', 'XXL');
 
 -- drop type if exists color cascade;
--- create type color as enum ('Đỏ', 'Cam', 'Vàng', 'Lục', 'Lam', 'Chàm', 'Tím', 'Đen', 'Nâu', 'Xám', 'Trắng');
+-- create type color as enum ('Đỏ', 'Cam', 'Vàng', 'Lục', 'Lam', 'Chàm', 'Tím', 'Đen', 'Nâu', 'Xám', 'Trắng', 'Hồng);
 
 create table if not exists item (
 	gtin text not null,
@@ -236,6 +236,7 @@ create table if not exists seri (
 	export_id bigint not null
 );
 
+
 insert into warehouse (name, address, phone, email) values 
 ('HCM K1', 'địa chỉ HCM K1', '0000000010', 'tan.nguyen2220022@hcmut.edu.vn'),
 ('DNai K1', 'địa chỉ DNai K1', '0000000011', 'tan.nguyen2220022@hcmut.edu.vn')
@@ -312,11 +313,11 @@ insert into type (name) values
 ;
 
 insert into item (gtin, characteristic, volume, weight, brand, material, color, size, price, type_id) values
-('4983435734503', 'có túi', 1392, 200, 'GAP', 'Polyester', 'Lam', 'L', 200000, 6),
-('8936040400574', 'có túi', 1392, 200, 'Navy', 'Polyester', 'Lam', 'XL', 200000, 8),
-('8888021200126', 'có cổ, tay ngắn', 1392, 200, 'Viettien', 'Cotton', 'Đỏ', 'M', 150000, 1),
-('4983435764166', 'có cổ, tay ngắn', 1392, 200, 'Gucci', 'Cotton', 'Đỏ', 'XL', 150000, 2),
-('4983435734909', 'có cổ, tay dài', 1392, 200, 'Pierre', 'Cotton', 'Đỏ', 'L', 150000, 2)
+('4983435734503', 'có túi', 1392, 200, 'GAP', 'Polyester', 'Lam', 'L', 200000, 6),		-- quần tây lam
+('8936040400574', 'có túi', 1392, 200, 'Navy', 'Polyester', 'Lục', 'XL', 200000, 8),		-- quần thun lục
+('8888021200126', 'có cổ, tay dài', 1392, 200, 'Viettien', 'Cotton', 'Trắng', 'M', 150000, 1),	-- áo somi trắng tay dài
+('4983435764166', 'có cổ, tay ngắn', 1392, 200, 'Gucci', 'Cotton', 'Vàng', 'XL', 150000, 2),	-- áo thun vàng tay ngắn
+('4983435734909', 'có cổ, tay dài', 1392, 200, 'Pierre', 'Cotton', 'Đen', 'L', 150000, 2)	-- áo khoác đen tay dài
 ;
 
 insert into supplier_item (supplier_id, gtin) values

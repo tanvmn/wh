@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/tanNguyen2220022/wh/internal/data"
@@ -34,6 +33,7 @@ func (ap *application) login() http.Handler {
 
 		va := new(validator.Validator)
 		va.Check(validator.MinChars(phone, 10), "Số điện thoại tối thiểu 10 ký tự")
+		va.Check(validator.MaxChars(phone, 12), "Số điện thoại tối đa 12 ký tự")
 		va.Check(validator.NotBlank(password), "Mật khẩu không thể rỗng")
 
 		if !va.Valid() {
@@ -44,9 +44,8 @@ func (ap *application) login() http.Handler {
 
 		id, err := ap.data.Authenticate(phone, password)
 		if errors.Is(err, data.ErrInvalidCredentials) {
-			s := fmt.Sprintf("%v:%v\nThông tin đăng nhập không chính xác", phone, password)
 			ap.logger.Error(data.ErrInvalidCredentials.Error() + ", " + phone + ":" + password)
-			http.Error(w, s, http.StatusUnprocessableEntity)
+			http.Error(w, "Thông tin đăng nhập không chính xác", http.StatusUnprocessableEntity)
 			return
 		} else if err != nil {
 			ap.logger.Error(err.Error())
