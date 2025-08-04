@@ -75,7 +75,7 @@ func (ap *application) authenticate(next http.Handler) http.Handler {
 		// Get account infos and store in request's context
 		ac, err := ap.data.Account(id)
 		if err != nil {
-			if errors.Is(err, data.ErrNoAccounts) {
+			if errors.Is(err, data.ErrNoRecords) {
 				ap.logger.Error(fmt.Sprintf("Account %v%v not found in db, but id is in session data", data.AccountIDCode, id))
 				http.Error(w, "Tài khoản có thể không còn tồn tại từ sau phiên đăng nhập trước", http.StatusUnauthorized)
 				return
@@ -86,8 +86,10 @@ func (ap *application) authenticate(next http.Handler) http.Handler {
 			}
 		}
 		if ac != nil {
-			r = r.WithContext(context.WithValue(r.Context(), authenticatedCtxID, ac.ID))
-			r = r.WithContext(context.WithValue(r.Context(), authenticatedCtxRole, ac.Role))
+			r = r.WithContext(context.WithValue(r.Context(), contextKey("authenticatedID"), ac.ID))
+			r = r.WithContext(context.WithValue(r.Context(), contextKey("authenticatedRole"), ac.Role))
+			r = r.WithContext(context.WithValue(r.Context(), contextKey("authenticatedWarehouseID"), ac.WarehouseID))
+			r = r.WithContext(context.WithValue(r.Context(), contextKey("authenticatedStoreID"), ac.StoreID))
 		}
 
 		// Set the "Cache-Control: no-store" header so that

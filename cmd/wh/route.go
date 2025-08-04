@@ -53,6 +53,12 @@ func (ap *application) routes() http.Handler {
 	mux.Handle("GET /static/", http.FileServerFS(ui.Files))
 	mux.Handle("GET /rec/", authenticate.then(http.StripPrefix("/rec", http.FileServerFS(rec.Files))))
 
+	// Account
+	mux.Handle("GET /account", authenticate.then(ap.account()))
+
+	// Item
+	mux.Handle("GET /items", authenticate.then(ap.items()))
+
 	// Health
 	mux.HandleFunc("GET /health", ap.health)
 
@@ -64,9 +70,6 @@ func (ap *application) routes() http.Handler {
 	// Login, logout
 	mux.Handle("GET /login", authenticate.then(ap.loginPage()))
 	mux.Handle("POST /login", authenticate.then(ap.login()))
-
-	// Account
-	mux.Handle("GET /account", authenticate.then(ap.account()))
 
 	pre := middlewares{ap.recoverPanic, ap.logRequest, ap.addCommonHeaders}
 

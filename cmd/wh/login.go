@@ -42,7 +42,8 @@ func (ap *application) login() http.Handler {
 			return
 		}
 
-		id, err := ap.data.Authenticate(phone, password)
+		// i here is just the int64 part of account id
+		i, err := ap.data.Authenticate(phone, password)
 		if errors.Is(err, data.ErrInvalidCredentials) {
 			ap.logger.Error(data.ErrInvalidCredentials.Error() + ", " + phone + ":" + password)
 			http.Error(w, "Thông tin đăng nhập không chính xác", http.StatusUnprocessableEntity)
@@ -61,7 +62,7 @@ func (ap *application) login() http.Handler {
 			return
 		}
 
-		ap.sessionsManager.Put(r.Context(), "authenticatedID", id)
+		ap.sessionsManager.Put(r.Context(), "authenticatedID", i)
 
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	})
