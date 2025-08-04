@@ -76,6 +76,7 @@ func Match(v string, rx *regexp.Regexp) bool {
 	return rx.MatchString(v)
 }
 
+// Message return the combine error messages of performed validations
 func (v *Validator) Message() string {
 	var msg string
 

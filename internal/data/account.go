@@ -25,6 +25,10 @@ var (
 )
 
 func (d *Data) Account(id int64) (*Account, error) {
+	if id < 1 {
+		return nil, ErrNoRecords
+	}
+
 	stmt := `select
 	'ACC-'||id,
 	substring(to_char(bdate, 'YYYY-MM-DD') from 1 for 10),
@@ -65,13 +69,13 @@ func (d *Data) Account(id int64) (*Account, error) {
 	return &ac, nil
 }
 
-func (d *Data) Authenticate(phone, password string) (i int64, err error) {
+func (d *Data) Authenticate(phone, password string) (id int64, err error) {
 	var (
 		passwordHash []byte
 	)
 
 	stmt := `select id, password_hash from account where phone=$1`
-	err = d.DB.QueryRow(stmt, phone).Scan(&i, &passwordHash)
+	err = d.DB.QueryRow(stmt, phone).Scan(&id, &passwordHash)
 	if errors.Is(err, sql.ErrNoRows) {
 		return 0, ErrInvalidCredentials
 	} else if err != nil {
@@ -85,5 +89,5 @@ func (d *Data) Authenticate(phone, password string) (i int64, err error) {
 		return 0, err
 	}
 
-	return i, nil
+	return id, nil
 }

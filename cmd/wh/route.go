@@ -1,8 +1,6 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/tanNguyen2220022/wh/rec"
@@ -13,9 +11,6 @@ func (ap *application) routes() http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /t", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "../../fe/index.html")
-	})
-	mux.HandleFunc("POST /t", func(w http.ResponseWriter, r *http.Request) {
 		// stmt := `insert into account (phone) values (0000000001)`
 		// _, err := ap.data.DB.Exec(stmt)
 		// if err != nil {
@@ -29,21 +24,19 @@ func (ap *application) routes() http.Handler {
 		// 		fmt.Println(pErr.Code.Name())
 		// 	}
 		// }
-		payload := []struct {
-			I int    `json:"i,omitzero,omitempty"`
-			S string `json:"s,omitzero,omitempty"`
-			A []int  `json:"a,omitzero,omitempty"`
-		}{}
-		err := json.NewDecoder(r.Body).Decode(&payload)
+
+		i, err := ap.data.Item("4983435734503")
 		if err != nil {
 			ap.logger.Error(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 
-		fmt.Printf("%+v\n", payload)
-
-		err = ap.writeJSON(w, http.StatusOK, payload, nil)
+		err = ap.writeJSON(w, http.StatusOK, i, nil)
 		if err != nil {
 			ap.logger.Error(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 	})
 
