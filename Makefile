@@ -11,11 +11,9 @@ psql/stop:
 	sudo systemctl stop postgresql
 	sudo systemctl status postgresql.service
 
-.PHONY: psql/reset
-psql/reset:
-	sudo -u postgres psql -f sql/reset.sql
+.PHONY: psql/init
+psql/init:
 	psql ${WH_DSN} -f sql/init.sql
-	psql ${WH_DSN}
 
 .PHONY: run/wh
 run/wh:
