@@ -2,17 +2,57 @@
 <div class="container mt-5">
 	<form action="/login" method="post">
 		<div class="mb-3">
-			<label for="phone" class="form-label">Phone</label>
+			<label for="phone" class="form-label">Điện thoại</label>
 			<input type="tel" class="form-control" id="phone" name="phone" pattern="[0-9]{10,12}"
-				aria-describedby="phoneHelp" required>
+				oninvalid="this.setCustomValidity('Tối thiểu 10, tối đa 12 SỐ')"
+				oninput="this.setCustomValidity('')" aria-describedby="phoneHelp" required>
 		</div>
 		<div class="mb-3">
-			<label for="password" class="form-label">Password</label>
-			<input type="password" class="form-control" id="password" name="password" required>
+			<label for="password" class="form-label">Mật khẩu</label>
+			<input type="password" class="form-control" id="password" name="password"
+				oninvalid="this.setCustomValidity('Không thể rỗng')"
+				oninput="this.setCustomValidity('')" required>
 		</div>
 		<button type="submit" class="btn btn-primary">Login</button>
 	</form>
 </div>
+
+<script type="module">
+	import { domain } from '../static/js/util.js';
+
+	const form = document.querySelector('form');
+	form.addEventListener('submit', function (e) {
+		e.preventDefault();
+
+		const formData = new FormData(form);
+		const payload = new URLSearchParams(formData);
+		let ok = false;
+
+		fetch(domain + '/login', {
+			method: "POST",
+			body: payload,
+		})
+			.then(function (res) {
+				console.dir(res);
+				ok = res.ok;
+
+				if (!res.ok) {
+					return res.text();
+				}
+				if (res.redirected) {
+					window.location.replace(res.url);
+				}
+			})
+			.then(function (data) {
+				if (!ok) {
+					alert(data);
+				}
+			})
+			.catch(function (err) {
+				console.error(err);
+			});
+	})
+</script>
 {{end}}
 
 {{define "title"}}

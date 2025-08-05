@@ -127,8 +127,8 @@ create table if not exists store (
 	warehouse_id bigint not null
 );
 
--- drop type if exists status cascade;
--- create type status as enum ('Chờ phản hồi', 'Chờ nhập', 'Đang nhập', 'Kết thúc', 'Từ chối');
+drop type if exists status cascade;
+create type status as enum ('Chờ phản hồi', 'Chờ nhập', 'Đang nhập', 'Kết thúc', 'Từ chối');
 
 create table if not exists purchase (
 	id bigserial not null,
@@ -137,7 +137,8 @@ create table if not exists purchase (
 	supplier_id bigint not null,
 	expected_dtime timestamp not null,
 	created_dtime timestamp not null,
-	status text not null
+	-- status text not null
+	status status not null
 );
 
 create table if not exists purchase_item (
@@ -146,26 +147,64 @@ create table if not exists purchase_item (
 	quantity bigint not null
 );
 
--- drop type if exists material cascade;
--- create type material as enum ('Cotton', 'Linen', 'Polyester');
+drop type if exists material cascade;
+create type material as enum ('Cotton', 'Linen', 'Polyester');
 
--- drop type if exists size cascade;
--- create type size as enum ('S', 'M', 'L', 'XL', 'XXL');
+drop type if exists size cascade;
+create type size as enum ('S', 'M', 'L', 'XL', 'XXL');
 
--- drop type if exists color cascade;
--- create type color as enum ('Đỏ', 'Cam', 'Vàng', 'Lục', 'Lam', 'Chàm', 'Tím', 'Đen', 'Nâu', 'Xám', 'Trắng', 'Hồng);
+drop type if exists color cascade;
+create type color as enum ('Đỏ', 'Cam', 'Vàng', 'Lục', 'Lam', 'Chàm', 'Tím', 'Đen', 'Nâu', 'Xám', 'Trắng', 'Hồng');
+
+drop type if exists brand cascade;
+create type brand as enum ('Gucci', 'GAP', 'Navy', 'Viettien', 'Pierre', 'H&M', 'Zara');
+
+-- insert into type (name) values
+-- ('Áo sơmi'),
+-- ('Áo thun'),
+-- ('Áo len'),
+-- ('Áo jean'),
+-- ('Áo khoác'),
+-- ('Quần tây'),
+-- ('Quần jean'),
+-- ('Quần thun'),
+-- ('Váy'),
+-- ('Đầm'),
+-- ('Onesie')
+-- ;
+
+drop type if exists item_type cascade;
+create type item_type as enum (
+'Áo sơmi',
+'Áo thun',
+'Áo len',
+'Áo jean',
+'Áo khoác',
+'Quần tây',
+'Quần jean',
+'Quần thun',
+'Váy',
+'Đầm',
+'Onesie'
+);
 
 create table if not exists item (
 	gtin text not null,
 	characteristic text not null,
 	volume real not null,
-	weight real not null,
-	brand text not null,
-	material text not null,
-	color text not null,
-	size text not null,
+	weight bigint not null,
+	-- brand text not null,
+	-- material text not null,
+	-- color text not null,
+	-- size text not null,
+	brand brand not null,
+	material material not null,
+	color color not null,
+	size size not null,
 	price real not null,
-	type_id bigint not null
+	shelf_life bigint not null,
+	-- type_id bigint not null
+	item_type item_type not null
 );
 
 create table if not exists type (
@@ -411,26 +450,26 @@ insert into supplier (name, address, phone, email) values
 ('NCC 2', 'địa chỉ NCC 2', '000001001', 'tanNguyen2220022.hcmut.edu.vn')
 ;
 
-insert into type (name) values
-('Áo sơmi'),
-('Áo thun'),
-('Áo len'),
-('Áo jean'),
-('Áo khoác'),
-('Quần tây'),
-('Quần jean'),
-('Quần thun'),
-('Váy'),
-('Đầm'),
-('Onesie')
-;
+-- insert into type (name) values
+-- ('Áo sơmi'),
+-- ('Áo thun'),
+-- ('Áo len'),
+-- ('Áo jean'),
+-- ('Áo khoác'),
+-- ('Quần tây'),
+-- ('Quần jean'),
+-- ('Quần thun'),
+-- ('Váy'),
+-- ('Đầm'),
+-- ('Onesie')
+-- ;
 
-insert into item (gtin, characteristic, volume, weight, brand, material, color, size, price, type_id) values
-('4983435734503', 'có túi', 1392, 200, 'GAP', 'Polyester', 'Lam', 'L', 200000, 6),		-- quần tây lam
-('8936040400574', 'có túi', 1392, 200, 'Navy', 'Polyester', 'Lục', 'XL', 200000, 8),		-- quần thun lục
-('8888021200126', 'có cổ, tay dài', 1392, 200, 'Viettien', 'Cotton', 'Trắng', 'M', 150000, 1),	-- áo somi trắng tay dài
-('4983435764166', 'có cổ, tay ngắn', 1392, 200, 'Gucci', 'Cotton', 'Vàng', 'XL', 150000, 2),	-- áo thun vàng tay ngắn
-('4983435734909', 'có cổ, tay dài', 1392, 200, 'Pierre', 'Cotton', 'Đen', 'L', 150000, 2)	-- áo khoác đen tay dài
+insert into item (gtin, characteristic, volume, weight, brand, material, color, size, price, item_type, shelf_life) values
+('4983435734503', 'có túi', 1392, 200, 'GAP', 'Polyester', 'Lam', 'L', 200000, 'Quần tây', 7),			-- quần tây lam
+('8936040400574', 'có túi', 1392, 200, 'Navy', 'Polyester', 'Lục', 'XL', 200000, 'Quần thun', 7),		-- quần thun lục
+('8888021200126', 'có cổ, tay dài', 1392, 200, 'Viettien', 'Cotton', 'Trắng', 'M', 150000, 'Áo sơmi', 7),	-- áo somi trắng tay dài
+('4983435764166', 'có cổ, tay ngắn', 1392, 200, 'Gucci', 'Cotton', 'Vàng', 'XL', 150000, 'Áo thun', 7),		-- áo thun vàng tay ngắn
+('4983435734909', 'có cổ, tay dài', 1392, 200, 'Pierre', 'Cotton', 'Đen', 'L', 150000, 'Áo khoác', 7)		-- áo khoác đen tay dài
 ;
 
 insert into supplier_item (supplier_id, gtin) values
@@ -496,7 +535,7 @@ alter table purchase add constraint fk_purchase_account_id foreign key(account_i
 alter table purchase_item add constraint fk_purchase_item_purchase_id foreign key(purchase_id) references purchase(id);
 alter table purchase_item add constraint fk_purchase_item_gtin foreign key(gtin) references item(gtin);
 
-alter table item add constraint fk_item_type_id foreign key(type_id) references type(id);
+-- alter table item add constraint fk_item_type_id foreign key(type_id) references type(id);
 
 alter table resupply add constraint fk_resupply_account_id foreign key(account_id) references account(id);
 alter table resupply add constraint fk_resupply_store_id foreign key(store_id) references store(id);

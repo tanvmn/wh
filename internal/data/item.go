@@ -14,7 +14,7 @@ type Item struct {
 	GTIN           string  `json:"gtin,omitempty,omitzero"`
 	Characteristic string  `json:"characteristic,omitempty,omitzero"`
 	Volume         float32 `json:"volume,omitempty,omitzero"`
-	Weight         float32 `json:"weight,omitempty,omitzero"`
+	Weight         int64 `json:"weight,omitempty,omitzero"`
 	Brand          string  `json:"brand,omitempty,omitzero"`
 	Material       string  `json:"material,omitempty,omitzero"`
 	Color          string  `json:"color,omitempty,omitzero"`

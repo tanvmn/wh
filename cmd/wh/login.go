@@ -38,7 +38,7 @@ func (ap *application) login() http.Handler {
 
 		if !va.Valid() {
 			ap.logger.Error(va.Message())
-			http.Error(w, va.Message(), http.StatusBadRequest)
+			http.Error(w, va.Message(), http.StatusUnprocessableEntity)
 			return
 		}
 
