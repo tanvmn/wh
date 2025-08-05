@@ -24,9 +24,13 @@ type Item struct {
 	Type           `json:"type,omitempty,omitzero"`
 }
 
+var (
+	ErrNoItems = errors.New("data: no items found")
+)
+
 func (d *Data) Item(gtin string) (*Item, error) {
 	if gtin == "" {
-		return nil, ErrNoRecords
+		return nil, ErrNoItems
 	}
 
 	stmt := `select
@@ -62,7 +66,7 @@ func (d *Data) Item(gtin string) (*Item, error) {
 		&i.Type.Name,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, ErrNoRecords
+		return nil, ErrNoItems
 	} else if err != nil {
 		return nil, err
 	}

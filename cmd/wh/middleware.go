@@ -75,7 +75,7 @@ func (ap *application) authenticate(next http.Handler) http.Handler {
 		// Get account infos and store in request's context
 		ac, err := ap.data.Account(id)
 		if err != nil {
-			if errors.Is(err, data.ErrNoRecords) {
+			if errors.Is(err, data.ErrNoAccounts) {
 				ap.logger.Error(fmt.Sprintf("Account %v%v not found in db, but id is in session data", data.AccountIDCode, id))
 				http.Error(w, "Tài khoản có thể không còn tồn tại từ sau phiên đăng nhập trước", http.StatusUnauthorized)
 				return

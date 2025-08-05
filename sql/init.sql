@@ -72,24 +72,29 @@ create table if not exists transfer (
 	export_warehouse bigint not null,
 	receive_warehouse bigint not null,
 	account_id bigint not null,
+	created_dtime timestamp not null,
 	expected_dtime timestamp not null
 );
 
 create table if not exists bin (
 	id bigserial not null,
-	warehouse_id bigint,
+	warehouse_id bigint not null,
+	shelf bigint not null,
+	row bigint not null,
+	col bigint not null,
 	capacity real not null
 );
 
 create table if not exists tote (
 	id bigserial not null,
-	warehouse_id bigint,
+	warehouse_id bigint not null,
 	capacity real not null
 );
 
 create table if not exists inventory (
 	id bigserial not null,
-	dtime timestamp not null,
+	start_dtime timestamp not null,
+	end_dtime timestamp not null,
 	balanced boolean,
 	warehouse_id bigint not null,
 	account_id bigint not null
@@ -131,6 +136,7 @@ create table if not exists purchase (
 	account_id bigint not null,
 	supplier_id bigint not null,
 	expected_dtime timestamp not null,
+	created_dtime timestamp not null,
 	status text not null
 );
 
@@ -172,8 +178,16 @@ create table if not exists resupply (
 	account_id int not null,
 	store_id int not null,
 	expected_dtime timestamp not null,
+	created_dtime timestamp not null,
 	status text not null
 );
+
+create table if not exists resupply_item (
+	resupply_id bigint not null,
+	gtin text not null,
+	quantity bigint not null
+);
+
 
 create table if not exists supplier (
 	id bigserial not null,
@@ -188,6 +202,16 @@ create table if not exists supplier_item (
 	gtin text not null
 );
 
+create table if not exists receive (
+	id bigserial not null,
+	purchase_id bigint not null,
+	account_id bigint not null,
+	expected_dtime timestamp not null,
+	actual_dtime timestamp not null default '1000-01-01 00:00:00',
+	created_dtime timestamp not null,
+	transfer_id bigint
+);
+
 create table if not exists receive_item (
 	purchase_id bigint not null,
 	gtin text not null,
@@ -195,31 +219,17 @@ create table if not exists receive_item (
 	quantity bigint not null
 );
 
-create table if not exists receive (
-	id bigserial not null,
-	purchase_id bigint not null,
-	account_id bigint not null,
-	expected_dtime timestamp not null,
-	actual_dtime timestamp not null default '1000-01-01 00:00:00',
-	transfer_id bigint
-);
-
 create table if not exists export (
 	id bigserial not null,
 	resupply_id bigint not null,
 	expected_dtime timestamp not null,
 	actual_dtime timestamp not null default '1000-01-01 00:00:00',
+	created_dtime timestamp not null,
 	transfer_id bigint
 );
 
 create table if not exists export_item (
 	export_id bigint not null,
-	resupply_id bigint not null,
-	gtin text not null,
-	quantity bigint not null
-);
-
-create table if not exists resupply_item (
 	resupply_id bigint not null,
 	gtin text not null,
 	quantity bigint not null
@@ -267,30 +277,133 @@ insert into tote (warehouse_id, capacity) values
 (1, 37480),
 (1, 37480),
 (1, 37480),
-(1, 37480)
+(2, 37480),
+(2, 37480),
+(2, 37480),
+(2, 37480),
+(2, 37480),
+(2, 37480),
+(2, 37480),
+(2, 37480),
+(2, 37480),
+(2, 37480),
+(2, 37480),
+(2, 37480),
+(2, 37480),
+(2, 37480),
+(2, 37480),
+(2, 37480),
+(2, 37480),
+(2, 37480),
+(2, 37480),
+(2, 37480),
+(2, 37480)
 ;
 
-insert into bin (warehouse_id, capacity) values 
-(1, 37480),
-(1, 37480),
-(1, 37480),
-(1, 37480),
-(1, 37480),
-(1, 37480),
-(1, 37480),
-(1, 37480),
-(1, 37480),
-(1, 37480),
-(1, 37480),
-(1, 37480),
-(1, 37480),
-(1, 37480),
-(1, 37480),
-(1, 37480),
-(1, 37480),
-(1, 37480),
-(1, 37480),
-(1, 37480)
+insert into bin (warehouse_id, shelf, row, col, capacity) values 
+(1, 1, 1, 1, 37480),
+(1, 1, 1, 2, 37480),
+(1, 1, 1, 3, 37480),
+(1, 1, 1, 4, 37480),
+(1, 1, 1, 5, 37480),
+(1, 1, 2, 1, 37480),
+(1, 1, 2, 2, 37480),
+(1, 1, 2, 3, 37480),
+(1, 1, 2, 4, 37480),
+(1, 1, 2, 5, 37480),
+(1, 1, 3, 1, 37480),
+(1, 1, 3, 2, 37480),
+(1, 1, 3, 3, 37480),
+(1, 1, 3, 4, 37480),
+(1, 1, 3, 5, 37480),
+(1, 1, 4, 1, 37480),
+(1, 1, 4, 2, 37480),
+(1, 1, 4, 3, 37480),
+(1, 1, 4, 4, 37480),
+(1, 1, 4, 5, 37480),
+(1, 1, 5, 1, 37480),
+(1, 1, 5, 2, 37480),
+(1, 1, 5, 3, 37480),
+(1, 1, 5, 4, 37480),
+(1, 1, 5, 5, 37480),
+
+(1, 2, 1, 1, 37480),
+(1, 2, 1, 2, 37480),
+(1, 2, 1, 3, 37480),
+(1, 2, 1, 4, 37480),
+(1, 2, 1, 5, 37480),
+(1, 2, 2, 1, 37480),
+(1, 2, 2, 2, 37480),
+(1, 2, 2, 3, 37480),
+(1, 2, 2, 4, 37480),
+(1, 2, 2, 5, 37480),
+(1, 2, 3, 1, 37480),
+(1, 2, 3, 2, 37480),
+(1, 2, 3, 3, 37480),
+(1, 2, 3, 4, 37480),
+(1, 2, 3, 5, 37480),
+(1, 2, 4, 1, 37480),
+(1, 2, 4, 2, 37480),
+(1, 2, 4, 3, 37480),
+(1, 2, 4, 4, 37480),
+(1, 2, 4, 5, 37480),
+(1, 2, 5, 1, 37480),
+(1, 2, 5, 2, 37480),
+(1, 2, 5, 3, 37480),
+(1, 2, 5, 4, 37480),
+(1, 2, 5, 5, 37480),
+
+(2, 1, 1, 1, 37480),
+(2, 1, 1, 2, 37480),
+(2, 1, 1, 3, 37480),
+(2, 1, 1, 4, 37480),
+(2, 1, 1, 5, 37480),
+(2, 1, 2, 1, 37480),
+(2, 1, 2, 2, 37480),
+(2, 1, 2, 3, 37480),
+(2, 1, 2, 4, 37480),
+(2, 1, 2, 5, 37480),
+(2, 1, 3, 1, 37480),
+(2, 1, 3, 2, 37480),
+(2, 1, 3, 3, 37480),
+(2, 1, 3, 4, 37480),
+(2, 1, 3, 5, 37480),
+(2, 1, 4, 1, 37480),
+(2, 1, 4, 2, 37480),
+(2, 1, 4, 3, 37480),
+(2, 1, 4, 4, 37480),
+(2, 1, 4, 5, 37480),
+(2, 1, 5, 1, 37480),
+(2, 1, 5, 2, 37480),
+(2, 1, 5, 3, 37480),
+(2, 1, 5, 4, 37480),
+(2, 1, 5, 5, 37480),
+
+(2, 2, 1, 1, 37480),
+(2, 2, 1, 2, 37480),
+(2, 2, 1, 3, 37480),
+(2, 2, 1, 4, 37480),
+(2, 2, 1, 5, 37480),
+(2, 2, 2, 1, 37480),
+(2, 2, 2, 2, 37480),
+(2, 2, 2, 3, 37480),
+(2, 2, 2, 4, 37480),
+(2, 2, 2, 5, 37480),
+(2, 2, 3, 1, 37480),
+(2, 2, 3, 2, 37480),
+(2, 2, 3, 3, 37480),
+(2, 2, 3, 4, 37480),
+(2, 2, 3, 5, 37480),
+(2, 2, 4, 1, 37480),
+(2, 2, 4, 2, 37480),
+(2, 2, 4, 3, 37480),
+(2, 2, 4, 4, 37480),
+(2, 2, 4, 5, 37480),
+(2, 2, 5, 1, 37480),
+(2, 2, 5, 2, 37480),
+(2, 2, 5, 3, 37480),
+(2, 2, 5, 4, 37480),
+(2, 2, 5, 5, 37480)
 ;
 
 insert into supplier (name, address, phone, email) values
@@ -358,6 +471,8 @@ alter table export add constraint pk_export primary key(id);
 alter table export_item add constraint pk_export_item primary key(export_id, resupply_id, gtin);
 alter table resupply_item add constraint pk_resupply_item primary key(resupply_id, gtin);
 alter table seri add constraint pk_seri primary key(id);
+
+alter table bin add constraint unq_bin_warehouse_id_shelf_row_col unique(warehouse_id, shelf, row, col);
 
 alter table transfer add constraint fk_transfer_export_warehouse foreign key(export_warehouse) references warehouse(id);
 alter table transfer add constraint fk_transfer_receive_warehouse foreign key(receive_warehouse) references warehouse(id);

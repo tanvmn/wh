@@ -20,13 +20,12 @@ type Account struct {
 
 var (
 	ErrNoAccounts         = errors.New("data: account not found")
-	ErrNoRecords         = errors.New("data: record not found")
 	ErrInvalidCredentials = errors.New("data: invalid credentials")
 )
 
 func (d *Data) Account(id int64) (*Account, error) {
 	if id < 1 {
-		return nil, ErrNoRecords
+		return nil, ErrNoAccounts
 	}
 
 	stmt := `select
@@ -41,7 +40,7 @@ func (d *Data) Account(id int64) (*Account, error) {
 	where id=$1`
 
 	var (
-		ac Account
+		ac                   Account
 		warehouseID, storeID sql.NullInt64
 	)
 	err := d.DB.QueryRow(stmt, id).Scan(
@@ -54,7 +53,7 @@ func (d *Data) Account(id int64) (*Account, error) {
 		&storeID,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, ErrNoRecords
+		return nil, ErrNoAccounts
 	} else if err != nil {
 		return nil, err
 	}

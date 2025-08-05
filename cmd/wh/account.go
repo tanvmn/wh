@@ -13,6 +13,7 @@ func (ap *application) account() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id := r.URL.Query().Get("id")
 
+		// i is the integer part of the id
 		i, err := ap.validateID(id, data.AccountIDCode)
 		if err != nil {
 			ap.logger.Error(err.Error())
