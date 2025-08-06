@@ -3,7 +3,7 @@ package main
 import (
 	"net/http"
 
-	"github.com/lib/pq"
+	"github.com/tanNguyen2220022/wh/internal/data"
 	"github.com/tanNguyen2220022/wh/rec"
 	"github.com/tanNguyen2220022/wh/ui"
 )
@@ -20,37 +20,25 @@ func (ap *application) routes() http.Handler {
 		// 		fmt.Printf("%+v\n", pErr)
 		// 		fmt.Println(pErr.Code)
 		// 		fmt.Println(pErr.Message)
-		// 		fmt.Println(pErr.SQLState())
-		// 		fmt.Println(pErr.Code.Class())
+		// 		// fmt.Println(pErr.SQLState())
+		// 		// fmt.Println(pErr.Code.Class())
 		// 		fmt.Println(pErr.Code.Name())
 		// 	}
 		// }
 
-		// i, err := ap.data.Item("8888021200126")
-		// if err != nil {
-		// 	ap.logger.Error(err.Error())
-		// 	http.Error(w, err.Error(), http.StatusUnprocessableEntity)
-		// 	return
-		// }
+		// stmt := `select enum_range(null::type)`
 
-		// err = ap.writeJSON(w, http.StatusOK, i, nil)
-		// if err != nil {
-		// 	ap.logger.Error(err.Error())
-		// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-		// 	return
-		// }
+		// var types []string
+		// err := ap.data.DB.QueryRow(stmt).Scan(pq.Array(&types))
 
-		stmt := `select enum_range(null::type)`
-
-		var types []string
-		err := ap.data.DB.QueryRow(stmt).Scan(pq.Array(&types))
+		is, err := ap.data.Items("4983435734503")
 		if err != nil {
 			ap.logger.Error(err.Error())
-			http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+			http.Error(w, data.ErrNoItems.Error(), http.StatusNotFound)
 			return
 		}
 
-		err = ap.writeJSON(w, http.StatusOK, types, nil)
+		err = ap.writeJSON(w, http.StatusOK, is, nil)
 		if err != nil {
 			ap.logger.Error(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -65,7 +53,7 @@ func (ap *application) routes() http.Handler {
 	mux.Handle("GET /rec/", authenticate.then(http.StripPrefix("/rec", http.FileServerFS(rec.Files))))
 
 	// Account
-	mux.Handle("GET /account", authenticate.then(ap.account()))
+	mux.Handle("GET /account/json", authenticate.then(ap.account()))
 
 	// Item
 	mux.Handle("GET /items", authenticate.then(ap.items()))

@@ -35,3 +35,13 @@ func FormatRFC3339(rfc3339 string, layout string) (string, error) {
 
 	return t.Format(layout), nil
 }
+
+func AnySlice[T comparable](vs ...T) []any {
+	var as []any
+	for _, v := range vs {
+		var a any = v
+		as = append(as, a)
+	}
+
+	return as
+}

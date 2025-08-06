@@ -205,6 +205,7 @@ create table if not exists item (
 	price real not null,
 	currency text not null default 'VND',
 	shelf_life bigint not null,		-- months
+	img_fspath text not null,
 	-- type_id bigint not null
 	type type not null
 );
@@ -452,26 +453,20 @@ insert into supplier (name, address, phone, email) values
 ('NCC 2', 'địa chỉ NCC 2', '000001001', 'tanNguyen2220022.hcmut.edu.vn')
 ;
 
--- insert into type (name) values
--- ('Áo sơmi'),
--- ('Áo thun'),
--- ('Áo len'),
--- ('Áo jean'),
--- ('Áo khoác'),
--- ('Quần tây'),
--- ('Quần jean'),
--- ('Quần thun'),
--- ('Váy'),
--- ('Đầm'),
--- ('Onesie')
+-- insert into item (gtin, characteristic, volume, weight, brand, material, color, size, price, type, shelf_life, img_fspath) values
+-- ('4983435734503', 'có túi', 1392, 200, 'GAP', 'Polyester', 'Lam', 200000, 'Quần tây', 7, array ['rec', 'item', 'img', '4983435734503.jpg']),			-- quần tây lam
+-- ('8936040400574', 'có túi', 1392, 200, 'Navy', 'Polyester', 'Lục', 'XL', 200000, 'Quần thun', 7, array ['rec', 'item', 'img', '8936040400574.jpeg']),		-- quần thun lục
+-- ('8888021200126', 'có cổ, tay dài', 1392, 200, 'Viettien', 'Cotton', 'Trắng', 150000, 'Áo sơmi', 7, array ['rec', 'item', 'img', '8888021200126.jpg']),	-- áo somi trắng tay dài
+-- ('4983435764166', 'có cổ, tay ngắn', 1392, 200, 'Gucci', 'Cotton', 'Vàng', 'XL', 150000, 'Áo thun', 7, array ['rec', 'item', 'img', '4983435764166.jpeg']),		-- áo thun vàng tay ngắn
+-- ('4983435734909', 'có cổ, tay dài', 1392, 200, 'Pierre', 'Cotton', 'Đen', 150000, 'Áo khoác', 7, array ['rec', 'item', 'img', '4983435734909.jpeg'])		-- áo khoác đen tay dài
 -- ;
 
-insert into item (gtin, characteristic, volume, weight, brand, material, color, size, price, type, shelf_life) values
-('4983435734503', 'có túi', 1392, 200, 'GAP', 'Polyester', 'Lam', 'L', 200000, 'Quần tây', 7),			-- quần tây lam
-('8936040400574', 'có túi', 1392, 200, 'Navy', 'Polyester', 'Lục', 'XL', 200000, 'Quần thun', 7),		-- quần thun lục
-('8888021200126', 'có cổ, tay dài', 1392, 200, 'Viettien', 'Cotton', 'Trắng', 'M', 150000, 'Áo sơmi', 7),	-- áo somi trắng tay dài
-('4983435764166', 'có cổ, tay ngắn', 1392, 200, 'Gucci', 'Cotton', 'Vàng', 'XL', 150000, 'Áo thun', 7),		-- áo thun vàng tay ngắn
-('4983435734909', 'có cổ, tay dài', 1392, 200, 'Pierre', 'Cotton', 'Đen', 'L', 150000, 'Áo khoác', 7)		-- áo khoác đen tay dài
+insert into item (gtin, characteristic, volume, weight, brand, material, color, size, price, type, shelf_life, img_fspath) values
+('4983435734503', 'có túi', 1392, 200, 'GAP', 'Polyester', 'Lam', 'M', 200000, 'Quần tây', 7, 'rec/item/img/4983435734503.jpg'),			-- quần tây lam
+('8936040400574', 'có túi', 1392, 200, 'Navy', 'Polyester', 'Lục', 'XL', 200000, 'Quần thun', 7, 'rec/item/img/8936040400574.jpeg'),		-- quần thun lục
+('8888021200126', 'có cổ, tay dài', 1392, 200, 'Viettien', 'Cotton', 'Trắng', 'S', 150000, 'Áo sơmi', 7, 'rec/item/img/8888021200126.jpg'),	-- áo somi trắng tay dài
+('4983435764166', 'có cổ, tay ngắn', 1392, 200, 'Gucci', 'Cotton', 'Vàng', 'XXL', 150000, 'Áo thun', 7, 'rec/item/img/4983435764166.jpeg'),		-- áo thun vàng tay ngắn
+('4983435734909', 'có cổ, tay dài', 1392, 200, 'Pierre', 'Cotton', 'Đen', 'L', 150000, 'Áo khoác', 7, 'rec/item/img/4983435734909.jpeg')		-- áo khoác đen tay dài
 ;
 
 insert into supplier_item (supplier_id, gtin) values
