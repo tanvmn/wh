@@ -1,0 +1,1 @@
+this file exists so Go would allows the embed directive in rec/efs.go

@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 
+	"github.com/lib/pq"
 	"github.com/tanNguyen2220022/wh/rec"
 	"github.com/tanNguyen2220022/wh/ui"
 )
@@ -25,14 +26,31 @@ func (ap *application) routes() http.Handler {
 		// 	}
 		// }
 
-		i, err := ap.data.Item("8888021200126")
+		// i, err := ap.data.Item("8888021200126")
+		// if err != nil {
+		// 	ap.logger.Error(err.Error())
+		// 	http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		// 	return
+		// }
+
+		// err = ap.writeJSON(w, http.StatusOK, i, nil)
+		// if err != nil {
+		// 	ap.logger.Error(err.Error())
+		// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+		// 	return
+		// }
+
+		stmt := `select enum_range(null::type)`
+
+		var types []string
+		err := ap.data.DB.QueryRow(stmt).Scan(pq.Array(&types))
 		if err != nil {
 			ap.logger.Error(err.Error())
 			http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 			return
 		}
 
-		err = ap.writeJSON(w, http.StatusOK, i, nil)
+		err = ap.writeJSON(w, http.StatusOK, types, nil)
 		if err != nil {
 			ap.logger.Error(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)

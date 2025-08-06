@@ -12,6 +12,10 @@ import (
 	"github.com/tanNguyen2220022/wh/internal/validator"
 )
 
+const (
+	itemImgPath = "./rec/item/img/"
+)
+
 func (ap *application) render(
 	w http.ResponseWriter,
 	status int,

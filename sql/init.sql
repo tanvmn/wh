@@ -174,7 +174,8 @@ create type brand as enum ('Gucci', 'GAP', 'Navy', 'Viettien', 'Pierre', 'H&M', 
 -- ;
 
 drop type if exists item_type cascade;
-create type item_type as enum (
+drop type if exists type cascade;
+create type type as enum (
 'Áo sơmi',
 'Áo thun',
 'Áo len',
@@ -202,15 +203,16 @@ create table if not exists item (
 	color color not null,
 	size size not null,
 	price real not null,
-	shelf_life bigint not null,
+	currency text not null default 'VND',
+	shelf_life bigint not null,		-- months
 	-- type_id bigint not null
-	item_type item_type not null
+	type type not null
 );
 
-create table if not exists type (
-	id bigserial not null,
-	name text not null
-);
+-- create table if not exists type (
+-- 	id bigserial not null,
+-- 	name text not null
+-- );
 
 create table if not exists resupply (
 	id bigserial not null,
@@ -464,7 +466,7 @@ insert into supplier (name, address, phone, email) values
 -- ('Onesie')
 -- ;
 
-insert into item (gtin, characteristic, volume, weight, brand, material, color, size, price, item_type, shelf_life) values
+insert into item (gtin, characteristic, volume, weight, brand, material, color, size, price, type, shelf_life) values
 ('4983435734503', 'có túi', 1392, 200, 'GAP', 'Polyester', 'Lam', 'L', 200000, 'Quần tây', 7),			-- quần tây lam
 ('8936040400574', 'có túi', 1392, 200, 'Navy', 'Polyester', 'Lục', 'XL', 200000, 'Quần thun', 7),		-- quần thun lục
 ('8888021200126', 'có cổ, tay dài', 1392, 200, 'Viettien', 'Cotton', 'Trắng', 'M', 150000, 'Áo sơmi', 7),	-- áo somi trắng tay dài
@@ -498,7 +500,7 @@ alter table store add constraint pk_store primary key(id);
 alter table purchase add constraint pk_purchase primary key(id);
 alter table purchase_item add constraint pk_purchase_item primary key(purchase_id, gtin);
 alter table item add constraint pk_item primary key(gtin);
-alter table type add constraint pk_type primary key(id);
+-- alter table type add constraint pk_type primary key(id);
 alter table resupply add constraint pk_resupply primary key(id);
 alter table tote add constraint pk_tote primary key(id);
 alter table bin add constraint pk_bin primary key(id);
