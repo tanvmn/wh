@@ -25,7 +25,19 @@ func (ap *application) routes() http.Handler {
 		// 	}
 		// }
 
-		http.Redirect(w, r, "/health", http.StatusSeeOther)
+		i, err := ap.data.Item("8888021200126")
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+			return
+		}
+
+		err = ap.writeJSON(w, http.StatusOK, i, nil)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	})
 
 	authenticate := middlewares{ap.sessionsManager.LoadAndSave, ap.authenticate}

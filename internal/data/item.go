@@ -5,23 +5,24 @@ import (
 	"errors"
 )
 
-type Type struct {
-	ID   int64  `json:"id,omitempty,omitzero"`
-	Name string `json:"name,omitempty,omitzero"`
-}
+// type Type struct {
+// 	ID   int64  `json:"id,omitempty,omitzero"`
+// 	Name string `json:"name,omitempty,omitzero"`
+// }
 
 type Item struct {
 	GTIN           string  `json:"gtin,omitempty,omitzero"`
 	Characteristic string  `json:"characteristic,omitempty,omitzero"`
 	Volume         float32 `json:"volume,omitempty,omitzero"`
-	Weight         int64 `json:"weight,omitempty,omitzero"`
+	Weight         int64   `json:"weight,omitempty,omitzero"`
 	Brand          string  `json:"brand,omitempty,omitzero"`
 	Material       string  `json:"material,omitempty,omitzero"`
 	Color          string  `json:"color,omitempty,omitzero"`
 	Size           string  `json:"size,omitempty,omitzero"`
 	Price          float32 `json:"price,omitempty,omitzero"`
 	Name           string  `json:"name,omitempty,omitzero"`
-	Type           `json:"type,omitempty,omitzero"`
+	Type           string  `json:"type,omitempty,omitzero"`
+	// Type           `json:"type,omitempty,omitzero"`
 }
 
 var (
@@ -43,10 +44,11 @@ func (d *Data) Item(gtin string) (*Item, error) {
 	color,
 	size,
 	price,
-	type_id,
-	type.name
+	item_type
+	-- type_id,
+	-- type.name
 	from item
-	join type on type_id=type.id
+	-- join type on type_id=type.id
 	where gtin=$1`
 
 	var (
@@ -62,8 +64,9 @@ func (d *Data) Item(gtin string) (*Item, error) {
 		&i.Color,
 		&i.Size,
 		&i.Price,
-		&i.Type.ID,
-		&i.Type.Name,
+		&i.Type,
+		// &i.Type.ID,
+		// &i.Type.Name,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNoItems
