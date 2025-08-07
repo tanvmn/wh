@@ -12,10 +12,17 @@ import (
 )
 
 type templData struct {
+	Domain  string
+	Account struct {
+		ID   string
+		Role string
+	}
 }
 
 func (ap *application) newTemplData(r *http.Request) templData {
-	return templData{}
+	return templData{
+		Domain: domain,
+	}
 }
 
 func newTemplCache(lg *slog.Logger) (map[string]*template.Template, error) {

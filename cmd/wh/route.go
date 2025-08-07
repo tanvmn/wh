@@ -1,9 +1,12 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
+	"io/fs"
 	"net/http"
+	"os"
 
-	"github.com/tanNguyen2220022/wh/internal/data"
 	"github.com/tanNguyen2220022/wh/rec"
 	"github.com/tanNguyen2220022/wh/ui"
 )
@@ -31,19 +34,52 @@ func (ap *application) routes() http.Handler {
 		// var types []string
 		// err := ap.data.DB.QueryRow(stmt).Scan(pq.Array(&types))
 
-		is, err := ap.data.Items("4983435734503")
-		if err != nil {
-			ap.logger.Error(err.Error())
-			http.Error(w, data.ErrNoItems.Error(), http.StatusNotFound)
-			return
-		}
+		f := struct {
+			Bin []byte `json:"bin"`
+		}{}
 
-		err = ap.writeJSON(w, http.StatusOK, is, nil)
+		bytes, err := fs.ReadFile(rec.Files, itemImgPathFS+"4983435734909.jpeg")
 		if err != nil {
 			ap.logger.Error(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+		f.Bin = bytes
+
+		err = ap.writeJSON(w, http.StatusOK, f, nil)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	})
+
+	mux.HandleFunc("/f", func(w http.ResponseWriter, r *http.Request) {
+		o := struct {
+			Bytes []byte `json:"bytes"`
+		}{}
+
+		err := json.NewDecoder(r.Body).Decode(&o)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		f, err := os.Create("./img.png")
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		n, err := f.Write(o.Bytes)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		fmt.Fprintf(w, "%v bytes written\n", n)
 	})
 
 	authenticate := middlewares{ap.sessionsManager.LoadAndSave, ap.authenticate}
@@ -53,7 +89,7 @@ func (ap *application) routes() http.Handler {
 	mux.Handle("GET /rec/", authenticate.then(http.StripPrefix("/rec", http.FileServerFS(rec.Files))))
 
 	// Account
-	mux.Handle("GET /account/json", authenticate.then(ap.account()))
+	mux.Handle("GET /account", authenticate.then(ap.account()))
 
 	// Item
 	mux.Handle("GET /items", authenticate.then(ap.items()))

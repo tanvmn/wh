@@ -7,15 +7,14 @@ import (
 	"fmt"
 	"maps"
 	"net/http"
-	"path/filepath"
 	"strconv"
 
 	"github.com/tanNguyen2220022/wh/internal/validator"
 )
 
-var (
-	itemImgPath   = filepath.Join(".", "rec", itemImgPathFS)
-	itemImgPathFS = "rec/item/img/"
+const (
+	domain = "http://localhost:4000"
+	itemImgPathFS = "item/img/"
 )
 
 func (ap *application) render(

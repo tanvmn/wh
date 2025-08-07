@@ -84,19 +84,14 @@
 {{define "nav"}}
 <div class="sidenav-w3">
 	<a href="/">Home</a>
+	<a id="items" href="{{.Domain}}/items">Hàng</a>
+	<a id="account" href="{{.Domain}}/account?id={{.Account.ID}}">Tài khoản</a>
 
 	<button class="dropdown-btn-w3">Dropdown
 		<i class="fa fa-caret-down"></i>
 	</button>
 	<div class="dropdown-container-w3">
 		<a href="https://example.com/">Example.com</a>
-	</div>
-
-	<button class="dropdown-btn-w3">Google
-		<i class="fa fa-caret-down"></i>
-	</button>
-	<div class="dropdown-container-w3">
-		<a href="https://google.com/">Google.com</a>
 	</div>
 </div>
 
