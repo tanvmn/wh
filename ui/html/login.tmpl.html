@@ -1,17 +1,16 @@
 {{define "main"}}
 <div class="container mt-5">
-	<form action="/login" method="post">
+	<form action="/login" method="post" class="was-validated" id="login-form" novalidate>
 		<div class="mb-3">
 			<label for="phone" class="form-label">Điện thoại</label>
 			<input type="tel" class="form-control" id="phone" name="phone" pattern="[0-9]{10,12}"
-				oninvalid="this.setCustomValidity('Tối thiểu 10, tối đa 12 SỐ')"
-				oninput="this.setCustomValidity('')" aria-describedby="phoneHelp" required>
+				aria-describedby="phoneHelp" required>
+			<div class="invalid-feedback">Tối thiểu 10, tối đa 12 SỐ 0-9</div>
 		</div>
 		<div class="mb-3">
 			<label for="password" class="form-label">Mật khẩu</label>
-			<input type="password" class="form-control" id="password" name="password"
-				oninvalid="this.setCustomValidity('Không thể rỗng')"
-				oninput="this.setCustomValidity('')" required>
+			<input type="password" class="form-control" id="password" name="password" required>
+			<div class="invalid-feedback">Không thể rỗng</div>
 		</div>
 		<button type="submit" class="btn btn-primary">Login</button>
 	</form>
@@ -20,7 +19,7 @@
 <script type="module">
 	import { domain } from '../static/js/util.js';
 
-	const form = document.querySelector('form');
+	const form = document.querySelector('#login-form');
 	form.addEventListener('submit', function (e) {
 		e.preventDefault();
 

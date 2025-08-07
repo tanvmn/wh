@@ -19,13 +19,6 @@ func (ap *application) homePage() http.Handler {
 			return
 		}
 
-		// ac, err := ap.data.Account(i)
-		// if err != nil {
-		// 	ap.logger.Error(err.Error())
-		// 	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		// 	return
-		// }
-
 		td := ap.newTemplData(r)
 		td.Account.ID = id
 		td.Account.Role = role

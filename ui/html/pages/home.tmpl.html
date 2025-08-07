@@ -2,45 +2,51 @@
 <div class="container-fluid">
 	<h1>Home</h1>
 
-	<input type="file" name="img" id="img">
+	<input type="text" name="item" id="item">
 </div>
-<script>
+<script type="module">
+	import { Scanner } from "../static/js/util.js";
+
+	Scanner.init(function (code) {
+		document.querySelector('#item').value = code;
+	});
+
 	// durl = `data:image/jpeg;base64,${data.bin}`;
 	// let o = { bytes: Array.from(Uint8Array.fromBase64(data.bin)) };
-	let ok = false;
-	let img = document.querySelector('#img');
-	let durl;
-	let b64;
 
-	img.addEventListener('input', (e) => {
-		const file = img.files[0];
+	// let ok = false;
+	// let img = document.querySelector('#img');
+	// let durl;
+	// let b64;
 
-		const fr = new FileReader();
-		fr.addEventListener('load', () => {
-			durl = fr.result;
-			console.log(durl);
+	// img.addEventListener('change', (e) => {
+	// 	const fr = new FileReader();
+	// 	fr.addEventListener('load', () => {
+	// 		durl = fr.result;
+	// 		console.log(durl);
 
-			b64 = durl.split(',')[1].trim();
-			console.log(b64);
+	// 		b64 = durl.split(',')[1].trim();
+	// 		console.log(b64);
 
-			let o = { bytes: b64 };
-			fetch('http://localhost:4000/f', {
-				method: 'POST',
-				body: JSON.stringify(o)
-			})
-				.then(res => {
-					ok = res.ok;
-					return res.text()
-				})
-				.then(data => {
-					alert(data)
-				})
-				.catch(err => {
-					console.error(err);
-				});
-		});
-		fr.readAsDataURL(file);
-	})
+	// 		fetch('http://localhost:4000/f', {
+	// 			method: 'POST',
+	// 			body: JSON.stringify({ bytes: b64 })
+	// 		})
+	// 			.then(res => {
+	// 				ok = res.ok;
+	// 				return res.text();
+	// 			})
+	// 			.then(data => {
+	// 				alert(data);
+	// 			})
+	// 			.catch(err => {
+	// 				console.error(err);
+	// 			});
+	// 	});
+
+	// 	const file = img.files[0];
+	// 	fr.readAsDataURL(file);
+	// });
 </script>
 {{end}}
 

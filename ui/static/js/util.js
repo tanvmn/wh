@@ -18,6 +18,7 @@ class Scanner {
     }
     if (e.key == "Enter") {
       if (Scanner.code) {
+        console.log(Scanner.code);
         Scanner.handleFunc(Scanner.code);
       }
       Scanner.code = "";
@@ -33,34 +34,35 @@ class Scanner {
   }
 
   // init initializes document's 'keydown' listenner on DOMContentLoaded, focus and remove on blur
-  static init() {
+  static init(func) {
+    Scanner.handleFunc = func;
+
     if (Scanner.handleFunc === undefined) {
       console.error("Scanner.handleFunc is NOT initialized");
       return;
     }
 
-    document.addEventListener("DOMContentLoaded", function () {
-      Scanner.title.textContent = Scanner.titleTxt;
-      Scanner.title.textContent = "QR - " + Scanner.titleTxt;
+    document.addEventListener("DOMContentLoaded", Scanner.start);
 
-      Scanner.code = "";
-      document.onkeydown = Scanner.process;
-    });
+    window.onfocus = Scanner.start;
 
-    window.onfocus = function () {
-      Scanner.title.textContent = Scanner.titleTxt;
-      Scanner.title.textContent = "QR - " + Scanner.titleTxt;
+    window.onblur = Scanner.stop;
+  }
 
-      Scanner.code = "";
-      document.onkeydown = Scanner.process;
-    };
+  static start() {
+    Scanner.title.textContent = "QR - " + Scanner.titleTxt;
+    console.log("QR on");
 
-    window.onblur = function () {
-      Scanner.title.textContent = Scanner.titleTxt;
+    Scanner.code = "";
+    document.onkeydown = Scanner.process;
+  }
 
-      Scanner.code = "";
-      document.removeEventListener("keydown", Scanner.process);
-    };
+  static stop() {
+    Scanner.title.textContent = Scanner.titleTxt;
+    console.log("QR off");
+
+    Scanner.code = "";
+    document.removeEventListener("keydown", Scanner.process);
   }
 }
 
