@@ -45,6 +45,8 @@ class Scanner {
     document.addEventListener("DOMContentLoaded", Scanner.start);
 
     window.onfocus = Scanner.start;
+    window.onload = Scanner.start;
+    window.focus();
 
     window.onblur = Scanner.stop;
   }

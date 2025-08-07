@@ -36,6 +36,7 @@ func FormatRFC3339(rfc3339 string, layout string) (string, error) {
 	return t.Format(layout), nil
 }
 
+// AnySlice return a any type slice that contains the vs passed in
 func AnySlice[T comparable](vs ...T) []any {
 	var as []any
 	for _, v := range vs {

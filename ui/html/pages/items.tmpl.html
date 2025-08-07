@@ -1,0 +1,59 @@
+{{define "main"}}
+<link rel="stylesheet" href="https://cdn.datatables.net/2.3.2/css/dataTables.dataTables.css" />
+<!-- <div class="container-xxl"> -->
+<div class="container-fluid">
+	<table id="itemsTable" class="display">
+		<thead>
+			<tr>
+				<th>GTIN</th>
+				<th>Thương hiệu</th>
+				<th>Loại</th>
+				<th>Màu</th>
+				<th>Size</th>
+				<th>Chất liệu</th>
+				<th>Đặc điểm</th>
+				<th>Giá (VND)</th>
+				<th>Hạn trữ (tháng)</th>
+				<th>Thao tác</th>
+			</tr>
+		</thead>
+		<tbody id="tbody">
+			{{range .Items}}
+			<tr>
+				<td>{{.GTIN}}</td>
+				<td>{{.Brand}}</td>
+				<td>{{.Type}}</td>
+				<td>{{.Color}}</td>
+				<td>{{.Size}}</td>
+				<td>{{.Material}}</td>
+				<td>{{.Characteristic}}</td>
+				<td>{{.Price}}</td>
+				<td>{{.ShelfLife}}</td>
+				<td><a class="btn btn-info">Chi tiết</a></td>
+			</tr>
+			{{else}}
+			No items to render
+			{{end}}
+		</tbody>
+	</table>
+</div>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script src="https://cdn.datatables.net/2.3.2/js/dataTables.js"></script>
+<script type="module">
+	import { Scanner } from "../static/js/util.js";
+
+	document.addEventListener('DOMContentLoaded', () => {
+		let table = new DataTable('#itemsTable');
+
+		Scanner.init((code) => {
+			table.search(code);
+			table.draw();
+		});
+	});
+	// let table = new DataTable('#itemsTable');
+</script>
+{{end}}
+
+{{define "title"}}
+Hàng
+{{end}}

@@ -14,6 +14,7 @@ const (
 	TShirt     = "Áo thun"
 	JeanShirt  = "Áo jean"
 	WoolShirt  = "Áo len"
+	Jacket     = "Áo khoác"
 	Jeans      = "Quần jean"
 	Trousers   = "Quần tây"
 	Sweatpants = "Quần thun"
@@ -106,7 +107,6 @@ func (d *Data) Items(gtins ...string) ([]Item, error) {
 	defer cancel()
 
 	rows, err := d.DB.QueryContext(ctx, stmt, util.AnySlice(gtins...)...)
-	// rows, err := d.DB.QueryContext(ctx, stmt)
 	if err != nil {
 		return nil, err
 	}

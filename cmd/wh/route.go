@@ -53,7 +53,6 @@ func (ap *application) routes() http.Handler {
 			return
 		}
 	})
-
 	mux.HandleFunc("/f", func(w http.ResponseWriter, r *http.Request) {
 		o := struct {
 			Bytes []byte `json:"bytes"`
@@ -92,7 +91,8 @@ func (ap *application) routes() http.Handler {
 	mux.Handle("GET /account", authenticate.then(ap.account()))
 
 	// Item
-	mux.Handle("GET /items", authenticate.then(ap.items()))
+	mux.Handle("GET /items", authenticate.then(ap.itemsPage()))
+	mux.Handle("GET /items/json", authenticate.then(ap.items()))
 
 	// Health
 	mux.HandleFunc("GET /health", ap.health)

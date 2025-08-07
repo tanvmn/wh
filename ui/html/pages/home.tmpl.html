@@ -1,16 +1,8 @@
 {{define "main"}}
 <div class="container-fluid">
 	<h1>Home</h1>
-
-	<input type="text" name="item" id="item">
 </div>
-<script type="module">
-	import { Scanner } from "../static/js/util.js";
-
-	Scanner.init(function (code) {
-		document.querySelector('#item').value = code;
-	});
-
+<script>
 	// durl = `data:image/jpeg;base64,${data.bin}`;
 	// let o = { bytes: Array.from(Uint8Array.fromBase64(data.bin)) };
 

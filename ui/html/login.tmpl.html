@@ -17,11 +17,16 @@
 </div>
 
 <script type="module">
-	import { domain } from '../static/js/util.js';
+	import { domain, Scanner } from '../static/js/util.js';
 
 	const form = document.querySelector('#login-form');
+
 	form.addEventListener('submit', function (e) {
 		e.preventDefault();
+
+		if (!form.checkValidity()) {
+			return;
+		}
 
 		const formData = new FormData(form);
 		const payload = new URLSearchParams(formData);
@@ -50,6 +55,14 @@
 			.catch(function (err) {
 				console.error(err);
 			});
+	});
+
+	Scanner.init((code) => {
+		let o = JSON.parse(code);
+		document.querySelector('#phone').value = o.phone;
+		document.querySelector('#password').value = o.password;
+
+		form.submit();
 	})
 </script>
 {{end}}
