@@ -24,7 +24,7 @@ const (
 )
 
 const (
-	selectItemStmt = `select
+	selectItemsStmt = `select
 	brand,
 	characteristic,
 	color,
@@ -38,7 +38,8 @@ const (
 	type,
 	volume,
 	weight
-	from item`
+	from
+	item`
 )
 
 type Item struct {
@@ -52,6 +53,7 @@ type Item struct {
 	Material       string  `json:"material,omitempty,omitzero"`
 	Name           string  `json:"name,omitempty,omitzero"`
 	Price          float32 `json:"price,omitempty,omitzero"`
+	Stock          int64   `json:"stock,omitempty,omitzero"`
 	ShelfLife      int64   `json:"shelfLife,omitempty,omitzero"`
 	Size           string  `json:"size,omitempty,omitzero"`
 	Type           string  `json:"type,omitempty,omitzero"`
@@ -68,7 +70,7 @@ func (d *Data) Item(gtin string) (*Item, error) {
 		return nil, ErrNoItems
 	}
 
-	stmt := selectItemStmt + "\nwhere gtin=$1"
+	stmt := selectItemsStmt + "\nwhere gtin=$1"
 
 	var (
 		i Item
@@ -98,7 +100,7 @@ func (d *Data) Item(gtin string) (*Item, error) {
 }
 
 func (d *Data) Items(gtins ...string) ([]Item, error) {
-	stmt := selectItemStmt
+	stmt := selectItemsStmt
 	if len(gtins) != 0 {
 		stmt += "\nwhere gtin in " + Range(int64(len(gtins)))
 	}
@@ -147,5 +149,33 @@ func (d *Data) Items(gtins ...string) ([]Item, error) {
 		return nil, err
 	}
 
+	for i := range is {
+		is[i].Stock, err = d.Stock(is[i].GTIN)
+		if err != nil && !errors.Is(err, ErrNoItems) {
+			return nil, err
+		}
+	}
+
 	return is, nil
+}
+
+func (d *Data) Stock(gtin string) (int64, error) {
+	stmt := `select
+	count(gtin)
+	from
+	seri
+	where
+	gtin=$1
+	and pick_tote=0
+	and export_id=0`
+
+	var quantity int64
+	err := d.DB.QueryRow(stmt, gtin).Scan(&quantity)
+	if errors.Is(err, sql.ErrNoRows) {
+		return 0, ErrNoItems
+	} else if err != nil {
+		return 0, err
+	}
+
+	return quantity, nil
 }

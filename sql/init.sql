@@ -55,7 +55,7 @@ drop table if exists receive cascade;
 drop table if exists export cascade;
 drop table if exists export_item cascade;
 drop table if exists resupply_item cascade;
-drop table if exists seri cascade;
+drop table if exists serial cascade;
 drop table if exists sessions cascade;
 
 
@@ -253,7 +253,7 @@ create table if not exists export_item (
 	quantity bigint not null
 );
 
-create table if not exists seri (
+create table if not exists serial (
 	id text unique not null,
 	receive_tote bigint not null,
 	pick_tote bigint not null,
@@ -441,8 +441,8 @@ insert into item (gtin, characteristic, volume, weight, brand, material, color, 
 ('4983435734503', 'có túi', 1392, 200, 'GAP', 'Polyester', 'Lam', 'M', 200000, 'Quần tây', 7, 'item/img/4983435734503.jpg'),			-- quần tây lam
 ('8936040400574', 'có túi', 1392, 200, 'Navy', 'Polyester', 'Lục', 'XL', 200000, 'Quần thun', 7, 'item/img/8936040400574.jpeg'),		-- quần thun lục
 ('8888021200126', 'có cổ, tay dài', 1392, 200, 'Viettien', 'Cotton', 'Trắng', 'S', 150000, 'Áo sơmi', 7, 'item/img/8888021200126.jpg'),		-- áo somi trắng tay dài
-('4983435764166', 'có cổ, tay ngắn', 1392, 200, 'Gucci', 'Cotton', 'Vàng', 'XXL', 150000, 'Áo thun', 7, 'item/img/4983435764166.jpeg'),		-- áo thun vàng tay ngắn
-('4983435734909', 'có cổ, tay dài', 1392, 200, 'Pierre', 'Cotton', 'Đen', 'L', 150000, 'Áo khoác', 7, 'item/img/4983435734909.jpeg')		-- áo khoác đen tay dài
+('4983435764166', 'có cổ, tay ngắn', 1392, 200, 'Gucci', 'Cotton', 'Vàng', 'L', 150000, 'Áo thun', 7, 'item/img/4983435764166.jpeg'),		-- áo thun vàng tay ngắn
+('4983435734909', 'có cổ, tay dài', 1392, 200, 'Pierre', 'Linen', 'Đen', 'XXL', 150000, 'Áo khoác', 7, 'item/img/4983435734909.jpeg')		-- áo khoác đen tay dài
 ;
 
 insert into supplier_item (supplier_id, gtin) values
@@ -482,7 +482,7 @@ alter table receive add constraint pk_receive primary key(id);
 alter table export add constraint pk_export primary key(id);
 alter table export_item add constraint pk_export_item primary key(export_id, resupply_id, gtin);
 alter table resupply_item add constraint pk_resupply_item primary key(resupply_id, gtin);
-alter table seri add constraint pk_seri primary key(id);
+alter table serial add constraint pk_serial primary key(id);
 
 alter table bin add constraint unq_bin_warehouse_id_shelf_row_col unique(warehouse_id, shelf, row, col);
 
@@ -532,11 +532,11 @@ alter table export_item add constraint fk_export_item_resupply_id_gtin foreign k
 alter table resupply_item add constraint fk_resupply_item_resupply_id foreign key(resupply_id) references resupply(id);
 alter table resupply_item add constraint fk_resupply_item_gtin foreign key(gtin) references item(gtin);
 
-alter table seri add constraint fk_seri_receive_tote foreign key(receive_tote) references tote(id);
-alter table seri add constraint fk_seri_pick_tote foreign key(pick_tote) references tote(id);
-alter table seri add constraint fk_seri_bin_id foreign key(bin_id) references bin(id);
-alter table seri add constraint fk_seri_receive_id_purchase_id_gtin foreign key(receive_id, purchase_id, gtin) references receive_item(purchase_id, receive_id, gtin);
-alter table seri add constraint fk_seri_export_id foreign key(export_id) references export(id);
+alter table serial add constraint fk_serial_receive_tote foreign key(receive_tote) references tote(id);
+alter table serial add constraint fk_serial_pick_tote foreign key(pick_tote) references tote(id);
+alter table serial add constraint fk_serial_bin_id foreign key(bin_id) references bin(id);
+alter table serial add constraint fk_serial_receive_id_purchase_id_gtin foreign key(receive_id, purchase_id, gtin) references receive_item(purchase_id, receive_id, gtin);
+alter table serial add constraint fk_serial_export_id foreign key(export_id) references export(id);
 
 CREATE TABLE sessions (
 	token TEXT PRIMARY KEY,
