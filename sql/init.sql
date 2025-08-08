@@ -72,7 +72,7 @@ create table if not exists transfer (
 	export_warehouse bigint not null,
 	receive_warehouse bigint not null,
 	account_id bigint not null,
-	created_dtime timestamp not null,
+	created_dtime timestamp not null default now(),
 	expected_dtime timestamp not null
 );
 
@@ -82,13 +82,13 @@ create table if not exists bin (
 	shelf bigint not null,
 	row bigint not null,
 	col bigint not null,
-	capacity real not null
+	capacity real not null default 37480
 );
 
 create table if not exists tote (
 	id bigserial not null,
 	warehouse_id bigint not null,
-	capacity real not null
+	capacity real not null default 37480
 );
 
 create table if not exists inventory (
@@ -136,7 +136,7 @@ create table if not exists purchase (
 	account_id bigint not null,
 	supplier_id bigint not null,
 	expected_dtime timestamp not null,
-	created_dtime timestamp not null,
+	created_dtime timestamp not null default now(),
 	-- status text not null
 	status status not null
 );
@@ -196,7 +196,7 @@ create table if not exists resupply (
 	account_id int not null,
 	store_id int not null,
 	expected_dtime timestamp not null,
-	created_dtime timestamp not null,
+	created_dtime timestamp not null default now(),
 	status text not null
 );
 
@@ -226,7 +226,7 @@ create table if not exists receive (
 	account_id bigint not null,
 	expected_dtime timestamp not null,
 	actual_dtime timestamp not null default '1000-01-01 00:00:00',
-	created_dtime timestamp not null,
+	created_dtime timestamp not null default now(),
 	transfer_id bigint
 );
 
@@ -242,7 +242,7 @@ create table if not exists export (
 	resupply_id bigint not null,
 	expected_dtime timestamp not null,
 	actual_dtime timestamp not null default '1000-01-01 00:00:00',
-	created_dtime timestamp not null,
+	created_dtime timestamp not null default now(),
 	transfer_id bigint
 );
 
@@ -254,7 +254,7 @@ create table if not exists export_item (
 );
 
 create table if not exists serial (
-	id text unique not null,
+	nanoid text unique not null,
 	receive_tote bigint not null,
 	pick_tote bigint not null,
 	bin_id bigint not null,
@@ -482,7 +482,7 @@ alter table receive add constraint pk_receive primary key(id);
 alter table export add constraint pk_export primary key(id);
 alter table export_item add constraint pk_export_item primary key(export_id, resupply_id, gtin);
 alter table resupply_item add constraint pk_resupply_item primary key(resupply_id, gtin);
-alter table serial add constraint pk_serial primary key(id);
+alter table serial add constraint pk_serial primary key(nanoid);
 
 alter table bin add constraint unq_bin_warehouse_id_shelf_row_col unique(warehouse_id, shelf, row, col);
 

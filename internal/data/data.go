@@ -8,12 +8,16 @@ import (
 )
 
 const (
-	AccountIDCode = "ACC-"
-	ItemIDCode    = "ITM-"
-	BinIDCode     = "BIN-"
-	ToteIDCode    = "TOT-"
-	BoxIDCode     = "BOX-"
-	StaffIDCode   = "STF-"
+	AccountIDCode  = "ACC-"
+	ItemIDCode     = "ITE-"
+	BinIDCode      = "BIN-"
+	ToteIDCode     = "TOT-"
+	BoxIDCode      = "BOX-"
+	StaffIDCode    = "STA-"
+	PurchaseIDCode = "PUR-"
+	ReceiveIDCode  = "REI-"
+	ResupplyIDCode = "RES-"
+	ExportIDCode   = "EXP-"
 )
 
 var (

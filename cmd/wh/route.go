@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/fs"
 	"net/http"
 	"os"
 
@@ -34,19 +33,35 @@ func (ap *application) routes() http.Handler {
 		// var types []string
 		// err := ap.data.DB.QueryRow(stmt).Scan(pq.Array(&types))
 
-		f := struct {
-			Bin []byte `json:"bin"`
-		}{}
+		// f := struct {
+		// 	Bin []byte `json:"bin"`
+		// }{}
 
-		bytes, err := fs.ReadFile(rec.Files, itemImgPathFS+"4983435734909.jpeg")
+		// bytes, err := fs.ReadFile(rec.Files, itemImgPathFS+"4983435734909.jpeg")
+		// if err != nil {
+		// 	ap.logger.Error(err.Error())
+		// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+		// 	return
+		// }
+		// f.Bin = bytes
+
+		// err = ap.writeJSON(w, http.StatusOK, f, nil)
+		// if err != nil {
+		// 	ap.logger.Error(err.Error())
+		// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+		// 	return
+		// }
+
+		ss, err := ap.data.Serials(fmt.Sprint(4983435734909))
 		if err != nil {
 			ap.logger.Error(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		f.Bin = bytes
 
-		err = ap.writeJSON(w, http.StatusOK, f, nil)
+		fmt.Printf("%+v\n", ss)
+
+		err = ap.writeJSON(w, http.StatusOK, ss, nil)
 		if err != nil {
 			ap.logger.Error(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)

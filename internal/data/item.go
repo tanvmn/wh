@@ -9,6 +9,40 @@ import (
 	"github.com/tanNguyen2220022/wh/internal/util"
 )
 
+type Item struct {
+	GTIN           string  `json:"gtin,omitempty,omitzero"`
+	Characteristic string  `json:"characteristic,omitempty,omitzero"`
+	Volume         float32 `json:"volume,omitempty,omitzero"`
+	Weight         int64   `json:"weight,omitempty,omitzero"`
+	Brand          string  `json:"brand,omitempty,omitzero"`
+	Material       string  `json:"material,omitempty,omitzero"`
+	Color          string  `json:"color,omitempty,omitzero"`
+	Size           string  `json:"size,omitempty,omitzero"`
+	Price          float32 `json:"price,omitempty,omitzero"`
+	Currency       string  `json:"currency,omitempty,omitzero"`
+	Type           string  `json:"type,omitempty,omitzero"`
+	ShelfLife      int64   `json:"shelfLife,omitempty,omitzero"`
+	Img            []byte  `json:"img,omitempty,omitzero"`
+	ImgFSPath      string  `json:"imgFSPath,omitempty,omitzero"`
+	Name           string  `json:"name,omitempty,omitzero"`
+	Stock          int64   `json:"stock,omitempty,omitzero"`
+}
+
+type Serial struct {
+	NanoID      string   `json:"nanoID,omitempty,omitzero"`
+	ReceiveTote Tote     `json:"receiveTote,omitempty,omitzero"`
+	PickTote    Tote     `json:"pickTote,omitempty,omitzero"`
+	Bin         Bin      `json:"bin,omitempty,omitzero"`
+	Receive     Receive  `json:"receive,omitempty,omitzero"`
+	Purchase    Purchase `json:"purchase,omitempty,omitzero"`
+	GTIN        string   `json:"gtin,omitempty,omitzero"`
+	Export      Export   `json:"export,omitempty,omitzero"`
+}
+
+var (
+	ErrNoItems = errors.New("data: no items found")
+)
+
 const (
 	Shirt      = "Áo sơmi"
 	TShirt     = "Áo thun"
@@ -40,29 +74,6 @@ const (
 	weight
 	from
 	item`
-)
-
-type Item struct {
-	Brand          string  `json:"brand,omitempty,omitzero"`
-	Characteristic string  `json:"characteristic,omitempty,omitzero"`
-	Color          string  `json:"color,omitempty,omitzero"`
-	Currency       string  `json:"currency,omitempty,omitzero"`
-	GTIN           string  `json:"gtin,omitempty,omitzero"`
-	Img            []byte  `json:"img,omitempty,omitzero"`
-	ImgFSPath      string  `json:"imgFSPath,omitempty,omitzero"`
-	Material       string  `json:"material,omitempty,omitzero"`
-	Name           string  `json:"name,omitempty,omitzero"`
-	Price          float32 `json:"price,omitempty,omitzero"`
-	Stock          int64   `json:"stock,omitempty,omitzero"`
-	ShelfLife      int64   `json:"shelfLife,omitempty,omitzero"`
-	Size           string  `json:"size,omitempty,omitzero"`
-	Type           string  `json:"type,omitempty,omitzero"`
-	Volume         float32 `json:"volume,omitempty,omitzero"`
-	Weight         int64   `json:"weight,omitempty,omitzero"`
-}
-
-var (
-	ErrNoItems = errors.New("data: no items found")
 )
 
 func (d *Data) Item(gtin string) (*Item, error) {
@@ -105,7 +116,7 @@ func (d *Data) Items(gtins ...string) ([]Item, error) {
 		stmt += "\nwhere gtin in " + Range(int64(len(gtins)))
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
 	defer cancel()
 
 	rows, err := d.DB.QueryContext(ctx, stmt, util.AnySlice(gtins...)...)
@@ -178,4 +189,59 @@ func (d *Data) Stock(gtin string) (int64, error) {
 	}
 
 	return quantity, nil
+}
+
+func (d *Data) Serials(gtin string) ([]Serial, error) {
+	stmt := `select
+	'SER'||nanoid
+	,receive_tote
+	,pick_tote
+	,bin_id
+	,bin.warehouse_id
+	,receive_id
+	,purchase_id
+	,gtin
+	,export_id
+	from
+	serial
+	join bin on bin_id = bin.id
+	where
+	gtin = $1`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
+	defer cancel()
+
+	rows, err := d.DB.QueryContext(ctx, stmt, gtin)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	ss := []Serial{}
+	for rows.Next() {
+		var s Serial
+
+		err = rows.Scan(
+			&s.NanoID,
+			&s.ReceiveTote.ID,
+			&s.PickTote.ID,
+			&s.Bin.ID,
+			&s.Bin.Warehouse.ID,
+			&s.Receive.ID,
+			&s.Purchase.ID,
+			&s.GTIN,
+			&s.Export.ID,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		ss = append(ss, s)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return ss, nil
 }

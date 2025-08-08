@@ -65,9 +65,9 @@ func (ap *application) writeJSON(
 	return nil
 }
 
-// validateID checks if id is at least 5 chars, if the code part is within permittedCodes,
+// id64 checks if id is at least 5 chars and if the code part is within permittedCodes,
 // then parses the number part to an int64
-func (ap *application) validateID(id string, permittedCodes ...string) (int64, error) {
+func (ap *application) id64(id string, permittedCodes ...string) (int64, error) {
 	va := validator.Validator{}
 
 	va.Check(
