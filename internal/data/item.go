@@ -193,18 +193,25 @@ func (d *Data) Stock(gtin string) (int64, error) {
 
 func (d *Data) Serials(gtin string) ([]Serial, error) {
 	stmt := `select
-	'SER'||nanoid
+	'SER-'||nanoid
 	,receive_tote
 	,pick_tote
 	,bin_id
-	,bin.warehouse_id
-	,receive_id
-	,purchase_id
+	,'WAR'||bin.warehouse_id
+	,bin.shelf
+	,bin.row
+	,bin.col
+	,warehouse.name
+	,'REC'||serial.receive_id
+	,receive.actual_dtime
+	,'PUR'||serial.purchase_id
 	,gtin
-	,export_id
+	,'EXP'||export_id
 	from
 	serial
-	join bin on bin_id = bin.id
+	join bin on serial.bin_id = bin.id
+	join warehouse on bin.warehouse_id = warehouse.id
+	join receive on serial.receive_id = receive.id
 	where
 	gtin = $1`
 
@@ -227,7 +234,12 @@ func (d *Data) Serials(gtin string) ([]Serial, error) {
 			&s.PickTote.ID,
 			&s.Bin.ID,
 			&s.Bin.Warehouse.ID,
+			&s.Bin.Shelf,
+			&s.Bin.Row,
+			&s.Bin.Col,
+			&s.Bin.Warehouse.Name,
 			&s.Receive.ID,
+			&s.Receive.ActualAt,
 			&s.Purchase.ID,
 			&s.GTIN,
 			&s.Export.ID,

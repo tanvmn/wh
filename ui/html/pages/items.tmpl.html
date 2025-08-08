@@ -1,11 +1,11 @@
 {{define "main"}}
 <link rel="stylesheet" href="https://cdn.datatables.net/2.3.2/css/dataTables.dataTables.css" />
-<!-- <div class="container-xxl"> -->
+
 <div class="container-fluid">
 	<table id="itemsTable" class="display">
 		<thead>
 			<tr>
-				<th></th>
+				<th><a href="{{.Domain}}" class="btn btn-sm btn-primary"><strong>Thêm</strong></a></th>
 				<th>GTIN</th>
 				<th>Brand</th>
 				<th>Loại</th>
@@ -20,6 +20,7 @@
 			</tr>
 		</thead>
 		<tbody id="tbody">
+			{{$domain := .Domain}}
 			{{range .Items}}
 			<tr>
 				<td><img src="/rec/{{.ImgFSPath}}" alt="/rec/{{.ImgFSPath}}" width="100"></td>
@@ -33,13 +34,14 @@
 				<td>{{.Stock}}</td>
 				<td>{{.Price}}</td>
 				<td>{{.ShelfLife}}</td>
-				<td><a class="btn btn-sm btn-info" href="https://example.com"
+				<td><a class="btn btn-sm btn-info" href="{{$domain}}/serials?gtin={{.GTIN}}"
 						target="_blank">Serials</a></td>
 			</tr>
 			{{end}}
 		</tbody>
 	</table>
 </div>
+
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 <script src="https://cdn.datatables.net/2.3.2/js/dataTables.js"></script>
 <script type="module">

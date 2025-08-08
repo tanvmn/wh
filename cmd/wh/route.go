@@ -108,6 +108,7 @@ func (ap *application) routes() http.Handler {
 	// Item
 	mux.Handle("GET /items", authenticate.then(ap.itemsPage()))
 	mux.Handle("GET /items/json", authenticate.then(ap.items()))
+	mux.Handle("GET /serials", authenticate.then(ap.serialsPage()))
 
 	// Health
 	mux.HandleFunc("GET /health", ap.health)

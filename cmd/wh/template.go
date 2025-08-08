@@ -16,30 +16,49 @@ import (
 type templData struct {
 	Domain  string
 	Account struct {
-		ID   string
-		Role string
+		ID          string
+		Role        string
+		WarehouseID string
+		StoreID     string
 	}
-	Items []data.Item
+	Items   []data.Item
+	Item    *data.Item
+	Serials []data.Serial
 }
 
 func (ap *application) newTemplData(r *http.Request) (templData, error) {
 	id, ok := r.Context().Value(authenticatedCtxID).(string)
 	if !ok {
-		return templData{}, errors.New("error retrieving authenticated ID (string) from request's context")
+		return templData{}, errors.New("error retrieving authenticated id (string) from request's context")
 	}
+
 	role, ok := r.Context().Value(authenticatedCtxRole).(string)
 	if !ok {
-		return templData{}, errors.New("error retrieving authenticated ID (string) from request's context")
+		return templData{}, errors.New("error retrieving authenticated role (string) from request's context")
+	}
+
+	warehouseID, ok := r.Context().Value(authenticatedCtxWarehouseID).(string)
+	if !ok {
+		return templData{}, errors.New("error retrieving authenticated warehouseID (string) from request's context")
+	}
+
+	storeID, ok := r.Context().Value(authenticatedCtxStoreID).(string)
+	if !ok {
+		return templData{}, errors.New("error retrieving authenticated storeID (string) from request's context")
 	}
 
 	return templData{
 		Domain: domain,
 		Account: struct {
-			ID   string
-			Role string
+			ID          string
+			Role        string
+			WarehouseID string
+			StoreID     string
 		}{
-			ID:   id,
-			Role: role,
+			ID:          id,
+			Role:        role,
+			WarehouseID: warehouseID,
+			StoreID:     storeID,
 		},
 	}, nil
 }

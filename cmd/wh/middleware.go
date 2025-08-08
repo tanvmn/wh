@@ -88,8 +88,8 @@ func (ap *application) authenticate(next http.Handler) http.Handler {
 		if ac != nil {
 			r = r.WithContext(context.WithValue(r.Context(), authenticatedCtxID, ac.ID))
 			r = r.WithContext(context.WithValue(r.Context(), authenticatedCtxRole, ac.Role))
-			r = r.WithContext(context.WithValue(r.Context(), authenticatedCtxWarehouseID, ac.WarehouseID))
-			r = r.WithContext(context.WithValue(r.Context(), authenticatedCtxStoreID, ac.StoreID))
+			r = r.WithContext(context.WithValue(r.Context(), authenticatedCtxWarehouseID, ac.Warehouse.ID))
+			r = r.WithContext(context.WithValue(r.Context(), authenticatedCtxStoreID, ac.Store.ID))
 		}
 
 		// Set the "Cache-Control: no-store" header so that

@@ -1,0 +1,70 @@
+{{define "main"}}
+<link rel="stylesheet" href="https://cdn.datatables.net/2.3.2/css/dataTables.dataTables.css" />
+
+<h2>
+	GTIN &nbsp <i><strong>{{.Item.GTIN}}</strong></i>
+	<img src="/rec/{{.Item.ImgFSPath}}" alt="/rec/{{.Item.ImgFSPath}}" height="100">
+</h2>
+
+<table id="serialsTable" class="display">
+	<thead>
+		<tr>
+			<th>Serial</th>
+			<th>Kho</th>
+			<th>Kệ</th>
+			<th>Hàng</th>
+			<th>Cột</th>
+			<th>Nhập lúc</th>
+			<th>ID Phiếu nhập</th>
+		</tr>
+	</thead>
+	<tbody>
+		{{range .Serials}}
+		<tr>
+			<td>{{.NanoID}}</td>
+			<td>{{.Warehouse.ID}}</td>
+			<td>{{.Shelf}}</td>
+			<td>{{.Row}}</td>
+			<td>{{.Col}}</td>
+			<td>{{.Receive.AcutalAt}}</td>
+			<td>{{.Receive.ID}}</td>
+		</tr>
+		{{end}}
+	</tbody>
+</table>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script src="https://cdn.datatables.net/2.3.2/js/dataTables.js"></script>
+<script type="module">
+	import { Scanner } from "../static/js/util.js";
+
+	function filterItem(table) {
+		return function (code) {
+			table.search(code);
+			table.draw();
+		};
+	}
+	document.addEventListener('DOMContentLoaded', () => {
+		let table = new DataTable('#serialsTable', {
+			columnDefs: [
+				// {
+				// 	targets: '_all',
+				// 	className: 'dt-body-center'
+				// },
+				{
+					targets: '_all',
+					className: 'dt-center'
+				},
+			],
+			pageLength: 5,
+			lengthMenu: [5, 10, 25, 50, 75, 100],
+		});
+
+		Scanner.init(filterItem(table));
+	});
+</script>
+{{end}}
+
+{{define "title"}}
+Serial
+{{end}}

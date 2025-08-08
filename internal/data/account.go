@@ -3,19 +3,20 @@ package data
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 
 	"golang.org/x/crypto/bcrypt"
 )
 
 type Account struct {
-	ID           string `json:"id,omitempty,omitzero"`
-	BDate        string `json:"bdate,omitempty,omitzero"`
-	Name         string `json:"name,omitempty,omitzero"`
-	Role         string `json:"role,omitempty,omitzero"`
-	Phone        string `json:"phone,omitempty,omitzero"`
-	PasswordHash []byte `json:"-"`
-	WarehouseID  int64  `json:"warehouseID,omitempty,omitzero"`
-	StoreID      int64  `json:"storeID,omitempty,omitzero"`
+	ID           string    `json:"id,omitempty,omitzero"`
+	BDate        string    `json:"bdate,omitempty,omitzero"`
+	Name         string    `json:"name,omitempty,omitzero"`
+	Role         string    `json:"role,omitempty,omitzero"`
+	Phone        string    `json:"phone,omitempty,omitzero"`
+	PasswordHash []byte    `json:"-"`
+	Warehouse    Warehouse `json:"warehouse,omitempty,omitzero"`
+	Store        Store     `json:"store,omitempty,omitzero"`
 }
 
 var (
@@ -34,8 +35,8 @@ func (d *Data) Account(id int64) (*Account, error) {
 	name,
 	role,
 	phone,
-	warehouse_id,
-	store_id
+	'WAR'||warehouse_id,
+	'STO'||store_id
 	from account
 	where id=$1`
 
@@ -59,10 +60,10 @@ func (d *Data) Account(id int64) (*Account, error) {
 	}
 
 	if warehouseID.Valid {
-		ac.WarehouseID = warehouseID.Int64
+		ac.Warehouse.ID = WarehouseIDCode + fmt.Sprint(warehouseID.Int64)
 	}
 	if storeID.Valid {
-		ac.StoreID = storeID.Int64
+		ac.Store.ID = StoreIDCode + fmt.Sprint(storeID.Int64)
 	}
 
 	return &ac, nil
