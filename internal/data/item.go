@@ -170,6 +170,7 @@ func (d *Data) Items(gtins ...string) ([]Item, error) {
 	return is, nil
 }
 
+// Stock returns the currently stored and exported quantity of a gtin
 func (d *Data) Stock(gtin string) (int64, error) {
 	stmt := `select
 	count(gtin)
@@ -191,6 +192,7 @@ func (d *Data) Stock(gtin string) (int64, error) {
 	return quantity, nil
 }
 
+// Serials returns the serials of a gtin
 func (d *Data) Serials(gtin string) ([]Serial, error) {
 	stmt := `select
 	'SER-'||nanoid
@@ -222,7 +224,12 @@ func (d *Data) Serials(gtin string) ([]Serial, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		err = rows.Close()
+		if err != nil {
+			d.logger.Error(err.Error())
+		}
+	}()
 
 	ss := []Serial{}
 	for rows.Next() {

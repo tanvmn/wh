@@ -86,7 +86,7 @@ func newTemplCache(lg *slog.Logger) (map[string]*template.Template, error) {
 			path,
 		}
 
-		tmpl, err := template.ParseFS(ui.Files, patterns...)
+		tmpl, err := template.New(name).ParseFS(ui.Files, patterns...)
 		if err != nil {
 			lg.Error(err.Error())
 			return nil, err

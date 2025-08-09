@@ -17,4 +17,4 @@ psql/init:
 
 .PHONY: run/wh
 run/wh:
-	go run ./cmd/wh -dsn=${WH_DSN}
+	go run ./cmd/wh -dsn=${WH_DSN} -smtp-password=${APP_PASS}

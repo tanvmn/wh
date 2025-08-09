@@ -12,10 +12,12 @@ import (
 	"time"
 
 	"github.com/tanNguyen2220022/wh/internal/data"
+	"github.com/tanNguyen2220022/wh/internal/mailer"
 	"github.com/tanNguyen2220022/wh/internal/util"
 
 	"github.com/alexedwards/scs/postgresstore"
 	"github.com/alexedwards/scs/v2"
+
 	_ "github.com/lib/pq"
 )
 
@@ -30,6 +32,13 @@ type config struct {
 		maxIdleConns int
 		maxIdleTime  time.Duration
 	}
+	smtp struct {
+		host     string
+		port     int
+		username string
+		password string
+		sender   string
+	}
 }
 
 type application struct {
@@ -38,6 +47,7 @@ type application struct {
 	templCache      map[string]*template.Template
 	data            *data.Data
 	sessionsManager *scs.SessionManager
+	mailer          mailer.Mailer
 }
 
 func main() {
@@ -46,10 +56,18 @@ func main() {
 
 	flag.IntVar(&cf.port, "port", 4000, "HTTP server port")
 	flag.StringVar(&cf.env, "env", "development", "Enviroment (development|staging|production)")
+
 	flag.StringVar(&cf.db.dsn, "dsn", "", "PostgreSQL DSN")
 	flag.IntVar(&cf.db.maxOpenConns, "db-max-open-conns", 25, "PostgreSQL max open connections")
 	flag.IntVar(&cf.db.maxIdleConns, "db-max-idle-conns", 25, "PostgreSQL max idle connections")
 	flag.DurationVar(&cf.db.maxIdleTime, "db-max-idle-time", 15*time.Minute, "PostgreSQL max connection idle time")
+
+	flag.StringVar(&cf.smtp.host, "smtp-host", "smtp.gmail.com", "SMTP host")
+	flag.IntVar(&cf.smtp.port, "smtp-port", 587, "SMTP port")
+	flag.StringVar(&cf.smtp.username, "smtp-username", "ljnvmt@gmail.com", "SMTP username")
+	flag.StringVar(&cf.smtp.password, "smtp-password", "", "SMTP password")
+	flag.StringVar(&cf.smtp.sender, "smtp-sender", "<ljnvmt@gmail.com>", "SMTP sender")
+
 	flag.Parse()
 
 	lg := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{AddSource: true, Level: slog.LevelDebug}))
@@ -84,6 +102,7 @@ func main() {
 		templCache:      cache,
 		data:            data.NewData(db, lg),
 		sessionsManager: sessionManager,
+		mailer:          mailer.New(cf.smtp.host, cf.smtp.port, cf.smtp.username, cf.smtp.password, cf.smtp.sender),
 	}
 
 	sv := &http.Server{
@@ -96,6 +115,7 @@ func main() {
 	}
 
 	lg.Info(fmt.Sprintf("http://localhost:%v", cf.port), "env", cf.env)
+	lg.Info(cf.smtp.password)
 	err = sv.ListenAndServe()
 	lg.Error(err.Error())
 	os.Exit(1)

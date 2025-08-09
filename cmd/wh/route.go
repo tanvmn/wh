@@ -52,21 +52,15 @@ func (ap *application) routes() http.Handler {
 		// 	return
 		// }
 
-		ss, err := ap.data.Serials(fmt.Sprint(4983435734909))
+		s := struct{ ID int }{ID: 5}
+		err := ap.mailer.Send("tan.nguyen2220022@hcmut.edu.vn", "t", s)
 		if err != nil {
 			ap.logger.Error(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		fmt.Printf("%+v\n", ss)
-
-		err = ap.writeJSON(w, http.StatusOK, ss, nil)
-		if err != nil {
-			ap.logger.Error(err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+		w.Write([]byte("mail sent"))
 	})
 	mux.HandleFunc("/f", func(w http.ResponseWriter, r *http.Request) {
 		o := struct {

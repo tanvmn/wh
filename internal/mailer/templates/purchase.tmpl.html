@@ -1,0 +1,61 @@
+{{define "subject"}}
+smtp to gmail
+{{end}}
+
+{{define "plainBody"}}
+this is the plain body
+including an ID: {{.ID}}
+{{end}}
+
+{{define "htmlBody"}}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<style>
+		th {
+			border-bottom: 1px solid blue;
+			border-collapse: collapse;
+		}
+
+		td {
+			border-top: 1px solid blue;
+			border-collapse: collapse;
+		}
+	</style>
+</head>
+
+<body>
+	<p>including an ID: {{.ID}}</p>
+	<table>
+		<thead>
+			<tr>
+				<th>I</th>
+				<th>S</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td>1</td>
+				<td>string</td>
+			</tr>
+			<tr>
+				<td>1</td>
+				<td>string</td>
+			</tr>
+			<tr>
+				<td>1</td>
+				<td>string</td>
+			</tr>
+			<tr>
+				<td>1</td>
+				<td>string</td>
+			</tr>
+		</tbody>
+	</table>
+</body>
+
+</html>
+{{end}}
