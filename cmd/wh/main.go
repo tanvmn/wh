@@ -115,7 +115,6 @@ func main() {
 	}
 
 	lg.Info(fmt.Sprintf("http://localhost:%v", cf.port), "env", cf.env)
-	lg.Info(cf.smtp.password)
 	err = sv.ListenAndServe()
 	lg.Error(err.Error())
 	os.Exit(1)
