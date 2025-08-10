@@ -22,9 +22,10 @@ type templData struct {
 		WarehouseID string
 		StoreID     string
 	}
-	Items   []data.Item
-	Item    *data.Item
-	Serials []data.Serial
+	Items    []data.Item
+	Item     *data.Item
+	Serials  []data.Serial
+	Purchase *data.Purchase
 }
 
 func (ap *application) newTemplData(r *http.Request) (templData, error) {
@@ -49,7 +50,7 @@ func (ap *application) newTemplData(r *http.Request) (templData, error) {
 	}
 
 	return templData{
-		Domain: domain,
+		Domain:      domain,
 		CompanyName: companyName,
 		Account: struct {
 			ID          string
@@ -103,31 +104,6 @@ func newTemplCache(lg *slog.Logger) (map[string]*template.Template, error) {
 		lg.Error(err.Error())
 		return nil, err
 	}
-
-	// // repeat the above process to cache email templates
-	// paths, err = fs.Glob(mailer.Files, "templates/*.tmpl.html")
-	// if err != nil {
-	// 	lg.Error(err.Error())
-	// 	return nil, err
-	// }
-
-	// for _, path := range paths {
-	// 	name := filepath.Base(path)
-	// 	name = name[:strings.Index(name, ".tmpl")]
-
-	// 	patterns := []string{
-	// 		"mail.tmpl.html",
-	// 		path,
-	// 	}
-
-	// 	tmpl, err := template.ParseFS(mailer.Files, patterns...)
-	// 	if err != nil {
-	// 		lg.Error(err.Error())
-	// 		return nil, err
-	// 	}
-
-	// 	cache[name] = tmpl
-	// }
 
 	return cache, nil
 }

@@ -9,50 +9,8 @@ import (
 	"github.com/go-mail/mail/v2"
 )
 
-//go:embed "mail.tmpl.html" "templates"
+//go:embed "templates"
 var templates embed.FS
-
-// type Mailer struct {
-// 	host      string
-// 	port      uint
-// 	username  string
-// 	password  string
-// 	sender    string
-// 	plainAuth smtp.Auth
-// }
-
-// func New(host string, port uint, username, password, sender string) *Mailer {
-// 	return &Mailer{
-// 		host:      host,
-// 		port:      port,
-// 		username:  username,
-// 		password:  password,
-// 		sender:    sender,
-// 		plainAuth: smtp.PlainAuth("", username, password, host),
-// 	}
-// }
-
-// func (m *Mailer) Send(recipient string, tmpl *template.Template, data any) error {
-// 	buf := new(bytes.Buffer)
-// 	err := tmpl.ExecuteTemplate(buf, "mail", data)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	fmt.Println(buf.String())
-
-// 	err = smtp.SendMail(
-// 		fmt.Sprintf("%v:%v", m.host, m.port),
-// 		m.plainAuth,
-// 		m.sender,
-// 		[]string{recipient},
-// 		buf.Bytes(),
-// 	)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	return nil
-// }
 
 // Mailer struct has:
 // an *mail.Dialer to a SMTP server,
@@ -82,18 +40,12 @@ func (m Mailer) Send(recipient, templateFile string, data any) error {
 		return err
 	}
 
-	// execute (parse) the named defined template and write the result (a string) to a buffer
+	// execute (parse) the named defined template and write the result to a bytes buffer
 	subject := new(bytes.Buffer)
 	err = tmpl.ExecuteTemplate(subject, "subject", data)
 	if err != nil {
 		return err
 	}
-
-	// plainBody := new(bytes.Buffer)
-	// err = tmpl.ExecuteTemplate(plainBody, "plainBody", data)
-	// if err != nil {
-	// 	return err
-	// }
 
 	html := new(bytes.Buffer)
 	err = tmpl.ExecuteTemplate(html, "html", data)
@@ -108,7 +60,6 @@ func (m Mailer) Send(recipient, templateFile string, data any) error {
 	msg.SetHeader("From", m.sender)
 	msg.SetHeader("Subject", subject.String())
 	msg.SetBody("text/html", html.String())
-	// msg.AddAlternative("text/plain", plainBody.String())
 
 	err = m.dialer.DialAndSend(msg)
 	if err != nil {

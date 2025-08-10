@@ -16,6 +16,7 @@ type Purchase struct {
 	Supplier   Supplier  `json:"supplier,omitempty,omitzero"`
 	ID         string    `json:"purchase,omitempty,omitzero"`
 	CreatedAt  string    `json:"createdAt,omitempty,omitzero"`
+	Items      []Item    `json:"items,omitempty,omitzero"`
 }
 
 type Receive struct {

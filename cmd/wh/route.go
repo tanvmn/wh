@@ -70,12 +70,10 @@ func (ap *application) routes() http.Handler {
 		s := struct {
 			ID      string
 			Version uint
-			CompanyName string
 			// To      string
 		}{
 			ID:      "PUR-1",
 			Version: 1,
-			CompanyName: companyName,
 			// To:      ap.config.smtp.sender,
 		}
 		err := ap.mailer.Send("tan.nguyen2220022@hcmut.edu.vn", "purchase_mail", s)
