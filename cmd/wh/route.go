@@ -52,8 +52,33 @@ func (ap *application) routes() http.Handler {
 		// 	return
 		// }
 
-		s := struct{ ID int }{ID: 5}
-		err := ap.mailer.Send("tan.nguyen2220022@hcmut.edu.vn", "t", s)
+		// msg := []byte(
+		// 	"To: tan.nguyen2220022@hcmut.edu.vn\r\n" +
+		// 		"Subject: subject smtp\r\n" +
+		// 		"\r\n" +
+		// 		"email body 4\r\n",
+		// )
+
+		// err := smtp.SendMail(
+		// 	"smtp.gmail.com:587",
+		// 	smtp.PlainAuth("", "ljnvmt@gmail.com", "cdtr etyn rdco cwul", "smtp.gmail.com"),
+		// 	"sendercustom@gmail.com",
+		// 	[]string{"tan.nguyen2220022@hcmut.edu.vn"},
+		// 	msg,
+		// )
+
+		s := struct {
+			ID      string
+			Version uint
+			CompanyName string
+			// To      string
+		}{
+			ID:      "PUR-1",
+			Version: 1,
+			CompanyName: companyName,
+			// To:      ap.config.smtp.sender,
+		}
+		err := ap.mailer.Send("tan.nguyen2220022@hcmut.edu.vn", "purchase_mail", s)
 		if err != nil {
 			ap.logger.Error(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)

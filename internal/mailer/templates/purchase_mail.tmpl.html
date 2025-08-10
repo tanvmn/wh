@@ -1,13 +1,8 @@
 {{define "subject"}}
-smtp to gmail
+CTY {{.CompanyName}}, đơn hàng {{.ID}}, lần {{.Version}}
 {{end}}
 
-{{define "plainBody"}}
-this is the plain body
-including an ID: {{.ID}}
-{{end}}
-
-{{define "htmlBody"}}
+{{define "html"}}
 <!DOCTYPE html>
 <html lang="en">
 

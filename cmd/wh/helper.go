@@ -13,6 +13,7 @@ import (
 )
 
 const (
+	companyName = "Morgan Maxwell"
 	domain = "http://localhost:4000"
 	itemImgPathFS = "item/img/"
 )

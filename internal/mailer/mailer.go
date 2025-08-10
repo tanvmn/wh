@@ -9,8 +9,50 @@ import (
 	"github.com/go-mail/mail/v2"
 )
 
-//go:embed "templates"
-var templateFS embed.FS
+//go:embed "mail.tmpl.html" "templates"
+var templates embed.FS
+
+// type Mailer struct {
+// 	host      string
+// 	port      uint
+// 	username  string
+// 	password  string
+// 	sender    string
+// 	plainAuth smtp.Auth
+// }
+
+// func New(host string, port uint, username, password, sender string) *Mailer {
+// 	return &Mailer{
+// 		host:      host,
+// 		port:      port,
+// 		username:  username,
+// 		password:  password,
+// 		sender:    sender,
+// 		plainAuth: smtp.PlainAuth("", username, password, host),
+// 	}
+// }
+
+// func (m *Mailer) Send(recipient string, tmpl *template.Template, data any) error {
+// 	buf := new(bytes.Buffer)
+// 	err := tmpl.ExecuteTemplate(buf, "mail", data)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	fmt.Println(buf.String())
+
+// 	err = smtp.SendMail(
+// 		fmt.Sprintf("%v:%v", m.host, m.port),
+// 		m.plainAuth,
+// 		m.sender,
+// 		[]string{recipient},
+// 		buf.Bytes(),
+// 	)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	return nil
+// }
 
 // Mailer struct has:
 // an *mail.Dialer to a SMTP server,
@@ -35,7 +77,7 @@ func New(host string, port int, username, password, sender string) Mailer {
 // Send takes the recipient email address, the name of the file containing the templates,
 // the dynamic data for the templates
 func (m Mailer) Send(recipient, templateFile string, data any) error {
-	tmpl, err := template.New("email").ParseFS(templateFS, "templates/"+templateFile+".tmpl.html")
+	tmpl, err := template.New("email").ParseFS(templates, "templates/"+templateFile+".tmpl.html")
 	if err != nil {
 		return err
 	}
@@ -47,14 +89,14 @@ func (m Mailer) Send(recipient, templateFile string, data any) error {
 		return err
 	}
 
-	plainBody := new(bytes.Buffer)
-	err = tmpl.ExecuteTemplate(plainBody, "plainBody", data)
-	if err != nil {
-		return err
-	}
+	// plainBody := new(bytes.Buffer)
+	// err = tmpl.ExecuteTemplate(plainBody, "plainBody", data)
+	// if err != nil {
+	// 	return err
+	// }
 
-	htmlBody := new(bytes.Buffer)
-	err = tmpl.ExecuteTemplate(htmlBody, "htmlBody", data)
+	html := new(bytes.Buffer)
+	err = tmpl.ExecuteTemplate(html, "html", data)
 	if err != nil {
 		return err
 	}
@@ -65,7 +107,7 @@ func (m Mailer) Send(recipient, templateFile string, data any) error {
 	msg.SetHeader("To", recipient)
 	msg.SetHeader("From", m.sender)
 	msg.SetHeader("Subject", subject.String())
-	msg.SetBody("text/html", htmlBody.String())
+	msg.SetBody("text/html", html.String())
 	// msg.AddAlternative("text/plain", plainBody.String())
 
 	err = m.dialer.DialAndSend(msg)
