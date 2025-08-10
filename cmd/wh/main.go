@@ -81,6 +81,7 @@ func main() {
 		err = db.Close()
 		if err != nil {
 			lg.Error(err.Error())
+			os.Exit(1)
 		}
 	}()
 	lg.Info("db connection pool established")

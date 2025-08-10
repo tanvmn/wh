@@ -62,8 +62,8 @@ func (ap *application) logRequest(next http.Handler) http.Handler {
 
 func (ap *application) authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		id := ap.sessionsManager.GetInt64(r.Context(), "authenticatedID")
-		if id == 0 {
+		id := ap.sessionsManager.GetString(r.Context(), "authenticatedID")
+		if id == "" {
 			if r.URL.RequestURI() == "/login" {
 				next.ServeHTTP(w, r)
 			} else {
@@ -117,6 +117,7 @@ func (ap *application) authorize(roles ...string) func(http.Handler) http.Handle
 			}
 
 			if role != "Admin" && !slices.Contains(roles, role) {
+				ap.logger.Warn(fmt.Sprintf(`Role "%v" cannot access this resource`, role))
 				http.Error(w, fmt.Sprintf("Chức vụ %v không được truy cập vào tài nguyên này", role), http.StatusForbidden)
 				return
 			}

@@ -3,8 +3,11 @@ package data
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"log/slog"
 	"strconv"
+
+	"github.com/tanNguyen2220022/wh/internal/validator"
 )
 
 const (
@@ -14,12 +17,13 @@ const (
 	ToteIDCode      = "TOT-"
 	BoxIDCode       = "BOX-"
 	StaffIDCode     = "STA-"
+	WarehouseIDCode = "WAR-"
+	StoreIDCode     = "STO-"
+	SupplierIDCode  = "SUP-"
 	PurchaseIDCode  = "PUR-"
 	ReceiveIDCode   = "REC-"
 	ResupplyIDCode  = "RES-"
 	ExportIDCode    = "EXP-"
-	WarehouseIDCode = "WAR-"
-	StoreIDCode     = "STO-"
 )
 
 var (
@@ -64,4 +68,25 @@ func Range(n int64) string {
 	r = "(" + r + ")"
 
 	return r
+}
+
+// id64 checks if id is at least 5 chars and if the code part is one of permittedCodes,
+// then parses the number part to an int64
+func id64(id string, permittedCodes ...string) (int64, error) {
+	va := validator.Validator{}
+
+	va.Check(
+		validator.MinChars(id, 5) && validator.Permitted(id[:4], permittedCodes...),
+		fmt.Sprintf("ID %v is less than 5 chars or the code is not within %v", id, permittedCodes),
+	)
+	if !va.Valid() {
+		return 0, fmt.Errorf("%w: %v", ErrInvalidID, va.Message())
+	}
+
+	i, err := strconv.ParseInt(id[4:], 10, 64)
+	if err != nil || i < 1 {
+		return 0, fmt.Errorf("%w: ID %v, the number must be >= 1", ErrInvalidID, id)
+	}
+
+	return i, nil
 }

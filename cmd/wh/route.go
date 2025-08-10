@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/tanNguyen2220022/wh/internal/data"
 	"github.com/tanNguyen2220022/wh/rec"
 	"github.com/tanNguyen2220022/wh/ui"
 )
@@ -28,62 +29,12 @@ func (ap *application) routes() http.Handler {
 		// 	}
 		// }
 
-		// stmt := `select enum_range(null::type)`
-
-		// var types []string
-		// err := ap.data.DB.QueryRow(stmt).Scan(pq.Array(&types))
-
-		// f := struct {
-		// 	Bin []byte `json:"bin"`
-		// }{}
-
 		// bytes, err := fs.ReadFile(rec.Files, itemImgPathFS+"4983435734909.jpeg")
 		// if err != nil {
 		// 	ap.logger.Error(err.Error())
 		// 	http.Error(w, err.Error(), http.StatusInternalServerError)
 		// 	return
 		// }
-		// f.Bin = bytes
-
-		// err = ap.writeJSON(w, http.StatusOK, f, nil)
-		// if err != nil {
-		// 	ap.logger.Error(err.Error())
-		// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-		// 	return
-		// }
-
-		// msg := []byte(
-		// 	"To: tan.nguyen2220022@hcmut.edu.vn\r\n" +
-		// 		"Subject: subject smtp\r\n" +
-		// 		"\r\n" +
-		// 		"email body 4\r\n",
-		// )
-
-		// err := smtp.SendMail(
-		// 	"smtp.gmail.com:587",
-		// 	smtp.PlainAuth("", "ljnvmt@gmail.com", "cdtr etyn rdco cwul", "smtp.gmail.com"),
-		// 	"sendercustom@gmail.com",
-		// 	[]string{"tan.nguyen2220022@hcmut.edu.vn"},
-		// 	msg,
-		// )
-
-		s := struct {
-			ID      string
-			Version uint
-			// To      string
-		}{
-			ID:      "PUR-1",
-			Version: 1,
-			// To:      ap.config.smtp.sender,
-		}
-		err := ap.mailer.Send("tan.nguyen2220022@hcmut.edu.vn", "purchase_mail", s)
-		if err != nil {
-			ap.logger.Error(err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		w.Write([]byte("mail sent"))
 	})
 	mux.HandleFunc("/f", func(w http.ResponseWriter, r *http.Request) {
 		o := struct {
@@ -138,6 +89,9 @@ func (ap *application) routes() http.Handler {
 	// Login, logout
 	mux.Handle("GET /login", authenticate.then(ap.loginPage()))
 	mux.Handle("POST /login", authenticate.then(ap.login()))
+
+	// In
+	mux.Handle("POST /purchase", append(authenticate, ap.authorize(data.Accountant, data.HeadAccountant)).then(ap.addPurchase()))
 
 	pre := middlewares{ap.recoverPanic, ap.logRequest, ap.addCommonHeaders}
 

@@ -9,14 +9,17 @@ const (
 )
 
 type Purchase struct {
+	ID         string    `json:"purchase,omitempty,omitzero"`
 	Warehouse  Warehouse `json:"warehouse,omitempty,omitzero"`
 	Account    Account   `json:"account,omitempty,omitzero"`
 	ExpectedAt string    `json:"expectedAt,omitempty,omitzero"`
 	Status     string    `json:"status,omitempty,omitzero"`
 	Supplier   Supplier  `json:"supplier,omitempty,omitzero"`
-	ID         string    `json:"purchase,omitempty,omitzero"`
 	CreatedAt  string    `json:"createdAt,omitempty,omitzero"`
-	Items      []Item    `json:"items,omitempty,omitzero"`
+	Items      []struct {
+		Item     Item  `json:"item,omitempty,omitzero"`
+		Quantity int64 `json:"quantity,omitempty,omitzero"`
+	} `json:"items,omitempty,omitzero"`
 }
 
 type Receive struct {
@@ -27,4 +30,8 @@ type Receive struct {
 	ActualAt   string   `json:"actualAt,omitempty,omitzero"`
 	CreatedAt  string   `json:"createdAt,omitempty,omitzero"`
 	Transfer   Transfer `json:"transfer,omitempty,omitzero"`
+	Items      []struct {
+		Item     Item  `json:"item,omitempty,omitzero"`
+		Quantity int64 `json:"quantity,omitempty,omitzero"`
+	} `json:"items,omitempty,omitzero"`
 }

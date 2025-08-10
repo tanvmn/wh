@@ -76,7 +76,7 @@ const (
 	item`
 )
 
-func (d *Data) Item(gtin string) (*Item, error) {
+func (db *Data) Item(gtin string) (*Item, error) {
 	if gtin == "" {
 		return nil, ErrNoItems
 	}
@@ -86,7 +86,7 @@ func (d *Data) Item(gtin string) (*Item, error) {
 	var (
 		i Item
 	)
-	err := d.DB.QueryRow(stmt, gtin).Scan(
+	err := db.DB.QueryRow(stmt, gtin).Scan(
 		&i.Brand,
 		&i.Characteristic,
 		&i.Color,
@@ -110,7 +110,7 @@ func (d *Data) Item(gtin string) (*Item, error) {
 	return &i, nil
 }
 
-func (d *Data) Items(gtins ...string) ([]Item, error) {
+func (db *Data) Items(gtins ...string) ([]Item, error) {
 	stmt := selectItemsStmt
 	if len(gtins) != 0 {
 		stmt += "\nwhere gtin in " + Range(int64(len(gtins)))
@@ -119,14 +119,14 @@ func (d *Data) Items(gtins ...string) ([]Item, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
 	defer cancel()
 
-	rows, err := d.DB.QueryContext(ctx, stmt, util.AnySlice(gtins...)...)
+	rows, err := db.DB.QueryContext(ctx, stmt, util.AnySlice(gtins...)...)
 	if err != nil {
 		return nil, err
 	}
 	defer func() {
 		err := rows.Close()
 		if err != nil {
-			d.logger.Error(err.Error())
+			db.logger.Error(err.Error())
 		}
 	}()
 
@@ -161,7 +161,7 @@ func (d *Data) Items(gtins ...string) ([]Item, error) {
 	}
 
 	for i := range is {
-		is[i].Stock, err = d.Stock(is[i].GTIN)
+		is[i].Stock, err = db.Stock(is[i].GTIN)
 		if err != nil && !errors.Is(err, ErrNoItems) {
 			return nil, err
 		}
@@ -171,7 +171,7 @@ func (d *Data) Items(gtins ...string) ([]Item, error) {
 }
 
 // Stock returns the currently stored and exported quantity of a gtin
-func (d *Data) Stock(gtin string) (int64, error) {
+func (db *Data) Stock(gtin string) (int64, error) {
 	stmt := `select
 	count(gtin)
 	from
@@ -182,7 +182,7 @@ func (d *Data) Stock(gtin string) (int64, error) {
 	and export_id=0`
 
 	var quantity int64
-	err := d.DB.QueryRow(stmt, gtin).Scan(&quantity)
+	err := db.DB.QueryRow(stmt, gtin).Scan(&quantity)
 	if errors.Is(err, sql.ErrNoRows) {
 		return 0, ErrNoItems
 	} else if err != nil {
@@ -193,7 +193,7 @@ func (d *Data) Stock(gtin string) (int64, error) {
 }
 
 // Serials returns the serials of a gtin
-func (d *Data) Serials(gtin string) ([]Serial, error) {
+func (db *Data) Serials(gtin string) ([]Serial, error) {
 	stmt := `select
 	'SER-'||nanoid
 	,receive_tote
@@ -220,15 +220,17 @@ func (d *Data) Serials(gtin string) ([]Serial, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
 	defer cancel()
 
-	rows, err := d.DB.QueryContext(ctx, stmt, gtin)
+	rows, err := db.DB.QueryContext(ctx, stmt, gtin)
 	if err != nil {
 		return nil, err
 	}
-	defer func() {
+	defer func() error {
 		err = rows.Close()
 		if err != nil {
-			d.logger.Error(err.Error())
+			return err
 		}
+
+		return nil
 	}()
 
 	ss := []Serial{}

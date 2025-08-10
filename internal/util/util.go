@@ -11,6 +11,19 @@ const (
 
 var ()
 
+type MalformedRequest struct {
+	Status int
+	Msg    string
+}
+
+func (mr *MalformedRequest) Error() string {
+	return mr.Msg
+}
+
+func (mr *MalformedRequest) HasErr() bool {
+	return mr.Msg != ""
+}
+
 // Set returns a slice of unique T values
 func Set[T comparable](vs ...T) []T {
 	if len(vs) == 0 {

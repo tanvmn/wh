@@ -19,24 +19,37 @@ type Account struct {
 	Store        Store     `json:"store,omitempty,omitzero"`
 }
 
+const (
+	Admin          = "Admin"
+	HeadAccountant = "Kế toán trưởng"
+	Accountant     = "Kế toán"
+	Manager        = "Thủ kho"
+	Employee       = "Nhân viên"
+)
+
 var (
 	ErrNoAccounts         = errors.New("data: account not found")
 	ErrInvalidCredentials = errors.New("data: invalid credentials")
 )
 
-func (d *Data) Account(id int64) (*Account, error) {
-	if id < 1 {
+func (db *Data) Account(id string) (*Account, error) {
+	i, err := id64(id, AccountIDCode)
+	if err != nil {
+		return nil, err
+	}
+
+	if i < 1 {
 		return nil, ErrNoAccounts
 	}
 
 	stmt := `select
-	'ACC-'||id,
+	'` + AccountIDCode + `'||id,
 	substring(to_char(bdate, 'YYYY-MM-DD') from 1 for 10),
 	name,
 	role,
 	phone,
-	'WAR'||warehouse_id,
-	'STO'||store_id
+	warehouse_id,
+	store_id
 	from account
 	where id=$1`
 
@@ -44,7 +57,7 @@ func (d *Data) Account(id int64) (*Account, error) {
 		ac                   Account
 		warehouseID, storeID sql.NullInt64
 	)
-	err := d.DB.QueryRow(stmt, id).Scan(
+	err = db.DB.QueryRow(stmt, i).Scan(
 		&ac.ID,
 		&ac.BDate,
 		&ac.Name,
@@ -69,24 +82,28 @@ func (d *Data) Account(id int64) (*Account, error) {
 	return &ac, nil
 }
 
-func (d *Data) Authenticate(phone, password string) (id int64, err error) {
+func (db *Data) Authenticate(phone, password string) (id string, err error) {
 	var (
 		passwordHash []byte
 	)
 
-	stmt := `select id, password_hash from account where phone=$1`
-	err = d.DB.QueryRow(stmt, phone).Scan(&id, &passwordHash)
+	stmt := `select
+	'` + AccountIDCode +`'||id,
+	password_hash
+	from account
+	where phone=$1`
+	err = db.DB.QueryRow(stmt, phone).Scan(&id, &passwordHash)
 	if errors.Is(err, sql.ErrNoRows) {
-		return 0, ErrInvalidCredentials
+		return "", ErrInvalidCredentials
 	} else if err != nil {
-		return 0, err
+		return "", err
 	}
 
 	err = bcrypt.CompareHashAndPassword(passwordHash, []byte(password))
 	if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
-		return 0, ErrInvalidCredentials
+		return "", ErrInvalidCredentials
 	} else if err != nil {
-		return 0, err
+		return "", err
 	}
 
 	return id, nil
