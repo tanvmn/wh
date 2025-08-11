@@ -13,6 +13,7 @@ import (
 const (
 	AccountIDCode   = "ACC-"
 	ItemIDCode      = "ITE-"
+	SerialIDCode    = "SER-"
 	BinIDCode       = "BIN-"
 	ToteIDCode      = "TOT-"
 	BoxIDCode       = "BOX-"

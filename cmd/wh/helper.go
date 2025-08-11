@@ -67,29 +67,11 @@ func (ap *application) writeJSON(
 	return nil
 }
 
-// id64 checks if id is at least 5 chars and if the code part is one of permittedCodes,
-// then parses the number part to an int64
-// func (ap *application) id64(id string, permittedCodes ...string) (int64, error) {
-// 	va := validator.Validator{}
-
-// 	va.Check(
-// 		validator.MinChars(id, 5) && validator.Permitted(id[:4], permittedCodes...),
-// 		fmt.Sprintf("ID %v is less than 5 chars or the code is not within %v", id, permittedCodes),
-// 	)
-// 	if !va.Valid() {
-// 		return 0, errors.New(va.Message())
-// 	}
-
-// 	i, err := strconv.ParseInt(id[4:], 10, 64)
-// 	if err != nil || i < 1 {
-// 		return 0, fmt.Errorf("ID %v, the number must be >= 1", id)
-// 	}
-
-// 	return i, nil
-// }
-
-// decodeJSON decode JSON body, slog errors, and returns client error message
+// decodeJSON decode JSON body, slog errors, and returns client error code and message
 func (ap *application) decodeJSON(w http.ResponseWriter, r *http.Request, dst any) error {
+	// If the Content-Type header is present, get the value,
+	// remove additional parameters like charset or boundary information,
+	// and normalize by stripping whitespace and converting to lowercase before checking if it's application/json
 	ct := r.Header.Get("Content-Type")
 	if ct != "" {
 		mediaType := strings.ToLower(strings.TrimSpace(strings.Split(ct, ";")[0]))
@@ -103,7 +85,7 @@ func (ap *application) decodeJSON(w http.ResponseWriter, r *http.Request, dst an
 		}
 	}
 
-	r.Body = http.MaxBytesReader(w, r.Body, 2<<20) // 2Bytes<<20 == 2 MBytes
+	r.Body = http.MaxBytesReader(w, r.Body, 2<<20) // (2 Bytes << 20) == 2 MBytes
 
 	de := json.NewDecoder(r.Body)
 	// de.DisallowUnknownFields()
@@ -168,7 +150,7 @@ func (ap *application) decodeJSON(w http.ResponseWriter, r *http.Request, dst an
 
 	err = de.Decode(&struct{}{})
 	if !errors.Is(err, io.EOF) {
-		msg := "JSON must be an array or has 1 object"
+		msg := "JSON must be an array or has only 1 object"
 		ap.logger.Error(msg)
 		return &util.MalformedRequest{
 			Status: http.StatusBadRequest,

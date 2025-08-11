@@ -35,11 +35,10 @@ var (
 func (db *Data) Account(id string) (*Account, error) {
 	i, err := id64(id, AccountIDCode)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", ErrNoAccounts, id)
 	}
-
 	if i < 1 {
-		return nil, ErrNoAccounts
+		return nil, fmt.Errorf("%w: %v", ErrNoAccounts, id)
 	}
 
 	stmt := `select
@@ -51,7 +50,7 @@ func (db *Data) Account(id string) (*Account, error) {
 	warehouse_id,
 	store_id
 	from account
-	where id=$1`
+	where id = $1`
 
 	var (
 		ac                   Account
@@ -67,7 +66,7 @@ func (db *Data) Account(id string) (*Account, error) {
 		&storeID,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, ErrNoAccounts
+		return nil, fmt.Errorf("%w: %v", ErrNoAccounts, id)
 	} else if err != nil {
 		return nil, err
 	}
@@ -88,10 +87,10 @@ func (db *Data) Authenticate(phone, password string) (id string, err error) {
 	)
 
 	stmt := `select
-	'` + AccountIDCode +`'||id,
+	'` + AccountIDCode + `'||id,
 	password_hash
 	from account
-	where phone=$1`
+	where phone = $1`
 	err = db.DB.QueryRow(stmt, phone).Scan(&id, &passwordHash)
 	if errors.Is(err, sql.ErrNoRows) {
 		return "", ErrInvalidCredentials
@@ -107,4 +106,32 @@ func (db *Data) Authenticate(phone, password string) (id string, err error) {
 	}
 
 	return id, nil
+}
+
+func (db *Data) IsAccountFromWarehouse(accountID, warehouseID string) (bool, error) {
+	aI, err := id64(accountID, AccountIDCode)
+	if err != nil {
+		return false, err
+	}
+	wI, err := id64(warehouseID, WarehouseIDCode)
+	if err != nil {
+		return false, err
+	}
+
+	var from bool
+	stmt := `select
+	true
+	from account
+	where
+	id = $1
+	and warehouse_id = $2`
+
+	err = db.DB.QueryRow(stmt, aI, wI).Scan(&from)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	} else if err != nil {
+		return false, err
+	}
+
+	return from, nil
 }

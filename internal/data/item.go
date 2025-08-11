@@ -4,28 +4,30 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/tanNguyen2220022/wh/internal/util"
 )
 
 type Item struct {
-	GTIN           string  `json:"gtin,omitempty,omitzero"`
-	Characteristic string  `json:"characteristic,omitempty,omitzero"`
-	Volume         float32 `json:"volume,omitempty,omitzero"`
-	Weight         int64   `json:"weight,omitempty,omitzero"`
-	Brand          string  `json:"brand,omitempty,omitzero"`
-	Material       string  `json:"material,omitempty,omitzero"`
-	Color          string  `json:"color,omitempty,omitzero"`
-	Size           string  `json:"size,omitempty,omitzero"`
-	Price          float32 `json:"price,omitempty,omitzero"`
-	Currency       string  `json:"currency,omitempty,omitzero"`
-	Type           string  `json:"type,omitempty,omitzero"`
-	ShelfLife      int64   `json:"shelfLife,omitempty,omitzero"`
-	Img            []byte  `json:"img,omitempty,omitzero"`
-	ImgFSPath      string  `json:"imgFSPath,omitempty,omitzero"`
-	Name           string  `json:"name,omitempty,omitzero"`
-	Stock          int64   `json:"stock,omitempty,omitzero"`
+	GTIN           string   `json:"gtin,omitempty,omitzero"`
+	Characteristic string   `json:"characteristic,omitempty,omitzero"`
+	Volume         float32  `json:"volume,omitempty,omitzero"`
+	Weight         int64    `json:"weight,omitempty,omitzero"`
+	Brand          string   `json:"brand,omitempty,omitzero"`
+	Material       string   `json:"material,omitempty,omitzero"`
+	Color          string   `json:"color,omitempty,omitzero"`
+	Size           string   `json:"size,omitempty,omitzero"`
+	Price          float32  `json:"price,omitempty,omitzero"`
+	Currency       string   `json:"currency,omitempty,omitzero"`
+	Type           string   `json:"type,omitempty,omitzero"`
+	ShelfLife      int64    `json:"shelfLife,omitempty,omitzero"`
+	Img            []byte   `json:"img,omitempty,omitzero"`
+	ImgFSPath      string   `json:"imgFSPath,omitempty,omitzero"`
+	Name           string   `json:"name,omitempty,omitzero"`
+	Stock          int64    `json:"stock,omitempty,omitzero"`
+	Supplier       Supplier `json:"supplier,omitempty,omitzero"`
 }
 
 type Serial struct {
@@ -63,7 +65,7 @@ const (
 	characteristic,
 	color,
 	currency,
-	gtin,
+	item.gtin,
 	img_fspath,
 	material,
 	price,
@@ -71,17 +73,15 @@ const (
 	size,
 	type,
 	volume,
+	supplier_item.supplier_id,
 	weight
 	from
-	item`
+	item
+	join supplier_item on supplier_item.gtin = item.gtin`
 )
 
 func (db *Data) Item(gtin string) (*Item, error) {
-	if gtin == "" {
-		return nil, ErrNoItems
-	}
-
-	stmt := selectItemsStmt + "\nwhere gtin=$1"
+	stmt := selectItemsStmt + "\nwhere supplier_item.gtin=$1"
 
 	var (
 		i Item
@@ -100,9 +100,10 @@ func (db *Data) Item(gtin string) (*Item, error) {
 		&i.Type,
 		&i.Volume,
 		&i.Weight,
+		&i.Supplier.ID,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, ErrNoItems
+		return nil, fmt.Errorf("%w: %v", ErrNoItems, gtin)
 	} else if err != nil {
 		return nil, err
 	}
@@ -123,11 +124,13 @@ func (db *Data) Items(gtins ...string) ([]Item, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer func() {
+	defer func() error {
 		err := rows.Close()
 		if err != nil {
-			db.logger.Error(err.Error())
+			return err
 		}
+
+		return nil
 	}()
 
 	var is []Item
@@ -148,6 +151,7 @@ func (db *Data) Items(gtins ...string) ([]Item, error) {
 			&i.Type,
 			&i.Volume,
 			&i.Weight,
+			&i.Supplier.ID,
 		)
 		if err != nil {
 			return nil, err
@@ -175,7 +179,7 @@ func (db *Data) Stock(gtin string) (int64, error) {
 	stmt := `select
 	count(gtin)
 	from
-	seri
+	serial
 	where
 	gtin=$1
 	and pick_tote=0
@@ -183,9 +187,7 @@ func (db *Data) Stock(gtin string) (int64, error) {
 
 	var quantity int64
 	err := db.DB.QueryRow(stmt, gtin).Scan(&quantity)
-	if errors.Is(err, sql.ErrNoRows) {
-		return 0, ErrNoItems
-	} else if err != nil {
+	if err != nil {
 		return 0, err
 	}
 
@@ -194,28 +196,39 @@ func (db *Data) Stock(gtin string) (int64, error) {
 
 // Serials returns the serials of a gtin
 func (db *Data) Serials(gtin string) ([]Serial, error) {
-	stmt := `select
-	'SER-'||nanoid
+	if len(gtin) < 5 {
+		return nil, fmt.Errorf("%w: %v", ErrNoItems, gtin)
+	}
+
+	stmt := fmt.Sprintf(
+		`select
+	'%v'||nanoid
 	,receive_tote
 	,pick_tote
 	,bin_id
-	,'WAR'||bin.warehouse_id
+	,'%v'||bin.warehouse_id
 	,bin.shelf
 	,bin.row
 	,bin.col
 	,warehouse.name
-	,'REC'||serial.receive_id
+	,'%v'||serial.receive_id
 	,receive.actual_dtime
-	,'PUR'||serial.purchase_id
+	,'%v'||serial.purchase_id
 	,gtin
-	,'EXP'||export_id
+	,'%v'||export_id
 	from
 	serial
 	join bin on serial.bin_id = bin.id
 	join warehouse on bin.warehouse_id = warehouse.id
 	join receive on serial.receive_id = receive.id
 	where
-	gtin = $1`
+	gtin = $1`,
+		SerialIDCode,
+		WarehouseIDCode,
+		ReceiveIDCode,
+		PurchaseIDCode,
+		ExportIDCode,
+	)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
 	defer cancel()
@@ -265,4 +278,50 @@ func (db *Data) Serials(gtin string) ([]Serial, error) {
 	}
 
 	return ss, nil
+}
+
+func (db *Data) GTINsBySupplier(supplierID string) ([]string, error) {
+	i, err := id64(supplierID, SupplierIDCode)
+	if err != nil {
+		return nil, err
+	}
+
+	stmt := `select
+	gtin
+	from supplier_item
+	where supplier_id=$1`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
+	defer cancel()
+
+	rows, err := db.DB.QueryContext(ctx, stmt, i)
+	if err != nil {
+		return nil, err
+	}
+	defer func() error {
+		err = rows.Close()
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}()
+
+	var gtins []string
+	for rows.Next() {
+		var gtin string
+
+		err = rows.Scan(&gtin)
+		if err != nil {
+			return nil, err
+		}
+
+		gtins = append(gtins, gtin)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return gtins, nil
 }

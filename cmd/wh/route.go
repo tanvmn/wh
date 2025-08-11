@@ -29,12 +29,13 @@ func (ap *application) routes() http.Handler {
 		// 	}
 		// }
 
-		// bytes, err := fs.ReadFile(rec.Files, itemImgPathFS+"4983435734909.jpeg")
-		// if err != nil {
-		// 	ap.logger.Error(err.Error())
-		// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-		// 	return
-		// }
+		ss, err := ap.data.Serials("4983435734503")
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		fmt.Fprintf(w, "%+v", ss)
 	})
 	mux.HandleFunc("/f", func(w http.ResponseWriter, r *http.Request) {
 		o := struct {
