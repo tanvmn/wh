@@ -73,8 +73,8 @@ const (
 	size,
 	type,
 	volume,
-	supplier_item.supplier_id,
-	weight
+	weight,
+	supplier_item.supplier_id
 	from
 	item
 	join supplier_item on supplier_item.gtin = item.gtin`
