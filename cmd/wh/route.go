@@ -91,7 +91,7 @@ func (ap *application) routes() http.Handler {
 	mux.Handle("GET /login", authenticate.then(ap.loginPage()))
 	mux.Handle("POST /login", authenticate.then(ap.login()))
 
-	// In
+	// Purchase
 	mux.Handle("POST /purchase", append(authenticate, ap.authorize(data.Accountant, data.HeadAccountant)).then(ap.addPurchaseHandler()))
 
 	pre := middlewares{ap.recoverPanic, ap.logRequest, ap.addCommonHeaders}
