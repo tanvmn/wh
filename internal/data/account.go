@@ -32,6 +32,18 @@ var (
 	ErrInvalidCredentials = errors.New("data: invalid credentials")
 )
 
+var accountSelectStmt = fmt.Sprintf(`
+	select
+	'%v'||id,
+	substring(to_char(bdate, 'YYYY-MM-DD') from 1 for 10),
+	name,
+	role,
+	phone,
+	warehouse_id,
+	store_id
+	from account
+	where id = $1`, AccountIDCode)
+
 func (db *Data) Account(id string) (*Account, error) {
 	i, err := id64(id, AccountIDCode)
 	if err != nil {
@@ -41,16 +53,7 @@ func (db *Data) Account(id string) (*Account, error) {
 		return nil, fmt.Errorf("%w: %v", ErrNoAccounts, id)
 	}
 
-	stmt := `select
-	'` + AccountIDCode + `'||id,
-	substring(to_char(bdate, 'YYYY-MM-DD') from 1 for 10),
-	name,
-	role,
-	phone,
-	warehouse_id,
-	store_id
-	from account
-	where id = $1`
+	stmt := accountSelectStmt
 
 	var (
 		ac                   Account
@@ -133,5 +136,5 @@ func (db *Data) IsAccountFromWarehouse(accountID, warehouseID string) (bool, err
 		return false, err
 	}
 
-	return from, nil
+	return true, nil
 }

@@ -64,6 +64,7 @@ create table if not exists warehouse (
 	name text not null,
 	address text not null,
 	phone text not null,
+	version integer not null default 1,
 	email text not null
 );
 
@@ -73,6 +74,7 @@ create table if not exists transfer (
 	receive_warehouse bigint not null,
 	account_id bigint not null,
 	created_dtime timestamp not null default now(),
+	version integer not null default 1,
 	expected_dtime timestamp not null
 );
 
@@ -82,12 +84,14 @@ create table if not exists bin (
 	shelf bigint not null,
 	row bigint not null,
 	col bigint not null,
+	version integer not null default 1,
 	capacity real not null default 37480
 );
 
 create table if not exists tote (
 	id bigserial not null,
 	warehouse_id bigint not null,
+	version integer not null default 1,
 	capacity real not null default 37480
 );
 
@@ -97,6 +101,7 @@ create table if not exists inventory (
 	end_dtime timestamp not null,
 	balanced boolean,
 	warehouse_id bigint not null,
+	version integer not null default 1,
 	account_id bigint not null
 );
 
@@ -104,6 +109,7 @@ create table if not exists inventory_item (
 	inventory_id bigint not null,
 	gtin text not null,
 	expected_quantity bigint not null,
+	version integer not null default 1,
 	counted_quantity bigint not null
 );
 
@@ -115,6 +121,7 @@ create table if not exists account (
 	phone text not null unique check(length(phone) >= 10),
 	password_hash bytea not null,
 	warehouse_id bigint default null,
+	version integer not null default 1,
 	store_id bigint default null
 );
 
@@ -124,6 +131,7 @@ create table if not exists store (
 	address text not null,
 	phone text not null,
 	email text not null,
+	version integer not null default 1,
 	warehouse_id bigint not null
 );
 
@@ -137,13 +145,14 @@ create table if not exists purchase (
 	supplier_id bigint not null,
 	expected_dtime timestamp not null,
 	created_dtime timestamp not null default now(),
-	-- status text not null
-	status status not null
+	version integer not null default 1,
+	status status not null default 'Chờ phản hồi'
 );
 
 create table if not exists purchase_item (
 	purchase_id bigint not null,
 	gtin text not null,
+	version integer not null default 1,
 	quantity bigint not null
 );
 
@@ -188,6 +197,7 @@ create table if not exists item (
 	currency text not null default 'VND',
 	shelf_life bigint not null,		-- months
 	img_fspath text not null,
+	version integer not null default 1,
 	type type not null
 );
 
@@ -197,12 +207,14 @@ create table if not exists resupply (
 	store_id int not null,
 	expected_dtime timestamp not null,
 	created_dtime timestamp not null default now(),
-	status text not null
+	version integer not null default 1,
+	status status not null default 'Chờ phản hồi'
 );
 
 create table if not exists resupply_item (
 	resupply_id bigint not null,
 	gtin text not null,
+	version integer not null default 1,
 	quantity bigint not null
 );
 
@@ -212,11 +224,13 @@ create table if not exists supplier (
 	name text not null,
 	address text not null,
 	phone text not null,
+	version integer not null default 1,
 	email text not null
 );
 
 create table if not exists supplier_item (
 	supplier_id bigint not null,
+	version integer not null default 1,
 	gtin text not null
 );
 
@@ -227,6 +241,7 @@ create table if not exists receive (
 	expected_dtime timestamp not null,
 	actual_dtime timestamp not null default '1000-01-01 00:00:00',
 	created_dtime timestamp not null default now(),
+	version integer not null default 1,
 	transfer_id bigint
 );
 
@@ -234,6 +249,7 @@ create table if not exists receive_item (
 	purchase_id bigint not null,
 	gtin text not null,
 	receive_id bigint not null,
+	version integer not null default 1,
 	quantity bigint not null
 );
 
@@ -243,6 +259,7 @@ create table if not exists export (
 	expected_dtime timestamp not null,
 	actual_dtime timestamp not null default '1000-01-01 00:00:00',
 	created_dtime timestamp not null default now(),
+	version integer not null default 1,
 	transfer_id bigint
 );
 
@@ -250,6 +267,7 @@ create table if not exists export_item (
 	export_id bigint not null,
 	resupply_id bigint not null,
 	gtin text not null,
+	version integer not null default 1,
 	quantity bigint not null
 );
 
@@ -261,6 +279,7 @@ create table if not exists serial (
 	receive_id bigint not null,
 	purchase_id bigint not null,
 	gtin text not null,
+	version integer not null default 1,
 	export_id bigint not null
 );
 

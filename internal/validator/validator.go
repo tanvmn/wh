@@ -36,14 +36,18 @@ func (v *Validator) AddNonFieldErr(msg string) {
 	v.NonFieldErrs = append(v.NonFieldErrs, msg)
 }
 
+func (v *Validator) AddErr(msg string) {
+	if v.Errs == "" {
+		v.Errs += msg
+	} else {
+		v.Errs += "\n" + msg
+	}
+}
+
 // Check adds an err to v.Errs if the passed in expression is false
 func (v *Validator) Check(ok bool, msg string) {
 	if !ok {
-		if v.Errs == "" {
-			v.Errs += msg
-		} else {
-			v.Errs += "\n" + msg
-		}
+		v.AddErr(msg)
 	}
 }
 

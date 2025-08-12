@@ -6,7 +6,8 @@ import (
 )
 
 const (
-	ErrLine = "<--LOOK to the LEFT"
+	ErrLine   = "<--LOOK to the LEFT"
+	DateTTime = "2006-01-02T15:04:05"
 )
 
 var ()
@@ -42,6 +43,15 @@ func Set[T comparable](vs ...T) []T {
 
 func FormatRFC3339(rfc3339 string, layout string) (string, error) {
 	t, err := time.Parse(time.RFC3339, rfc3339)
+	if err != nil {
+		return "", err
+	}
+
+	return t.Format(layout), nil
+}
+
+func FormatDateTTime(dateTTime string, layout string) (string, error) {
+	t, err := time.Parse(DateTTime, dateTTime)
 	if err != nil {
 		return "", err
 	}

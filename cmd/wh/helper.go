@@ -93,12 +93,14 @@ func (ap *application) decodeJSON(w http.ResponseWriter, r *http.Request, dst an
 	err := de.Decode(&dst)
 	if err != nil {
 		var (
-			syntaxErr        *json.SyntaxError
-			unmarshalTypeErr *json.UnmarshalTypeError
-			maxBytesErr      *http.MaxBytesError
+			syntaxErr             *json.SyntaxError
+			unmarshalTypeErr      *json.UnmarshalTypeError
+			maxBytesErr           *http.MaxBytesError
+			invalidUnmarshalError *json.InvalidUnmarshalError
 		)
 
 		switch {
+		// Catch JSON syntax errors, and include the position of the error in JSON string
 		case errors.As(err, &syntaxErr):
 			ap.logger.Error(syntaxErr.Error(), "position", syntaxErr.Offset)
 			return &util.MalformedRequest{
@@ -106,6 +108,7 @@ func (ap *application) decodeJSON(w http.ResponseWriter, r *http.Request, dst an
 				Msg:    fmt.Sprintf("Malformed JSON at position %v", syntaxErr.Offset),
 			}
 
+		// Decode() may returns io.ErrUnexpectedError for JSON syntaxt error
 		case errors.Is(err, io.ErrUnexpectedEOF):
 			ap.logger.Error(err.Error())
 			return &util.MalformedRequest{
@@ -113,6 +116,7 @@ func (ap *application) decodeJSON(w http.ResponseWriter, r *http.Request, dst an
 				Msg:    "Malformed JSON",
 			}
 
+		// json.UnmarshalTypeError occurs when the JSON value is the wrongtype for the target destination
 		case errors.As(err, &unmarshalTypeErr):
 			ap.logger.Error(unmarshalTypeErr.Error(), "field", unmarshalTypeErr.Field, "position", unmarshalTypeErr.Offset, "type", unmarshalTypeErr.Type, "val", unmarshalTypeErr.Value)
 			return &util.MalformedRequest{
@@ -120,6 +124,7 @@ func (ap *application) decodeJSON(w http.ResponseWriter, r *http.Request, dst an
 				Msg:    fmt.Sprintf("JSON has invalid value for %q field at position %v", unmarshalTypeErr.Field, unmarshalTypeErr.Offset),
 			}
 
+		// Catch any unknown fields in JSON compared to the destination target
 		case strings.HasPrefix(err.Error(), "json: unknown field "):
 			field := strings.TrimPrefix(err.Error(), "json: unknown field ")
 			ap.logger.Error(err.Error(), "field", field)
@@ -128,6 +133,7 @@ func (ap *application) decodeJSON(w http.ResponseWriter, r *http.Request, dst an
 				Msg:    fmt.Sprintf("JSON has unknown field %v", field),
 			}
 
+		// Occurs when JSON is empty
 		case errors.Is(err, io.EOF):
 			ap.logger.Error(err.Error())
 			return &util.MalformedRequest{
@@ -141,6 +147,11 @@ func (ap *application) decodeJSON(w http.ResponseWriter, r *http.Request, dst an
 				Status: http.StatusRequestEntityTooLarge,
 				Msg:    fmt.Sprintf("JSON cannot be larger than %v", maxBytesErr.Limit),
 			}
+
+		// Occurs when a nil pointer or something Go deems invalid, is passed to json.Unmarhshal
+		case errors.As(err, &invalidUnmarshalError):
+			ap.logger.Error(err.Error())
+			return err
 
 		default:
 			ap.logger.Error(err.Error())

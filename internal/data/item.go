@@ -124,13 +124,11 @@ func (db *Data) Items(gtins ...string) ([]Item, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer func() error {
+	defer func() {
 		err := rows.Close()
 		if err != nil {
-			return err
+			panic(err)
 		}
-
-		return nil
 	}()
 
 	var is []Item
@@ -237,13 +235,11 @@ func (db *Data) Serials(gtin string) ([]Serial, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer func() error {
-		err = rows.Close()
+	defer func() {
+		err := rows.Close()
 		if err != nil {
-			return err
+			panic(err)
 		}
-
-		return nil
 	}()
 
 	ss := []Serial{}
@@ -298,13 +294,11 @@ func (db *Data) GTINsBySupplier(supplierID string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer func() error {
-		err = rows.Close()
+	defer func() {
+		err := rows.Close()
 		if err != nil {
-			return err
+			panic(err)
 		}
-
-		return nil
 	}()
 
 	var gtins []string
