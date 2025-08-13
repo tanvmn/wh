@@ -1,9 +1,11 @@
 package data
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 )
 
 type Warehouse struct {
@@ -47,9 +49,12 @@ func (db *Data) Warehouse(id string) (*Warehouse, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%w, %v", ErrNoWarehouses, id)
 	}
-	if i < 1 {
-		return nil, fmt.Errorf("%w, %v", ErrNoWarehouses, id)
-	}
+	// if i < 1 {
+	// 	return nil, fmt.Errorf("%w, %v", ErrNoWarehouses, id)
+	// }
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
 	stmt := fmt.Sprintf(
 		`select
@@ -63,7 +68,7 @@ func (db *Data) Warehouse(id string) (*Warehouse, error) {
 	id=$1`, WarehouseIDCode)
 	var wh Warehouse
 
-	err = db.DB.QueryRow(stmt, i).Scan(
+	err = db.DB.QueryRowContext(ctx, stmt, i).Scan(
 		&wh.ID,
 		&wh.Name,
 		&wh.Address,
@@ -77,4 +82,55 @@ func (db *Data) Warehouse(id string) (*Warehouse, error) {
 	}
 
 	return &wh, nil
+}
+
+func (db *Data) Capacity(warehouseID string) (float32, error) {
+	i, err := id64(warehouseID, WarehouseIDCode)
+	if err != nil {
+		return 0, err
+	}
+
+	stmt := `
+	select
+	sum(capacity)
+	from bin
+	where warehouse_id = $1`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	var capacity float32
+
+	err = db.DB.QueryRowContext(ctx, stmt, i).Scan(&capacity)
+	if err != nil {
+		return 0, err
+	}
+
+	return capacity, nil
+}
+
+func (db *Data) UsedVolume(warehouseID string) (float32, error) {
+	i, err := id64(warehouseID, WarehouseIDCode)
+	if err != nil {
+		return 0, err
+	}
+
+	stmt := `
+	select
+        sum(volume)
+        from purchase_item as pi
+        join purchase on purchase.id = pi.purchase_id
+        join item on item.gtin = pi.gtin
+        where not purchase.status in ($1)
+	and warehouse_id = $2;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	var usedV float32
+
+	err = db.DB.QueryRowContext(ctx, stmt, Declined, i).Scan(&usedV)
+	if err != nil {
+		return 0, err
+	}
+
+	return usedV, nil
 }

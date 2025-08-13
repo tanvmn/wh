@@ -1,9 +1,11 @@
 package data
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 )
 
 type Supplier struct {
@@ -27,6 +29,9 @@ func (db *Data) Supplier(id string) (*Supplier, error) {
 		return nil, fmt.Errorf("%w: %v", ErrNoSuppliers, id)
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
 	stmt := fmt.Sprintf(
 		`select
 	'%v'||id
@@ -39,7 +44,7 @@ func (db *Data) Supplier(id string) (*Supplier, error) {
 	id=$1`, SupplierIDCode)
 	var sp Supplier
 
-	err = db.DB.QueryRow(stmt, i).Scan(
+	err = db.DB.QueryRowContext(ctx, stmt, i).Scan(
 		&sp.ID,
 		&sp.Name,
 		&sp.Address,

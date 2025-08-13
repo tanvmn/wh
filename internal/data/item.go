@@ -30,6 +30,11 @@ type Item struct {
 	Supplier       Supplier `json:"supplier,omitempty,omitzero"`
 }
 
+type ItemQuantity struct {
+	Item     `json:"item,omitempty,omitzero"`
+	Quantity int64 `json:"quantity,omitempty,omitzero"`
+}
+
 type Serial struct {
 	NanoID      string   `json:"nanoID,omitempty,omitzero"`
 	ReceiveTote Tote     `json:"receiveTote,omitempty,omitzero"`
@@ -83,10 +88,13 @@ const (
 func (db *Data) Item(gtin string) (*Item, error) {
 	stmt := selectItemsStmt + "\nwhere supplier_item.gtin=$1"
 
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
 	var (
 		i Item
 	)
-	err := db.DB.QueryRow(stmt, gtin).Scan(
+	err := db.DB.QueryRowContext(ctx, stmt, gtin).Scan(
 		&i.Brand,
 		&i.Characteristic,
 		&i.Color,
@@ -117,7 +125,7 @@ func (db *Data) Items(gtins ...string) ([]Item, error) {
 		stmt += "\nwhere gtin in " + Range(int64(len(gtins)))
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	rows, err := db.DB.QueryContext(ctx, stmt, util.AnySlice(gtins...)...)
@@ -183,8 +191,12 @@ func (db *Data) Stock(gtin string) (int64, error) {
 	and pick_tote=0
 	and export_id=0`
 
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
 	var quantity int64
-	err := db.DB.QueryRow(stmt, gtin).Scan(&quantity)
+
+	err := db.DB.QueryRowContext(ctx, stmt, gtin).Scan(&quantity)
 	if err != nil {
 		return 0, err
 	}
@@ -228,7 +240,7 @@ func (db *Data) Serials(gtin string) ([]Serial, error) {
 		ExportIDCode,
 	)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	rows, err := db.DB.QueryContext(ctx, stmt, gtin)
@@ -287,7 +299,7 @@ func (db *Data) GTINsBySupplier(supplierID string) ([]string, error) {
 	from supplier_item
 	where supplier_id=$1`
 
-	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	rows, err := db.DB.QueryContext(ctx, stmt, i)
@@ -318,4 +330,18 @@ func (db *Data) GTINsBySupplier(supplierID string) ([]string, error) {
 	}
 
 	return gtins, nil
+}
+
+func (db *Data) Volume(is []ItemQuantity) (float32, error) {
+	var volume float32
+	for _, i := range is {
+		it, err := db.Item(i.GTIN)
+		if err != nil {
+			return 0, err
+		}
+
+		volume += it.Volume * float32(i.Quantity)
+	}
+
+	return volume, nil
 }

@@ -1,9 +1,11 @@
 package data
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -53,13 +55,16 @@ func (db *Data) Account(id string) (*Account, error) {
 		return nil, fmt.Errorf("%w: %v", ErrNoAccounts, id)
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
 	stmt := accountSelectStmt
 
 	var (
 		ac                   Account
 		warehouseID, storeID sql.NullInt64
 	)
-	err = db.DB.QueryRow(stmt, i).Scan(
+	err = db.DB.QueryRowContext(ctx, stmt, i).Scan(
 		&ac.ID,
 		&ac.BDate,
 		&ac.Name,
@@ -89,12 +94,16 @@ func (db *Data) Authenticate(phone, password string) (id string, err error) {
 		passwordHash []byte
 	)
 
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
 	stmt := `select
 	'` + AccountIDCode + `'||id,
 	password_hash
 	from account
 	where phone = $1`
-	err = db.DB.QueryRow(stmt, phone).Scan(&id, &passwordHash)
+
+	err = db.DB.QueryRowContext(ctx, stmt, phone).Scan(&id, &passwordHash)
 	if errors.Is(err, sql.ErrNoRows) {
 		return "", ErrInvalidCredentials
 	} else if err != nil {
@@ -121,7 +130,9 @@ func (db *Data) IsAccountFromWarehouse(accountID, warehouseID string) (bool, err
 		return false, err
 	}
 
-	var from bool
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
 	stmt := `select
 	true
 	from account
@@ -129,7 +140,9 @@ func (db *Data) IsAccountFromWarehouse(accountID, warehouseID string) (bool, err
 	id = $1
 	and warehouse_id = $2`
 
-	err = db.DB.QueryRow(stmt, aI, wI).Scan(&from)
+	var from bool
+
+	err = db.DB.QueryRowContext(ctx, stmt, aI, wI).Scan(&from)
 	if errors.Is(err, sql.ErrNoRows) {
 		return false, nil
 	} else if err != nil {

@@ -22,13 +22,40 @@ func (ap *application) validatePurchaseAdd(pc *data.Purchase) error {
 	var err error
 	va := validator.Validator{}
 
+	// Validate chosen date time
+	dt, err := util.FormatDateTTime(pc.ExpectedAt, time.DateTime)
+	if err != nil {
+		va.AddErr(fmt.Sprintf("%v: %v", err, pc.ExpectedAt))
+	}
+	pc.ExpectedAt = dt
+
 	// Validate warehouse's existence
-	_, err = ap.data.Warehouse(pc.Warehouse.ID)
+	wh, err := ap.data.Warehouse(pc.Warehouse.ID)
 	if errors.Is(err, data.ErrNoWarehouses) {
 		va.AddErr(err.Error())
 	} else if err != nil {
 		ap.logger.Error(err.Error())
 		return err
+	}
+
+	// Validate account's existence
+	ac, err := ap.data.Account(pc.Account.ID)
+	if err != nil {
+		ap.logger.Error(err.Error())
+		return err
+	}
+
+	// If both account and warehouse exist
+	if ac != nil && wh != nil {
+		// Validate if the account is from the warehouse when account's role isn't Admin and isn't HeadAccount
+		if ac.Role != data.Admin && ac.Role != data.HeadAccountant {
+			from, err := ap.data.IsAccountFromWarehouse(ac.ID, wh.ID)
+			if err != nil {
+				ap.logger.Error(err.Error())
+				return err
+			}
+			va.Check(from, fmt.Sprintf("Account %v isn't from warehouse %v, yet the account still made the purchase", pc.Account.ID, pc.Warehouse.ID))
+		}
 	}
 
 	// Validate supplier's existence
@@ -40,37 +67,8 @@ func (ap *application) validatePurchaseAdd(pc *data.Purchase) error {
 		return err
 	}
 
-	// // Validate account's existence
-	// ac, err := ap.data.Account(pc.Account.ID)
-	// if errors.Is(err, data.ErrNoAccounts) {
-	// 	va.AddErr(err.Error())
-	// } else if err != nil {
-	// 	ap.logger.Error(err.Error())
-	// 	return err
-	// }
-
-	// if ac != nil {
-	// 	// Validate if the account is from the warehouse when account's role isn't Admin and isn't HeadAccount
-	// 	if ac.Role != data.Admin && ac.Role != data.HeadAccountant {
-	// 		from, err := ap.data.IsAccountFromWarehouse(pc.Account.ID, pc.Warehouse.ID)
-	// 		if err != nil {
-	// 			ap.logger.Error(err.Error())
-	// 			return err
-	// 		}
-	// 		va.Check(from, fmt.Sprintf("Account %v isn't from warehouse %v, yet the account still made the purchase", pc.Account.ID, pc.Warehouse.ID))
-	// 	}
-	// }
-
-	// Validate chosen date time
-	dt, err := util.FormatDateTTime(pc.ExpectedAt, time.DateTime)
-	if err != nil {
-		va.AddErr(fmt.Sprintf("%v: %v", err, pc.ExpectedAt))
-	}
-	pc.ExpectedAt = dt
-
-	// Validate chosen items if or not exists
+	// Validate chosen items' existence when the supplier exists
 	if len(pc.Items) == 0 {
-		// va.Check(false, "No items in purchase")
 		va.AddErr("No items in purchase")
 	} else if sp != nil {
 		gtins, err := ap.data.GTINsBySupplier(pc.Supplier.ID)
@@ -93,7 +91,9 @@ func (ap *application) validatePurchaseAdd(pc *data.Purchase) error {
 			}
 
 			if it != nil {
-				va.Check(slices.Contains(gtins, i.Item.GTIN), fmt.Sprintf("GTIN %v isn't supplied by supplier %v, yet it's still in purchase", i.Item.GTIN, pc.Supplier.ID))
+				if len(gtins) != 0 {
+					va.Check(slices.Contains(gtins, i.Item.GTIN), fmt.Sprintf("GTIN %v isn't supplied by supplier %v, yet it's still in purchase", i.Item.GTIN, pc.Supplier.ID))
+				}
 				va.Check(i.Quantity > 0, fmt.Sprintf("GTIN %v, quantity must be > 0", i.Item.GTIN))
 			}
 		}
@@ -123,6 +123,16 @@ func (ap *application) addPurchase() http.Handler {
 			return
 		}
 
+		// Get account ID in context for validating purchase before adding
+		aID, ok := r.Context().Value(authenticatedCtxID).(string)
+		if !ok {
+			ap.logger.Error(fmt.Errorf("%w: %v", ErrConvertCtxVal, "cannot convert context accountID to string").Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		pc.Account.ID = aID
+
+		// Validate the purchase
 		err = ap.validatePurchaseAdd(&pc)
 		if errors.Is(err, ErrInvalidPurchase) {
 			ap.logger.Error(err.Error())
@@ -133,12 +143,21 @@ func (ap *application) addPurchase() http.Handler {
 			return
 		}
 
-		id, _, err := ap.data.AddPurchase(&pc)
-		if errors.Is(err, data.ErrInvalidID) {
+		// Check against warehouse capacity
+		enough, err := ap.data.CheckCapacity(pc.Items, pc.Warehouse.ID)
+		if err != nil {
 			ap.logger.Error(err.Error())
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
-		} else if err != nil {
+		}
+		if !enough {
+			ap.logger.Error("Not enough capacity")
+			http.Error(w, fmt.Sprintf("Kho %v hiện không đủ sức chứa", pc.Warehouse.ID), http.StatusUnprocessableEntity)
+			return
+		}
+
+		id, _, err := ap.data.AddPurchase(&pc)
+		if err != nil {
 			ap.logger.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return

@@ -1,8 +1,10 @@
 package data
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
+	"time"
 )
 
 const (
@@ -14,31 +16,14 @@ const (
 )
 
 type Purchase struct {
-	ID         string    `json:"purchase,omitempty,omitzero"`
-	Warehouse  Warehouse `json:"warehouse,omitempty,omitzero"`
-	Account    Account   `json:"account,omitempty,omitzero"`
-	ExpectedAt string    `json:"expectedAt,omitempty,omitzero"`
-	Status     string    `json:"status,omitempty,omitzero"`
-	Supplier   Supplier  `json:"supplier,omitempty,omitzero"`
-	CreatedAt  string    `json:"createdAt,omitempty,omitzero"`
-	Items      []struct {
-		Item     Item  `json:"item,omitempty,omitzero"`
-		Quantity int64 `json:"quantity,omitempty,omitzero"`
-	} `json:"items,omitempty,omitzero"`
-}
-
-type Receive struct {
-	ID         string   `json:"id,omitempty,omitzero"`
-	Purchase   Purchase `json:"purchase,omitempty,omitzero"`
-	Account    Account  `json:"account,omitempty,omitzero"`
-	ExpectedAt string   `json:"expectedAt,omitempty,omitzero"`
-	ActualAt   string   `json:"actualAt,omitempty,omitzero"`
-	CreatedAt  string   `json:"createdAt,omitempty,omitzero"`
-	Transfer   Transfer `json:"transfer,omitempty,omitzero"`
-	Items      []struct {
-		Item     Item  `json:"item,omitempty,omitzero"`
-		Quantity int64 `json:"quantity,omitempty,omitzero"`
-	} `json:"items,omitempty,omitzero"`
+	ID         string         `json:"purchase,omitempty,omitzero"`
+	Warehouse  Warehouse      `json:"warehouse,omitempty,omitzero"`
+	Account    Account        `json:"account,omitempty,omitzero"`
+	ExpectedAt string         `json:"expectedAt,omitempty,omitzero"`
+	Status     string         `json:"status,omitempty,omitzero"`
+	Supplier   Supplier       `json:"supplier,omitempty,omitzero"`
+	CreatedAt  string         `json:"createdAt,omitempty,omitzero"`
+	Items      []ItemQuantity `json:"items,omitempty,omitzero"`
 }
 
 func addPurchase(tx *sql.Tx, pc *Purchase) (id string, version int, err error) {
@@ -55,6 +40,9 @@ func addPurchase(tx *sql.Tx, pc *Purchase) (id string, version int, err error) {
 		return "", 0, err
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
 	stmt := fmt.Sprintf(`
 	insert into purchase (warehouse_id, account_id, supplier_id, expected_dtime) values
 	($1, $2, $3, $4)
@@ -62,7 +50,7 @@ func addPurchase(tx *sql.Tx, pc *Purchase) (id string, version int, err error) {
 		PurchaseIDCode,
 	)
 
-	err = tx.QueryRow(stmt, wI, aI, sI, pc.ExpectedAt).Scan(&id, &version)
+	err = tx.QueryRowContext(ctx, stmt, wI, aI, sI, pc.ExpectedAt).Scan(&id, &version)
 	if err != nil {
 		return "", 0, err
 	}
@@ -83,17 +71,39 @@ func addPurchaseItems(tx *sql.Tx, pc *Purchase) error {
 		return err
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
 	stmt := `
 	insert into purchase_item (purchase_id, gtin, quantity) values
 	($1,$2,$3)`
 	for _, i := range pc.Items {
-		_, err := tx.Exec(stmt, pI, i.Item.GTIN, i.Quantity)
+		_, err := tx.ExecContext(ctx, stmt, pI, i.Item.GTIN, i.Quantity)
 		if err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+func (db *Data) CheckCapacity(is []ItemQuantity, warehouseID string) (bool, error) {
+	capacity, err := db.Capacity(warehouseID)
+	if err != nil {
+		return false, err
+	}
+
+	used, err := db.UsedVolume(warehouseID)
+	if err != nil {
+		return false, err
+	}
+
+	volume, err := db.Volume(is)
+	if err != nil {
+		return false, err
+	}
+
+	return (capacity - used) >= volume, nil
 }
 
 func (db *Data) AddPurchase(pc *Purchase) (id string, version int, err error) {
