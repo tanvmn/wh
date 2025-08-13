@@ -37,7 +37,7 @@ func (ap *application) recoverPanic(next http.Handler) http.Handler {
 	})
 }
 
-func (ap *application) addCommonHeaders(next http.Handler) http.Handler {
+func (ap *application) addHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		// w.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'self' fonts.googleapis.com; font-src fonts.gstatic.com")
@@ -60,7 +60,7 @@ func (ap *application) logRequest(next http.Handler) http.Handler {
 	})
 }
 
-func (ap *application) authenticate(next http.Handler) http.Handler {
+func (ap *application) identify(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id := ap.sessionsManager.GetString(r.Context(), "authenticatedID")
 		if id == "" {
@@ -106,7 +106,7 @@ func (ap *application) authenticate(next http.Handler) http.Handler {
 	})
 }
 
-func (ap *application) authorize(roles ...string) func(http.Handler) http.Handler {
+func (ap *application) permit(roles ...string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			role, ok := r.Context().Value(authenticatedCtxRole).(string)

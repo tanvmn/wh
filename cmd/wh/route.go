@@ -65,34 +65,34 @@ func (ap *application) routes() http.Handler {
 		fmt.Fprintf(w, "%v bytes written\n", n)
 	})
 
-	authenticate := middlewares{ap.sessionsManager.LoadAndSave, ap.authenticate}
+	identify := middlewares{ap.sessionsManager.LoadAndSave, ap.identify}
 
 	// File server
 	mux.Handle("GET /static/", http.FileServerFS(ui.Files))
-	mux.Handle("GET /rec/", authenticate.then(http.StripPrefix("/rec", http.FileServerFS(rec.Files))))
+	mux.Handle("GET /rec/", identify.then(http.StripPrefix("/rec", http.FileServerFS(rec.Files))))
 
 	// Account
-	mux.Handle("GET /account", authenticate.then(ap.account()))
+	mux.Handle("GET /account", identify.then(ap.account()))
 
 	// Item
-	mux.Handle("GET /items", authenticate.then(ap.itemsPage()))
-	mux.Handle("GET /items/json", authenticate.then(ap.items()))
-	mux.Handle("GET /serials", authenticate.then(ap.serialsPage()))
+	mux.Handle("GET /items", identify.then(ap.itemsPage()))
+	mux.Handle("GET /items/json", identify.then(ap.items()))
+	mux.Handle("GET /serials", identify.then(ap.serialsPage()))
 
 	// Health
 	mux.HandleFunc("GET /health", ap.health)
 
 	// Home
-	mux.Handle("GET /{$}", authenticate.then(ap.homePage()))
+	mux.Handle("GET /{$}", identify.then(ap.homePage()))
 
 	// Login, logout
-	mux.Handle("GET /login", authenticate.then(ap.loginPage()))
-	mux.Handle("POST /login", authenticate.then(ap.login()))
+	mux.Handle("GET /login", identify.then(ap.loginPage()))
+	mux.Handle("POST /login", identify.then(ap.login()))
 
 	// Purchase
-	mux.Handle("POST /purchase", append(authenticate, ap.authorize(data.Accountant, data.HeadAccountant)).then(ap.addPurchase()))
+	mux.Handle("POST /purchase", append(identify, ap.permit(data.Accountant, data.HeadAccountant)).then(ap.addPurchase()))
 
-	pre := middlewares{ap.recoverPanic, ap.logRequest, ap.addCommonHeaders}
+	pre := middlewares{ap.recoverPanic, ap.logRequest, ap.addHeaders}
 
 	return pre.then(mux)
 }

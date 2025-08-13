@@ -40,26 +40,26 @@ func (ap *application) validatePurchaseAdd(pc *data.Purchase) error {
 		return err
 	}
 
-	// Validate account's existence
-	ac, err := ap.data.Account(pc.Account.ID)
-	if errors.Is(err, data.ErrNoAccounts) {
-		va.AddErr(err.Error())
-	} else if err != nil {
-		ap.logger.Error(err.Error())
-		return err
-	}
+	// // Validate account's existence
+	// ac, err := ap.data.Account(pc.Account.ID)
+	// if errors.Is(err, data.ErrNoAccounts) {
+	// 	va.AddErr(err.Error())
+	// } else if err != nil {
+	// 	ap.logger.Error(err.Error())
+	// 	return err
+	// }
 
-	if ac != nil {
-		// Validate if the account is from the warehouse when account's role isn't Admin and isn't HeadAccount
-		if ac.Role != data.Admin && ac.Role != data.HeadAccountant {
-			from, err := ap.data.IsAccountFromWarehouse(pc.Account.ID, pc.Warehouse.ID)
-			if err != nil {
-				ap.logger.Error(err.Error())
-				return err
-			}
-			va.Check(from, fmt.Sprintf("Account %v isn't from warehouse %v, yet the account still made the purchase", pc.Account.ID, pc.Warehouse.ID))
-		}
-	}
+	// if ac != nil {
+	// 	// Validate if the account is from the warehouse when account's role isn't Admin and isn't HeadAccount
+	// 	if ac.Role != data.Admin && ac.Role != data.HeadAccountant {
+	// 		from, err := ap.data.IsAccountFromWarehouse(pc.Account.ID, pc.Warehouse.ID)
+	// 		if err != nil {
+	// 			ap.logger.Error(err.Error())
+	// 			return err
+	// 		}
+	// 		va.Check(from, fmt.Sprintf("Account %v isn't from warehouse %v, yet the account still made the purchase", pc.Account.ID, pc.Warehouse.ID))
+	// 	}
+	// }
 
 	// Validate chosen date time
 	dt, err := util.FormatDateTTime(pc.ExpectedAt, time.DateTime)
