@@ -24,6 +24,7 @@ type Purchase struct {
 	Supplier   Supplier       `json:"supplier,omitempty,omitzero"`
 	CreatedAt  string         `json:"createdAt,omitempty,omitzero"`
 	Items      []ItemQuantity `json:"items,omitempty,omitzero"`
+	Version    int            `json:"version,omitempty,omitzero"`
 }
 
 func addPurchase(tx *sql.Tx, pc *Purchase) (id string, version int, err error) {
@@ -56,6 +57,7 @@ func addPurchase(tx *sql.Tx, pc *Purchase) (id string, version int, err error) {
 	}
 
 	pc.ID = id
+	pc.Version = version
 
 	err = addPurchaseItems(tx, pc)
 	if err != nil {

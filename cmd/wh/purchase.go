@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"slices"
 	"time"
 
 	"github.com/tanNguyen2220022/wh/internal/data"
@@ -71,15 +70,6 @@ func (ap *application) validatePurchaseAdd(pc *data.Purchase) error {
 	if len(pc.Items) == 0 {
 		va.AddErr("No items in purchase")
 	} else if sp != nil {
-		gtins, err := ap.data.GTINsBySupplier(pc.Supplier.ID)
-		if errors.Is(err, data.ErrInvalidID) {
-			va.AddErr(err.Error())
-		} else if err != nil {
-			ap.logger.Error(err.Error())
-			return err
-		}
-		va.Check(len(gtins) != 0, fmt.Sprintf("Chosen supplier %v doesn't supply any items, yet there are still %v item(s) in purchase", pc.Supplier.ID, len(pc.Items)))
-
 		for _, i := range pc.Items {
 			// Validate item's existence
 			it, err := ap.data.Item(i.Item.GTIN)
@@ -91,16 +81,19 @@ func (ap *application) validatePurchaseAdd(pc *data.Purchase) error {
 			}
 
 			if it != nil {
-				if len(gtins) != 0 {
-					va.Check(slices.Contains(gtins, i.Item.GTIN), fmt.Sprintf("GTIN %v isn't supplied by supplier %v, yet it's still in purchase", i.Item.GTIN, pc.Supplier.ID))
+				from, err := ap.data.IsGTINBySupplier(i.Item.GTIN, pc.Supplier.ID)
+				if err != nil {
+					ap.logger.Error(err.Error())
+					return err
 				}
+				va.Check(from, fmt.Sprintf("GTIN %v isn't supplied by supplier %v, yet it's still in purchase", i.Item.GTIN, pc.Supplier.ID))
 				va.Check(i.Quantity > 0, fmt.Sprintf("GTIN %v, quantity must be > 0", i.Item.GTIN))
 			}
 		}
 	}
 
 	if !va.Valid() {
-		return fmt.Errorf("%w: %v", ErrInvalidPurchase, va.Message())
+		return fmt.Errorf("%w\n%v", ErrInvalidPurchase, va.Message())
 	}
 
 	return nil
@@ -156,12 +149,50 @@ func (ap *application) addPurchase() http.Handler {
 			return
 		}
 
+		// Add the purchase
 		id, _, err := ap.data.AddPurchase(&pc)
 		if err != nil {
 			ap.logger.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
+
+		// Assign item, supplier data in order to provide data for email template
+		for i := range pc.Items {
+			it, err := ap.data.Item(pc.Items[i].Item.GTIN)
+			if err != nil {
+				ap.logger.Error(err.Error())
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				return
+			}
+			pc.Items[i].Item = *it
+			pc.Items[i].Item.Name = ap.name(*it)
+		}
+
+		sp, err := ap.data.Supplier(pc.Supplier.ID)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		pc.Supplier = *sp
+
+		wh, err := ap.data.Warehouse(pc.Warehouse.ID)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		pc.Warehouse = *wh
+
+		// Send purchase email to supplier in the background with a new go routine
+		ap.background(func() {
+			err = ap.mailer.Send(pc.Supplier.Email, "purchase_mail", pc)
+			if err != nil {
+				ap.logger.Error(err.Error())
+				return
+			}
+		})
 
 		w.WriteHeader(http.StatusCreated)
 		fmt.Fprintf(w, "Đã thêm yêu cầu nhập ID: %v", id)

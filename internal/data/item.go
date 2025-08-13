@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/tanNguyen2220022/wh/internal/util"
@@ -13,7 +14,7 @@ import (
 type Item struct {
 	GTIN           string   `json:"gtin,omitempty,omitzero"`
 	Characteristic string   `json:"characteristic,omitempty,omitzero"`
-	Volume         float32  `json:"volume,omitempty,omitzero"`
+	Volume         float64  `json:"volume,omitempty,omitzero"`
 	Weight         int64    `json:"weight,omitempty,omitzero"`
 	Brand          string   `json:"brand,omitempty,omitzero"`
 	Material       string   `json:"material,omitempty,omitzero"`
@@ -31,6 +32,7 @@ type Item struct {
 }
 
 type ItemQuantity struct {
+	// Item Item    `json:"item,omitempty,omitzero"`
 	Item     `json:"item,omitempty,omitzero"`
 	Quantity int64 `json:"quantity,omitempty,omitzero"`
 }
@@ -332,16 +334,46 @@ func (db *Data) GTINsBySupplier(supplierID string) ([]string, error) {
 	return gtins, nil
 }
 
-func (db *Data) Volume(is []ItemQuantity) (float32, error) {
-	var volume float32
+func (db *Data) IsGTINBySupplier(gtin, supplierID string) (bool, error) {
+	gtins, err := db.GTINsBySupplier(supplierID)
+	if err != nil {
+		return false, err
+	}
+
+	return slices.Contains(gtins, gtin), nil
+}
+
+func (db *Data) Volume(is []ItemQuantity) (float64, error) {
+	var volume float64
 	for _, i := range is {
-		it, err := db.Item(i.GTIN)
+		it, err := db.Item(i.Item.GTIN)
 		if err != nil {
 			return 0, err
 		}
 
-		volume += it.Volume * float32(i.Quantity)
+		volume += it.Volume * float64(i.Quantity)
 	}
 
 	return volume, nil
+}
+
+func (db *Data) Name(gtin string) (string, error) {
+	stmt := `
+	select
+	type||brand||color||size||characteristic
+	from
+	item
+	where
+	gtin = $1`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	var name string
+
+	err := db.DB.QueryRowContext(ctx, stmt, gtin).Scan(&name)
+	if err != nil {
+		return "", err
+	}
+
+	return name, nil
 }

@@ -444,8 +444,8 @@ insert into bin (warehouse_id, shelf, row, col, capacity) values
 ;
 
 insert into supplier (name, address, phone, email) values
-('NCC 1', 'địa chỉ NCC 1', '000001000', 'tanNguyen2220022.hcmut.edu.vn'),
-('NCC 2', 'địa chỉ NCC 2', '000001001', 'tanNguyen2220022.hcmut.edu.vn')
+('NCC 1', 'địa chỉ NCC 1', '000001000', 'tan.Nguyen2220022@hcmut.edu.vn'),
+('NCC 2', 'địa chỉ NCC 2', '000001001', 'tan.Nguyen2220022@hcmut.edu.vn')
 ;
 
 -- insert into item (gtin, characteristic, volume, weight, brand, material, color, size, price, type, shelf_life, img_fspath) values

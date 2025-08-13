@@ -61,10 +61,16 @@ func (m Mailer) Send(recipient, templateFile string, data any) error {
 	msg.SetHeader("Subject", subject.String())
 	msg.SetBody("text/html", html.String())
 
-	err = m.dialer.DialAndSend(msg)
-	if err != nil {
-		return err
+	for range 3 {
+		err = m.dialer.DialAndSend(msg)
+		// As soon as email is sent successfully, return nil
+		if nil == err {
+			return nil
+		}
+
+		// If email is sent unsuccessfully, sleep for 500ms and retry
+		time.Sleep(500 * time.Millisecond)
 	}
 
-	return nil
+	return err
 }

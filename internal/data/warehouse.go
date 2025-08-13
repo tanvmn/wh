@@ -84,7 +84,7 @@ func (db *Data) Warehouse(id string) (*Warehouse, error) {
 	return &wh, nil
 }
 
-func (db *Data) Capacity(warehouseID string) (float32, error) {
+func (db *Data) Capacity(warehouseID string) (float64, error) {
 	i, err := id64(warehouseID, WarehouseIDCode)
 	if err != nil {
 		return 0, err
@@ -98,17 +98,17 @@ func (db *Data) Capacity(warehouseID string) (float32, error) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	var capacity float32
+	var capacity sql.NullFloat64
 
 	err = db.DB.QueryRowContext(ctx, stmt, i).Scan(&capacity)
 	if err != nil {
 		return 0, err
 	}
 
-	return capacity, nil
+	return capacity.Float64, nil
 }
 
-func (db *Data) UsedVolume(warehouseID string) (float32, error) {
+func (db *Data) UsedVolume(warehouseID string) (float64, error) {
 	i, err := id64(warehouseID, WarehouseIDCode)
 	if err != nil {
 		return 0, err
@@ -125,12 +125,12 @@ func (db *Data) UsedVolume(warehouseID string) (float32, error) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	var usedV float32
+	var usedV sql.NullFloat64
 
 	err = db.DB.QueryRowContext(ctx, stmt, Declined, i).Scan(&usedV)
 	if err != nil {
 		return 0, err
 	}
 
-	return usedV, nil
+	return usedV.Float64, nil
 }

@@ -8,6 +8,7 @@ import (
 	"io"
 	"maps"
 	"net/http"
+	"runtime/debug"
 	"strings"
 
 	"github.com/tanNguyen2220022/wh/internal/util"
@@ -174,4 +175,17 @@ func (ap *application) decodeJSON(w http.ResponseWriter, r *http.Request, dst an
 	}
 
 	return nil
+}
+
+func (ap *application) background(fn func()) {
+	go func() {
+		defer func() {
+			if err := recover(); err != nil {
+				ap.logger.Error(fmt.Sprint(err))
+				fmt.Println(debug.Stack())
+			}
+		}()
+
+		fn()
+	}()
 }

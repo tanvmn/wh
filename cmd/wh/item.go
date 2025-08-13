@@ -1,10 +1,15 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/tanNguyen2220022/wh/internal/data"
 )
+
+func (ap *application) name(i data.Item) string {
+	return fmt.Sprintf("%v, %v, màu %v, %v, %v", i.Type, i.Brand, i.Color, i.Size, i.Characteristic)
+}
 
 func (ap *application) itemsPage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

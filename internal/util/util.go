@@ -56,8 +56,10 @@ func FormatDateTTime(dateTTime string, layout string) (string, error) {
 		return "", err
 	}
 
-	return t.Format(layout), nil
+	return t.Format(layout)[:16], nil
 }
+
+// func Format
 
 // AnySlice return an slice of any that contains the vs passed in
 func AnySlice[T comparable](vs ...T) []any {
