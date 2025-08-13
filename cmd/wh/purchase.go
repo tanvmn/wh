@@ -25,7 +25,6 @@ func (ap *application) validatePurchaseAdd(pc *data.Purchase) error {
 	// Validate warehouse's existence
 	_, err = ap.data.Warehouse(pc.Warehouse.ID)
 	if errors.Is(err, data.ErrNoWarehouses) {
-		// va.Check(false, err.Error())
 		va.AddErr(err.Error())
 	} else if err != nil {
 		ap.logger.Error(err.Error())
@@ -33,9 +32,8 @@ func (ap *application) validatePurchaseAdd(pc *data.Purchase) error {
 	}
 
 	// Validate supplier's existence
-	_, err = ap.data.Supplier(pc.Supplier.ID)
+	sp, err := ap.data.Supplier(pc.Supplier.ID)
 	if errors.Is(err, data.ErrNoSuppliers) {
-		// va.Check(false, err.Error())
 		va.AddErr(err.Error())
 	} else if err != nil {
 		ap.logger.Error(err.Error())
@@ -45,7 +43,6 @@ func (ap *application) validatePurchaseAdd(pc *data.Purchase) error {
 	// Validate account's existence
 	ac, err := ap.data.Account(pc.Account.ID)
 	if errors.Is(err, data.ErrNoAccounts) {
-		// va.Check(false, err.Error())
 		va.AddErr(err.Error())
 	} else if err != nil {
 		ap.logger.Error(err.Error())
@@ -67,7 +64,6 @@ func (ap *application) validatePurchaseAdd(pc *data.Purchase) error {
 	// Validate chosen date time
 	dt, err := util.FormatDateTTime(pc.ExpectedAt, time.DateTime)
 	if err != nil {
-		// va.Check(false, fmt.Sprintf("%v: %v", err, pc.ExpectedAt))
 		va.AddErr(fmt.Sprintf("%v: %v", err, pc.ExpectedAt))
 	}
 	pc.ExpectedAt = dt
@@ -76,7 +72,7 @@ func (ap *application) validatePurchaseAdd(pc *data.Purchase) error {
 	if len(pc.Items) == 0 {
 		// va.Check(false, "No items in purchase")
 		va.AddErr("No items in purchase")
-	} else {
+	} else if sp != nil {
 		gtins, err := ap.data.GTINsBySupplier(pc.Supplier.ID)
 		if errors.Is(err, data.ErrInvalidID) {
 			va.AddErr(err.Error())
@@ -88,17 +84,18 @@ func (ap *application) validatePurchaseAdd(pc *data.Purchase) error {
 
 		for _, i := range pc.Items {
 			// Validate item's existence
-			_, err = ap.data.Item(i.Item.GTIN)
+			it, err := ap.data.Item(i.Item.GTIN)
 			if errors.Is(err, data.ErrNoItems) {
-				// va.Check(false, err.Error())
 				va.AddErr(err.Error())
 			} else if err != nil {
 				ap.logger.Error(err.Error())
 				return err
 			}
 
-			va.Check(slices.Contains(gtins, i.Item.GTIN), fmt.Sprintf("GTIN %v isn't supplied by supplier %v, yet it's still in purchase", i.Item.GTIN, pc.Supplier.ID))
-			va.Check(i.Quantity > 0, fmt.Sprintf("GTIN %v, quantity must be > 0", i.Item.GTIN))
+			if it != nil {
+				va.Check(slices.Contains(gtins, i.Item.GTIN), fmt.Sprintf("GTIN %v isn't supplied by supplier %v, yet it's still in purchase", i.Item.GTIN, pc.Supplier.ID))
+				va.Check(i.Quantity > 0, fmt.Sprintf("GTIN %v, quantity must be > 0", i.Item.GTIN))
+			}
 		}
 	}
 
@@ -109,7 +106,7 @@ func (ap *application) validatePurchaseAdd(pc *data.Purchase) error {
 	return nil
 }
 
-func (ap *application) addPurchaseHandler() http.Handler {
+func (ap *application) addPurchase() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var pc data.Purchase
 
