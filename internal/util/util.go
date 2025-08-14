@@ -7,7 +7,8 @@ import (
 
 const (
 	ErrLine   = "<--LOOK to the LEFT"
-	DateTTime = "2006-01-02T15:04:05"
+	DateTTime = "2006-01-02T15:04"
+	DateTime  = "2006-01-02 15:04"
 )
 
 var ()
@@ -47,7 +48,7 @@ func FormatRFC3339(rfc3339 string, layout string) (string, error) {
 		return "", err
 	}
 
-	return t.Format(layout), nil
+	return t.Format(layout)[:16], nil
 }
 
 func FormatDateTTime(dateTTime string, layout string) (string, error) {
@@ -59,7 +60,10 @@ func FormatDateTTime(dateTTime string, layout string) (string, error) {
 	return t.Format(layout)[:16], nil
 }
 
-// func Format
+func ValidateDateTime(datetime string) error {
+	_, err := time.Parse(DateTime, datetime)
+	return err
+}
 
 // AnySlice return an slice of any that contains the vs passed in
 func AnySlice[T comparable](vs ...T) []any {

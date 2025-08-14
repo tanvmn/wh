@@ -8,24 +8,23 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/tanNguyen2220022/wh/internal/data"
 	"github.com/tanNguyen2220022/wh/ui"
 )
 
 type templData struct {
-	Domain      string
-	CompanyName string
-	Account     struct {
-		ID          string
-		Role        string
-		WarehouseID string
-		StoreID     string
-	}
-	Items    []data.Item
-	Item     *data.Item
-	Serials  []data.Serial
-	Purchase *data.Purchase
+	Domain       string
+	CompanyName  string
+	MinTimestamp string
+	Items        []data.Item
+	Serials      []data.Serial
+	Warehouses   []data.Warehouse
+	Suppliers    []data.Supplier
+	data.Item
+	data.Purchase
+	data.Account
 }
 
 func (ap *application) newTemplData(r *http.Request) (templData, error) {
@@ -34,35 +33,34 @@ func (ap *application) newTemplData(r *http.Request) (templData, error) {
 		return templData{}, errors.New("error retrieving authenticated id (string) from request's context")
 	}
 
-	role, ok := r.Context().Value(authenticatedCtxRole).(string)
-	if !ok {
-		return templData{}, errors.New("error retrieving authenticated role (string) from request's context")
+	ac, err := ap.data.Account(id)
+	if err != nil {
+		return templData{}, err
 	}
 
-	warehouseID, ok := r.Context().Value(authenticatedCtxWarehouseID).(string)
-	if !ok {
-		return templData{}, errors.New("error retrieving authenticated warehouseID (string) from request's context")
+	is, err := ap.data.Items()
+	if err != nil {
+		return templData{}, err
 	}
 
-	storeID, ok := r.Context().Value(authenticatedCtxStoreID).(string)
-	if !ok {
-		return templData{}, errors.New("error retrieving authenticated storeID (string) from request's context")
+	ws, err := ap.data.Warehouses()
+	if err != nil {
+		return templData{}, err
+	}
+
+	ss, err := ap.data.Suppliers()
+	if err != nil {
+		return templData{}, err
 	}
 
 	return templData{
-		Domain:      domain,
-		CompanyName: companyName,
-		Account: struct {
-			ID          string
-			Role        string
-			WarehouseID string
-			StoreID     string
-		}{
-			ID:          id,
-			Role:        role,
-			WarehouseID: warehouseID,
-			StoreID:     storeID,
-		},
+		Domain:       domain,
+		CompanyName:  companyName,
+		Account:      *ac,
+		Items:        is,
+		Warehouses:   ws,
+		Suppliers:    ss,
+		MinTimestamp: time.Now().Format(time.RFC3339)[:16],
 	}, nil
 }
 

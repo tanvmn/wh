@@ -12,23 +12,24 @@ import (
 )
 
 type Item struct {
-	GTIN           string   `json:"gtin,omitempty,omitzero"`
-	Characteristic string   `json:"characteristic,omitempty,omitzero"`
-	Volume         float64  `json:"volume,omitempty,omitzero"`
-	Weight         int64    `json:"weight,omitempty,omitzero"`
-	Brand          string   `json:"brand,omitempty,omitzero"`
-	Material       string   `json:"material,omitempty,omitzero"`
-	Color          string   `json:"color,omitempty,omitzero"`
-	Size           string   `json:"size,omitempty,omitzero"`
-	Price          float32  `json:"price,omitempty,omitzero"`
-	Currency       string   `json:"currency,omitempty,omitzero"`
-	Type           string   `json:"type,omitempty,omitzero"`
-	ShelfLife      int64    `json:"shelfLife,omitempty,omitzero"`
-	Img            []byte   `json:"img,omitempty,omitzero"`
-	ImgFSPath      string   `json:"imgFSPath,omitempty,omitzero"`
-	Name           string   `json:"name,omitempty,omitzero"`
-	Stock          int64    `json:"stock,omitempty,omitzero"`
-	Supplier       Supplier `json:"supplier,omitempty,omitzero"`
+	GTIN           string  `json:"gtin,omitempty,omitzero"`
+	Characteristic string  `json:"characteristic,omitempty,omitzero"`
+	Volume         float64 `json:"volume,omitempty,omitzero"`
+	Weight         int64   `json:"weight,omitempty,omitzero"`
+	Brand          string  `json:"brand,omitempty,omitzero"`
+	Material       string  `json:"material,omitempty,omitzero"`
+	Color          string  `json:"color,omitempty,omitzero"`
+	Size           string  `json:"size,omitempty,omitzero"`
+	Price          float32 `json:"price,omitempty,omitzero"`
+	Currency       string  `json:"currency,omitempty,omitzero"`
+	Type           string  `json:"type,omitempty,omitzero"`
+	ShelfLife      int64   `json:"shelfLife,omitempty,omitzero"`
+	Img            []byte  `json:"img,omitempty,omitzero"`
+	ImgFSPath      string  `json:"imgFSPath,omitempty,omitzero"`
+	Name           string  `json:"name,omitempty,omitzero"`
+	Stock          int64   `json:"stock,omitempty,omitzero"`
+	Version        int     `json:"version,omitempty,omitzero"`
+	Supplier       `json:"supplier,omitempty,omitzero"`
 }
 
 type ItemQuantity struct {

@@ -1,2 +1,59 @@
+{{define "title"}}
+{{with .Purchase.ID}}Yêu {{else}}Tạo yêu {{end}}cầu nhập
+{{end}}
+
 {{define "main"}}
+<div class="container-fluid mt-3">
+	{{with .Purchase.ID}}
+	<div class="row"><strong>Yêu cầu nhập ID: <u><i>{{.}}</i></u></strong></div>
+	<br>
+	{{else}}
+	<div class="row"><strong>Tạo yêu cầu nhập</strong></div>
+	<br>
+	{{end}}
+	<form class="was-validated">
+		<div class="row">
+			<div class="col">
+				<label for="warehouse" class="form-label">Kho</label>
+				<select name="warehouse" id="warehouse" class="form-select" required {{with
+					.Purchase.ID}}disabled{{end}}>
+					{{$wID := .Purchase.Warehouse.ID}}
+					{{range .Warehouses}}
+					<option {{if eq .ID $wID}}selected{{end}} value="{{.ID}} / Kho {{.Name}}">
+						{{.ID}} / Kho {{.Name}}</option>
+					{{end}}
+				</select>
+				<div class="invalid-feedback">
+					Bắt buộc chọn
+				</div>
+			</div>
+			<div class="col">
+				<label for="supplier" class="form-label">Nhà cung cấp</label>
+				<select name="supplier" id="supplier" class="form-select" required {{with
+					.Purchase.ID}}disabled{{end}}>
+					{{$sID := .Purchase.Supplier.ID}}
+					{{range .Suppliers}}
+					<option {{if eq .ID $sID}}selected{{end}}
+						value="{{.ID}} / Nhà cung cấp {{.Name}}">{{.ID}} / Nhà cung cấp
+						{{.Name}}
+					</option>
+					{{end}}
+				</select>
+				<div class="invalid-feedback">
+					Bắt buộc chọn
+				</div>
+			</div>
+			<div class="col">
+				<label for="expectedAt" class="form-label">Muốn nhập lúc</label>
+				<input type="datetime-local" name="expectedAt" id="expectedAt"
+					value="{{.Purchase.ExpectedAt}}" min="{{.MinTimestamp}}"
+					class="form-control was-validated" required {{with
+					.Purchase.ID}}disabled{{end}}>
+				<div class="invalid-feedback">
+					Thời điểm phải từ bây giờ trở về sau
+				</div>
+			</div>
+		</div>
+	</form>
+</div>
 {{end}}

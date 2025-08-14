@@ -86,7 +86,7 @@ func id64(id string, permittedCodes ...string) (int64, error) {
 
 	i, err := strconv.ParseInt(id[4:], 10, 64)
 	if err != nil || i < 1 {
-		return 0, fmt.Errorf("%w: ID %v, the number must be >= 1", ErrInvalidID, id)
+		return 0, fmt.Errorf("%w: ID %v, must be a number >= 1 after ID code", ErrInvalidID, id)
 	}
 
 	return i, nil

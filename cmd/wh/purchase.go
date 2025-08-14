@@ -22,11 +22,10 @@ func (ap *application) validatePurchaseAdd(pc *data.Purchase) error {
 	va := validator.Validator{}
 
 	// Validate chosen date time
-	dt, err := util.FormatDateTTime(pc.ExpectedAt, time.DateTime)
+	_, err = util.FormatDateTTime(pc.ExpectedAt, util.DateTTime)
 	if err != nil {
-		va.AddErr(fmt.Sprintf("%v: %v", err, pc.ExpectedAt))
+		va.AddErr(err.Error())
 	}
-	pc.ExpectedAt = dt
 
 	// Validate warehouse's existence
 	wh, err := ap.data.Warehouse(pc.Warehouse.ID)
@@ -157,37 +156,23 @@ func (ap *application) addPurchase() http.Handler {
 			return
 		}
 
-		// Assign item, supplier data in order to provide data for email template
-		for i := range pc.Items {
-			it, err := ap.data.Item(pc.Items[i].Item.GTIN)
-			if err != nil {
-				ap.logger.Error(err.Error())
-				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-				return
-			}
-			pc.Items[i].Item = *it
-			pc.Items[i].Item.Name = ap.name(*it)
-		}
-
-		sp, err := ap.data.Supplier(pc.Supplier.ID)
+		// Get the newly added purchase to supply data for template
+		p, err := ap.data.Purchase(id)
 		if err != nil {
 			ap.logger.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
-		pc.Supplier = *sp
-
-		wh, err := ap.data.Warehouse(pc.Warehouse.ID)
+		p.ExpectedAt, err = util.FormatDateTTime(p.ExpectedAt, time.DateTime)
 		if err != nil {
 			ap.logger.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
-		pc.Warehouse = *wh
 
 		// Send purchase email to supplier in the background with a new go routine
 		ap.background(func() {
-			err = ap.mailer.Send(pc.Supplier.Email, "purchase_mail", pc)
+			err = ap.mailer.Send(p.Supplier.Email, "purchase_mail", p)
 			if err != nil {
 				ap.logger.Error(err.Error())
 				return
@@ -196,5 +181,52 @@ func (ap *application) addPurchase() http.Handler {
 
 		w.WriteHeader(http.StatusCreated)
 		fmt.Fprintf(w, "Đã thêm yêu cầu nhập ID: %v", id)
+	})
+}
+
+func (ap *application) purchasePage() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		id := r.PathValue("id")
+		pc, err := ap.data.Purchase(id)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			if errors.Is(err, data.ErrNoPurchases) {
+				http.Error(w, fmt.Sprintf("Không tìm thấy yêu cầu nhập ID: %v", id), http.StatusNotFound)
+			} else {
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			}
+		}
+
+		data, err := ap.newTemplData(r)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		data.Purchase = *pc
+		// pc.ID = ""
+
+		if err := ap.render(w, http.StatusOK, "purchase", data); err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+	})
+}
+
+func (ap *application) addPurchasePage() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		data, err := ap.newTemplData(r)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		if err := ap.render(w, http.StatusOK, "purchase", data); err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
 	})
 }

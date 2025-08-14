@@ -14,6 +14,7 @@ type Warehouse struct {
 	Address string `json:"address,omitempty,omitzero"`
 	Phone   string `json:"phone,omitempty,omitzero"`
 	Email   string `json:"email,omitempty,omitzero"`
+	Version int    `json:"version,omitempty,omitzero"`
 }
 
 type Bin struct {
@@ -49,9 +50,6 @@ func (db *Data) Warehouse(id string) (*Warehouse, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%w, %v", ErrNoWarehouses, id)
 	}
-	// if i < 1 {
-	// 	return nil, fmt.Errorf("%w, %v", ErrNoWarehouses, id)
-	// }
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -133,4 +131,53 @@ func (db *Data) UsedVolume(warehouseID string) (float64, error) {
 	}
 
 	return usedV.Float64, nil
+}
+
+func (db *Data) Warehouses() ([]Warehouse, error) {
+	stmt := fmt.Sprintf(`
+	select
+	'%v'||id
+	,name
+	,address
+	,phone
+	,version
+	,email
+	from warehouse
+	`, WarehouseIDCode)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	var ws []Warehouse
+
+	rows, err := db.DB.QueryContext(ctx, stmt)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		err2 := rows.Close()
+		if err2 != nil {
+			panic(err)
+		}
+	}()
+
+	for rows.Next() {
+		var w Warehouse
+
+		err = rows.Scan(
+			&w.ID,
+			&w.Name,
+			&w.Address,
+			&w.Phone,
+			&w.Version,
+			&w.Email,
+		)
+
+		ws = append(ws, w)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return ws, nil
 }

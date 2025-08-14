@@ -3,6 +3,7 @@ package data
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 )
@@ -15,16 +16,20 @@ const (
 	Declined         = "Từ chối"
 )
 
+var (
+	ErrNoPurchases = errors.New("data: no purchases found")
+)
+
 type Purchase struct {
 	ID         string         `json:"purchase,omitempty,omitzero"`
-	Warehouse  Warehouse      `json:"warehouse,omitempty,omitzero"`
-	Account    Account        `json:"account,omitempty,omitzero"`
 	ExpectedAt string         `json:"expectedAt,omitempty,omitzero"`
 	Status     string         `json:"status,omitempty,omitzero"`
-	Supplier   Supplier       `json:"supplier,omitempty,omitzero"`
 	CreatedAt  string         `json:"createdAt,omitempty,omitzero"`
-	Items      []ItemQuantity `json:"items,omitempty,omitzero"`
 	Version    int            `json:"version,omitempty,omitzero"`
+	Items      []ItemQuantity `json:"items,omitempty,omitzero"`
+	Account    `json:"account,omitempty,omitzero"`
+	Warehouse  `json:"warehouse,omitempty,omitzero"`
+	Supplier   `json:"supplier,omitempty,omitzero"`
 }
 
 func addPurchase(tx *sql.Tx, pc *Purchase) (id string, version int, err error) {
@@ -126,4 +131,170 @@ func (db *Data) AddPurchase(pc *Purchase) (id string, version int, err error) {
 	}
 
 	return id, version, nil
+}
+
+func (db *Data) Purchase(id string) (*Purchase, error) {
+	i, err := id64(id, PurchaseIDCode)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrNoPurchases, err)
+	}
+
+	stmt := fmt.Sprintf(`
+	select
+	'%v'||id
+	,'%v'||warehouse_id
+	,'%v'||account_id
+	,'%v'||supplier_id
+	,expected_dtime
+	,created_dtime
+	,purchase.version
+	,status
+	from purchase
+	where id=$1
+	`,
+		PurchaseIDCode,
+		WarehouseIDCode,
+		AccountIDCode,
+		SupplierIDCode)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	var pc Purchase
+
+	err = db.DB.QueryRowContext(ctx, stmt, i).Scan(
+		&pc.ID,
+		&pc.Warehouse.ID,
+		&pc.Account.ID,
+		&pc.Supplier.ID,
+		&pc.ExpectedAt,
+		&pc.CreatedAt,
+		&pc.Version,
+		&pc.Status,
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, fmt.Errorf("%w, ID %v", ErrNoPurchases, id)
+	} else if err != nil {
+		return nil, err
+	}
+
+	// pc.CreatedAt, err = util.FormatRFC3339(pc.CreatedAt, time.DateTime)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	pc.CreatedAt = pc.CreatedAt[:16]
+
+	// pc.ExpectedAt, err = util.FormatRFC3339(pc.ExpectedAt, time.DateTime)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	pc.ExpectedAt = pc.ExpectedAt[:16]
+
+	// Add purchase items
+	err = db.PurchaseItems(&pc)
+	if err != nil {
+		return nil, err
+	}
+
+	// Add warehouse
+	wh, err := db.Warehouse(pc.Warehouse.ID)
+	if err != nil {
+		return nil, err
+	}
+	pc.Warehouse = *wh
+
+	// Add supplier
+	sp, err := db.Supplier(pc.Supplier.ID)
+	if err != nil {
+		return nil, err
+	}
+	pc.Supplier = *sp
+
+	// Add account
+	ac, err := db.Account(pc.Account.ID)
+	if err != nil {
+		return nil, err
+	}
+	pc.Account = *ac
+
+	return &pc, nil
+}
+
+func (db *Data) PurchaseItems(pc *Purchase) error {
+	i, err := id64(pc.ID, PurchaseIDCode)
+	if err != nil {
+		return err
+	}
+
+	stmt := `
+	select
+	pi.gtin
+	,characteristic
+	,volume
+	,weight
+	,brand
+	,material
+	,color
+	,size
+	,price
+	,currency
+	,shelf_life
+	,img_fspath
+	,pi.version
+	,type
+	,quantity
+	,type||', '||brand||', '||color||', '||size||', '||characteristic
+	from purchase_item as pi
+	join item on item.gtin = pi.gtin
+	join purchase on purchase.id = pi.purchase_id
+	where purchase_id = $1;
+	`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	rows, err := db.DB.QueryContext(ctx, stmt, i)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		err2 := rows.Close()
+		if err2 != nil {
+			panic(err2)
+		}
+	}()
+
+	pc.Items = nil
+	for rows.Next() {
+		var i ItemQuantity
+
+		err = rows.Scan(
+			&i.Item.GTIN,
+			&i.Item.Characteristic,
+			&i.Item.Volume,
+			&i.Item.Weight,
+			&i.Item.Brand,
+			&i.Item.Material,
+			&i.Item.Color,
+			&i.Item.Size,
+			&i.Item.Price,
+			&i.Item.Currency,
+			&i.Item.ShelfLife,
+			&i.Item.ImgFSPath,
+			&i.Item.Version,
+			&i.Item.Type,
+			&i.Quantity,
+			&i.Item.Name,
+		)
+		if err != nil {
+			return err
+		}
+
+		pc.Items = append(pc.Items, i)
+	}
+
+	if err = rows.Err(); err != nil {
+		return err
+	}
+
+	return nil
 }

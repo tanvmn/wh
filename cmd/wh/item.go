@@ -20,14 +20,6 @@ func (ap *application) itemsPage() http.Handler {
 			return
 		}
 
-		is, err := ap.data.Items()
-		if err != nil {
-			ap.logger.Error(err.Error())
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-			return
-		}
-		td.Items = is
-
 		err = ap.render(w, http.StatusOK, "items", td)
 		if err != nil {
 			ap.logger.Error(err.Error())
@@ -62,7 +54,7 @@ func (ap *application) serialsPage() http.Handler {
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
-		td.Item = it
+		td.Item = *it
 
 		err = ap.render(w, http.StatusOK, "serials", td)
 		if err != nil {

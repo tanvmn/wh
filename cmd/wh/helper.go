@@ -182,7 +182,7 @@ func (ap *application) background(fn func()) {
 		defer func() {
 			if err := recover(); err != nil {
 				ap.logger.Error(fmt.Sprint(err))
-				fmt.Println(debug.Stack())
+				fmt.Println(string(debug.Stack()))
 			}
 		}()
 
