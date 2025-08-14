@@ -195,6 +195,7 @@ func (ap *application) purchasePage() http.Handler {
 			} else {
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			}
+			return
 		}
 
 		data, err := ap.newTemplData(r)

@@ -1,4 +1,5 @@
 const domain = "http://localhost:4000";
+const itemImgFSPath = "item/img/";
 
 class Scanner {
   static code = "";

@@ -64,7 +64,7 @@ const (
 	Sweatpants = "Quần thun"
 	Skirt      = "Váy"
 	Dress      = "Đầm"
-	Onsie      = "Onsie"
+	Onesie     = "Onesie"
 )
 
 const (
@@ -82,6 +82,7 @@ const (
 	type,
 	volume,
 	weight,
+	type||', '||brand||', màu '||color||', cỡ '||size||', '||characteristic,
 	supplier_item.supplier_id
 	from
 	item
@@ -111,6 +112,7 @@ func (db *Data) Item(gtin string) (*Item, error) {
 		&i.Type,
 		&i.Volume,
 		&i.Weight,
+		&i.Name,
 		&i.Supplier.ID,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -160,6 +162,7 @@ func (db *Data) Items(gtins ...string) ([]Item, error) {
 			&i.Type,
 			&i.Volume,
 			&i.Weight,
+			&i.Name,
 			&i.Supplier.ID,
 		)
 		if err != nil {

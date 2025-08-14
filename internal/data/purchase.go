@@ -242,7 +242,7 @@ func (db *Data) PurchaseItems(pc *Purchase) error {
 	,pi.version
 	,type
 	,quantity
-	,type||', '||brand||', '||color||', '||size||', '||characteristic
+	,type||', '||brand||', màu '||color||', cỡ '||size||', '||characteristic
 	from purchase_item as pi
 	join item on item.gtin = pi.gtin
 	join purchase on purchase.id = pi.purchase_id
