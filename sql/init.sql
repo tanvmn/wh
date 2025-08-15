@@ -457,19 +457,19 @@ insert into supplier (name, address, phone, email) values
 -- ;
 
 insert into item (gtin, characteristic, volume, weight, brand, material, color, size, price, type, shelf_life, img_fspath) values
-('4983435734503', 'có túi', 1392, 200, 'GAP', 'Polyester', 'Lam', 'M', 200000, 'Quần tây', 7, 'item/img/4983435734503.jpeg'),			-- quần tây lam
-('8936040400574', 'có túi', 1392, 200, 'Navy', 'Polyester', 'Lục', 'XL', 200000, 'Quần thun', 7, 'item/img/8936040400574.jpeg'),		-- quần thun lục
+('619659115906', 'có túi', 1392, 200, 'Navy', 'Polyester', 'Lục', 'XL', 200000, 'Quần thun', 7, 'item/img/619659115906.jpeg'),		-- quần thun lục
 ('8888021200126', 'có cổ, tay dài', 1392, 200, 'Viettien', 'Cotton', 'Trắng', 'S', 150000, 'Áo sơmi', 7, 'item/img/8888021200126.jpeg'),	-- áo somi trắng tay dài
 ('4983435764166', 'không cổ, tay ngắn', 1392, 200, 'Gucci', 'Cotton', 'Vàng', 'L', 150000, 'Áo thun', 7, 'item/img/4983435764166.jpeg'),	-- áo thun vàng tay ngắn
-('4983435734909', 'có cổ, tay dài', 1392, 200, 'Pierre', 'Linen', 'Đen', 'XXL', 150000, 'Áo khoác', 7, 'item/img/4983435734909.jpeg')		-- áo khoác đen tay dài
+('8904091104109', 'có túi', 1392, 200, 'GAP', 'Polyester', 'Lam', 'M', 200000, 'Quần tây', 7, 'item/img/8904091104109.jpeg'),			-- quần tây lam
+('8936134272407', 'có cổ, tay dài', 1392, 200, 'Pierre', 'Linen', 'Đen', 'XXL', 150000, 'Áo khoác', 7, 'item/img/8936134272407.jpeg')		-- áo khoác đen tay dài
 ;
 
 insert into supplier_item (supplier_id, gtin) values
-(1, '4983435734503'),
-(1, '8936040400574'),
+(1, '619659115906'),
+(1, '8904091104109'),
 (1, '8888021200126'),
 (2, '4983435764166'),
-(2, '4983435734909')
+(2, '8936134272407')
 ;
 
 insert into account (role, bdate, name, phone, password_hash, warehouse_id) values
