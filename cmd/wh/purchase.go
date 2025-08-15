@@ -179,8 +179,9 @@ func (ap *application) addPurchase() http.Handler {
 			}
 		})
 
-		w.WriteHeader(http.StatusCreated)
-		fmt.Fprintf(w, "Đã thêm yêu cầu nhập ID: %v", id)
+		// w.WriteHeader(http.StatusCreated)
+		// fmt.Fprintf(w, "Đã thêm yêu cầu nhập ID: %v", id)
+		http.Redirect(w, r, fmt.Sprintf("%v/purchase/%v", domain, id), http.StatusSeeOther)
 	})
 }
 
@@ -190,6 +191,7 @@ func (ap *application) purchasePage() http.Handler {
 		pc, err := ap.data.Purchase(id)
 		if err != nil {
 			ap.logger.Error(err.Error())
+
 			if errors.Is(err, data.ErrNoPurchases) {
 				http.Error(w, fmt.Sprintf("Không tìm thấy yêu cầu nhập ID: %v", id), http.StatusNotFound)
 			} else {
@@ -205,7 +207,6 @@ func (ap *application) purchasePage() http.Handler {
 			return
 		}
 		data.Purchase = *pc
-		// pc.ID = ""
 
 		if err := ap.render(w, http.StatusOK, "purchase", data); err != nil {
 			ap.logger.Error(err.Error())

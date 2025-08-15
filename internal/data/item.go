@@ -67,13 +67,14 @@ const (
 	Onesie     = "Onesie"
 )
 
-const (
-	selectItemsStmt = `select
+var (
+	selectItemsStmt = fmt.Sprintf(`
+	select
+	item.gtin,
 	brand,
 	characteristic,
 	color,
 	currency,
-	item.gtin,
 	img_fspath,
 	material,
 	price,
@@ -83,10 +84,10 @@ const (
 	volume,
 	weight,
 	type||', '||brand||', màu '||color||', cỡ '||size||', '||characteristic,
-	supplier_item.supplier_id
+	'%v'||supplier_item.supplier_id
 	from
 	item
-	join supplier_item on supplier_item.gtin = item.gtin`
+	join supplier_item on supplier_item.gtin = item.gtin`, SupplierIDCode)
 )
 
 func (db *Data) Item(gtin string) (*Item, error) {
@@ -99,11 +100,11 @@ func (db *Data) Item(gtin string) (*Item, error) {
 		i Item
 	)
 	err := db.DB.QueryRowContext(ctx, stmt, gtin).Scan(
+		&i.GTIN,
 		&i.Brand,
 		&i.Characteristic,
 		&i.Color,
 		&i.Currency,
-		&i.GTIN,
 		&i.ImgFSPath,
 		&i.Material,
 		&i.Price,
@@ -149,11 +150,11 @@ func (db *Data) Items(gtins ...string) ([]Item, error) {
 		var i Item
 
 		err = rows.Scan(
+			&i.GTIN,
 			&i.Brand,
 			&i.Characteristic,
 			&i.Color,
 			&i.Currency,
-			&i.GTIN,
 			&i.ImgFSPath,
 			&i.Material,
 			&i.Price,
@@ -380,4 +381,20 @@ func (db *Data) Name(gtin string) (string, error) {
 	}
 
 	return name, nil
+}
+
+func (db *Data) ItemsBySupplier(supplierID string) ([]Item, error) {
+	is, err := db.Items()
+	if err != nil {
+		return nil, err
+	}
+
+	var s []Item
+	for _, it := range is {
+		if it.Supplier.ID == supplierID {
+			s = append(s, it)
+		}
+	}
+
+	return s, nil
 }

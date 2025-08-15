@@ -10,8 +10,6 @@
 	th,
 	td {
 		padding: 0;
-		/* align-items: center;
-		justify-content: center; */
 		text-align: center;
 	}
 </style>
@@ -30,12 +28,18 @@
 		<div class="row">
 			<div class="col">
 				<label for="warehouse" class="form-label">Kho</label>
-				<select name="warehouse" id="warehouse" class="form-select" required {{with
-					.Purchase.ID}}disabled{{end}}>
-					{{$wID := .Purchase.Warehouse.ID}}
+				<select name="warehouse" id="warehouse" class="form-select" required {{$isAccountant
+					:=eq .Account.Role .Accountant}} {{if $isAccountant}} disabled {{end}}>
+					{{if not $isAccountant}}
 					{{range .Warehouses}}
-					<option {{if eq .ID $wID}}selected{{end}} value="{{.ID}} / Kho {{.Name}}">
+					<option value="{{.ID}} / Kho {{.Name}}">
 						{{.ID}} / Kho {{.Name}}</option>
+					{{end}}
+					{{else}}
+					<option selected
+						value="{{.Account.Warehouse.ID}} / Kho {{.Account.Warehouse.Name}}">
+						{{.Account.Warehouse.ID}} / Kho {{.Account.Warehouse.Name}}
+					</option>
 					{{end}}
 				</select>
 				<div class="invalid-feedback">
@@ -45,7 +49,7 @@
 
 			<div class="col">
 				<label for="supplier" class="form-label">Nhà cung cấp</label>
-				<select name="supplier" id="supplier" class="form-select" required {{with
+				<select name="supplier" id="supplier" class="form-select" required {{if
 					.Purchase.ID}}disabled{{end}}>
 					{{$psID := .Purchase.Supplier.ID}}
 					{{range .Suppliers}}
@@ -80,10 +84,15 @@
 
 		<!-- Begin items pick and datalist -->
 		<div class="row mt-3" {{with .Purchase.ID}}style="display: none;" {{end}}>
-			<input list="itemOpts" id="itemPick" placeholder="Tìm hàng...">
+			<input onclick="this.value = ''" onblur="this.value = ''" list="itemOpts" id="itemPick"
+				placeholder="Tìm hàng...">
 			<datalist id="itemOpts">
-				{{range .Items}}
+				<!-- {{range .Items}}
 				<option class="{{.ImgFSPath}}" value="{{.GTIN}}">{{.GTIN}} - {{.Name}}</option>
+				{{end}} -->
+				{{range .Purchase.Items}}
+				<option class="{{.Item.ImgFSPath}}" value="{{.Item.GTIN}}">{{.Item.GTIN}} -
+					{{.Item.Name}}</option>
 				{{end}}
 			</datalist>
 		</div>
@@ -105,10 +114,10 @@
 						<td><img height="100" src="/rec/{{.Item.ImgFSPath}}"
 								alt="/rec/{{.Item.ImgFSPath}}">
 						</td>
-						<td>{{.Item.GTIN}}</td>
-						<td>{{.Item.Name}}</td>
-						<td><input type="number" class="form-control was-validated" min="1"
-								required value="{{.Quantity}}" {{if
+						<td class="tdGTIN">{{.Item.GTIN}}</td>
+						<td class="tdName">{{.Item.Name}}</td>
+						<td><input type="number" class="form-control was-validated tdQuantity"
+								min="1" required value="{{.Quantity}}" {{if
 								.Quantity}}disabled{{end}}></td>
 						<td><button class="btn btn-danger delete" {{if
 								.Quantity}}disabled{{end}}>X</button></td>
@@ -128,28 +137,34 @@
 </div>
 
 <script type="module">
-	import { Scanner } from "/static/js/util.js";
+	import { domain, Scanner } from "/static/js/util.js";
 
 	document.addEventListener('DOMContentLoaded', function () {
-		let wh = document.querySelector('#warehouse');
-		let sp = document.querySelector('#supplier');
-		let dl = document.querySelector('#itemOpts');
-		let os = dl.querySelectorAll('option');
-		let is = document.querySelector('#itemList'); //tbody
-
-		// console.log(os);
-		// console.log(is);
-		// console.log(document.querySelector('#addPurchasePage'));
 		if (document.querySelector('#addPurchasePage') !== null) {
-			wh.value = "";
-			sp.value = "";
+			document.querySelector('#supplier').value = '';
+			if (!document.querySelector('#warehouse').disabled) {
+				document.querySelector('#warehouse').value = '';
+			}
 		}
+
+		document.querySelector('#supplier').addEventListener('input', (e) => {
+			document.querySelector('#itemOpts').innerHTML = '';
+
+			fetch(domain + '/items-by-supplier?supplier=' + e.target.value.split(' / ')[0])
+				.then(res => {
+					if (res.ok) return res.json();
+					else return res.text();
+				})
+				.then(json => {
+					addItemOptFromJSON(json);
+					document.querySelector('#itemList').innerHTML = '';
+				});
+		});
 
 		Scanner.init(addItem);
 
 		document.querySelector('#itemPick').addEventListener('input', (e) => {
 			addItem(e.target.value);
-			e.target.value = "";
 		});
 
 		document.querySelector('#itemTable').addEventListener('click', (e) => {
@@ -163,30 +178,28 @@
 				return;
 			}
 
-			alert(confirm('sure?'));
+			if (confirm('Bạn đã chắc về thông tin của yêu cầu nhập?')) submitJSON();
 		});
 
 		function addItem(input) {
 			document.querySelector('#itemOpts').querySelectorAll('option').forEach((o, i) => {
 				if (o.value === input) {
-					console.log(o.value);
-					console.log(o.className);
-					console.log(o.innerText.split(' - ')[1]);
+					console.log(o.value, o.className, o.innerText.split(' - ')[1]);
 
 					let tr = document.createElement('tr');
 
 					tr.innerHTML = `
-					<td><img height="90" src="/rec/${o.className}" alt="/rec/${o.className}"></td>
-					<td>${o.value}</td>
-					<td>${o.innerText.split(' - ')[1]}</td>
-					<td>
-						<input class="form-control was-validated" type="number" min="1" required>
-						<div class="invalid-feedback">Ít nhất 1 cái</div>
-					</td>
-					<td><button class="btn btn-danger btn-sm delete">X</button></td>
-					`;
+						<td><img height="90" src="/rec/${o.className}" alt="/rec/${o.className}"></td>
+						<td>${o.value}</td>
+						<td>${o.innerText.split(' - ')[1]}</td>
+						<td>
+							<input class="form-control was-validated" type="number" min="1" required>
+							<div class="invalid-feedback">Ít nhất 1 cái</div>
+						</td>
+						<td><button class="btn btn-danger btn-sm delete">X</button></td>
+						`;
 
-					is.appendChild(tr);
+					document.querySelector('#itemList').appendChild(tr);
 
 					delOpt(o.value);
 				}
@@ -195,7 +208,7 @@
 		}
 
 		function delOpt(gtin) {
-			os.forEach((o, i) => {
+			document.querySelector('#itemOpts').querySelectorAll('option').forEach((o, i) => {
 				if (o.value === gtin) {
 					o.remove();
 				}
@@ -204,14 +217,75 @@
 
 		function delTR(e) {
 			if (e.target.classList.contains('delete')) {
-				os.forEach((o, i) => {
+				let existed = false;
+
+				document.querySelector('#itemOpts').querySelectorAll('option').forEach((o, i) => {
 					if (o.value === e.target.parentElement.previousElementSibling.previousElementSibling.previousElementSibling.innerText) {
-						dl.appendChild(o);
+						existed = true;
 					}
 				});
 
+				if (!existed) {
+					let op = document.createElement('option');
+					op.value = e.target.parentElement.previousElementSibling.previousElementSibling.previousElementSibling.innerText;
+					op.innerText = `${e.target.parentElement.previousElementSibling.previousElementSibling.previousElementSibling.innerText} - ${e.target.parentElement.previousElementSibling.previousElementSibling.innerText}`;
+					op.className = e.target.parentElement.previousElementSibling.previousElementSibling.previousElementSibling.previousElementSibling.querySelector('img').src.split('/rec/')[1];
+
+					document.querySelector('#itemOpts').appendChild(op);
+				}
+
 				e.target.parentElement.parentElement.remove();
 			}
+		}
+
+		function addItemOptFromJSON(obj) {
+			obj.forEach((o, i) => {
+				let op = document.createElement('option');
+				op.className = o.imgFSPath;
+				op.value = o.gtin;
+				op.innerText = `${o.gtin} - ${o.name}`;
+
+				document.querySelector('#itemOpts').appendChild(op);
+			});
+		}
+
+		function submitJSON() {
+			let o = {
+				warehouse: { id: document.querySelector('#warehouse').value.split(' / ')[0] },
+				supplier: { id: document.querySelector('#supplier').value.split(' / ')[0] },
+				expectedAt: document.querySelector('#expectedAt').value,
+				items: [],
+			};
+
+			document.querySelector('#itemList').querySelectorAll('tr').forEach((tr, i) => {
+				let it = {
+					item: { gtin: tr.firstElementChild.nextElementSibling.innerText },
+					quantity: parseInt(tr.querySelector('input[type=number]').value),
+				};
+				o.items.push(it);
+			});
+
+			console.log(JSON.stringify(o));
+
+			let ok = false;
+			fetch(domain + '/purchase', {
+				method: 'POST',
+				body: JSON.stringify(o),
+				headers: {
+					'Content-Type': 'application/json'
+				}
+			})
+				.then(res => {
+					ok = res.ok;
+					if (res.redirected) {
+						window.location.replace(res.url);
+						return;
+					}
+					else return res.text();
+				})
+				.then(data => {
+					if (!ok) alert(data);
+				});
 		}
 	});
 

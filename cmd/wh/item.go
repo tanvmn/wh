@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -76,6 +77,44 @@ func (ap *application) items() http.Handler {
 		if is == nil {
 			ap.logger.Error(data.ErrNoItems.Error())
 			http.Error(w, "Không tìm thấy mặt hàng nào", http.StatusNotFound)
+			return
+		}
+
+		err = ap.writeJSON(w, http.StatusOK, is, nil)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+	})
+}
+
+func (ap *application) itemsBySupplier() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		sID := r.URL.Query().Get("supplier")
+
+		sp, err := ap.data.Supplier(sID)
+		if err != nil {
+			ap.logger.Error(err.Error())
+
+			if errors.Is(err, data.ErrNoSuppliers) {
+				http.Error(w, fmt.Sprintf("Không tìm thấy kho hoặc kho không tồn tại, ID: %v", sID), http.StatusBadRequest)
+			} else {
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			}
+			return
+		}
+
+		is, err := ap.data.ItemsBySupplier(sp.ID)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		if is == nil {
+			s := fmt.Sprintf("Không tìm thấy hàng theo nhà cung cấp %v", sp.ID)
+			ap.logger.Error(s)
+			http.Error(w, s, http.StatusNotFound)
 			return
 		}
 

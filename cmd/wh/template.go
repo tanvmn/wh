@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"html/template"
 	"io/fs"
 	"log/slog"
@@ -15,32 +16,45 @@ import (
 )
 
 type templData struct {
-	Domain       string
-	CompanyName  string
-	MinTimestamp string
-	Items        []data.Item
-	Serials      []data.Serial
-	Warehouses   []data.Warehouse
-	Suppliers    []data.Supplier
+	Domain         string
+	CompanyName    string
+	MinTimestamp   string
+	Admin          string
+	Accountant     string
+	HeadAccountant string
+	Mananger       string
+	Employee       string
+	Items          []data.Item
+	Serials        []data.Serial
+	Warehouses     []data.Warehouse
+	Suppliers      []data.Supplier
 	data.Item
 	data.Purchase
 	data.Account
+	// data.Warehouse
 }
 
 func (ap *application) newTemplData(r *http.Request) (templData, error) {
-	id, ok := r.Context().Value(authenticatedCtxID).(string)
+	aID, ok := r.Context().Value(authenticatedCtxID).(string)
 	if !ok {
-		return templData{}, errors.New("error retrieving authenticated id (string) from request's context")
+		return templData{}, fmt.Errorf("%w: account ID %v", ErrConvertCtxVal, aID)
+	}
+	wID, ok := r.Context().Value(authenticatedCtxWarehouseID).(string)
+	if !ok {
+		return templData{}, fmt.Errorf("%w: account's warehouse ID %v", ErrConvertCtxVal, wID)
 	}
 
-	ac, err := ap.data.Account(id)
+	ac, err := ap.data.Account(aID)
 	if err != nil {
 		return templData{}, err
 	}
 
-	is, err := ap.data.Items()
-	if err != nil {
+	wh, err := ap.data.Warehouse(wID)
+	if !errors.Is(err, data.ErrNoWarehouses) && err != nil {
 		return templData{}, err
+	}
+	if wh != nil {
+		ac.Warehouse = *wh
 	}
 
 	ws, err := ap.data.Warehouses()
@@ -54,13 +68,17 @@ func (ap *application) newTemplData(r *http.Request) (templData, error) {
 	}
 
 	return templData{
-		Domain:       domain,
-		CompanyName:  companyName,
-		Account:      *ac,
-		Items:        is,
-		Warehouses:   ws,
-		Suppliers:    ss,
-		MinTimestamp: time.Now().Format(time.RFC3339)[:16],
+		Domain:         domain,
+		CompanyName:    companyName,
+		Admin:          data.Admin,
+		Accountant:     data.Accountant,
+		HeadAccountant: data.HeadAccountant,
+		Mananger:       data.Manager,
+		Employee:       data.Employee,
+		Account:        *ac,
+		Warehouses:     ws,
+		Suppliers:      ss,
+		MinTimestamp:   time.Now().Format(time.RFC3339)[:16],
 	}, nil
 }
 
