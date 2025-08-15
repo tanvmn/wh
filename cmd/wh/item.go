@@ -21,6 +21,16 @@ func (ap *application) itemsPage() http.Handler {
 			return
 		}
 
+		is, err := ap.data.Items()
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		if is != nil {
+			td.Items = is
+		}
+
 		err = ap.render(w, http.StatusOK, "items", td)
 		if err != nil {
 			ap.logger.Error(err.Error())

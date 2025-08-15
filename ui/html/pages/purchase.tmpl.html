@@ -76,14 +76,14 @@
 			</div>
 		</div>
 
-		<div class="row my-4" {{with .Purchase.ID}}style="display: none;" {{end}}>
+		<div class="row my-4" id="submitBtn" {{if .Purchase.ID}}style="display: none;" {{end}}>
 			<div class="col-4 mx-auto">
 				<button class="btn btn-primary" type="submit" id="addBtn">Tạo yêu cầu nhập</button>
 			</div>
 		</div>
 
 		<!-- Begin items pick and datalist -->
-		<div class="row mt-3" {{with .Purchase.ID}}style="display: none;" {{end}}>
+		<div class="row mt-3" id="itemInput" {{with .Purchase.ID}}style="display: none;" {{end}}>
 			<input onclick="this.value = ''" onblur="this.value = ''" list="itemOpts" id="itemPick"
 				placeholder="Tìm hàng...">
 			<datalist id="itemOpts">
