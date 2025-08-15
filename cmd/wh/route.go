@@ -71,6 +71,13 @@ func (ap *application) routes() http.Handler {
 	mux.Handle("GET /static/", http.FileServerFS(ui.Files))
 	mux.Handle("GET /rec/", identify.then(http.StripPrefix("/rec", http.FileServerFS(rec.Files))))
 
+	// Health
+	mux.HandleFunc("GET /health", ap.health)
+
+	// Login, logout
+	mux.Handle("GET /login", identify.then(ap.loginPage()))
+	mux.Handle("POST /login", identify.then(ap.login()))
+
 	// Account
 	mux.Handle("GET /account", identify.then(ap.account()))
 
@@ -80,15 +87,11 @@ func (ap *application) routes() http.Handler {
 	mux.Handle("GET /serials", identify.then(ap.serialsPage()))
 	mux.Handle("GET /items-by-supplier", identify.then(ap.itemsBySupplier()))
 
-	// Health
-	mux.HandleFunc("GET /health", ap.health)
+	// Supplier
+	mux.Handle("GET /suppliers/json", identify.then(ap.suppliers()))
 
 	// Home
 	mux.Handle("GET /{$}", identify.then(ap.homePage()))
-
-	// Login, logout
-	mux.Handle("GET /login", identify.then(ap.loginPage()))
-	mux.Handle("POST /login", identify.then(ap.login()))
 
 	// Purchase
 	mux.Handle("GET /purchase/{id}", append(identify, ap.permit(data.Accountant, data.HeadAccountant)).then(ap.purchasePage()))
