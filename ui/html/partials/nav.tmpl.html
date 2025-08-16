@@ -88,6 +88,7 @@
 <div class="sidenav-w3">
 	<a href="/">Home</a>
 
+	<!-- Begin Hàng -->
 	<button class="dropdown-btn-w3">Hàng
 		<i class="fa fa-caret-down"></i>
 	</button>
@@ -95,6 +96,7 @@
 		<a id="items" href="{{.Domain}}/items">Xem</a>
 		<a id="add-items" href="{{.Domain}}/health">Tạo</a>
 	</div>
+	<!-- End Hàng -->
 
 	<!-- Begin Yêu cầu nhập -->
 	{{if not (or (eq .Account.Role .Manager) (eq .Account.Role .Employee))}}
