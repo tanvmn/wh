@@ -22,7 +22,7 @@ type templData struct {
 	Admin          string
 	Accountant     string
 	HeadAccountant string
-	Mananger       string
+	Manager        string
 	Employee       string
 	Items          []data.Item
 	Serials        []data.Serial
@@ -31,7 +31,6 @@ type templData struct {
 	data.Item
 	data.Purchase
 	data.Account
-	// data.Warehouse
 }
 
 func (ap *application) newTemplData(r *http.Request) (templData, error) {
@@ -73,7 +72,7 @@ func (ap *application) newTemplData(r *http.Request) (templData, error) {
 		Admin:          data.Admin,
 		Accountant:     data.Accountant,
 		HeadAccountant: data.HeadAccountant,
-		Mananger:       data.Manager,
+		Manager:        data.Manager,
 		Employee:       data.Employee,
 		Account:        *ac,
 		Warehouses:     ws,
