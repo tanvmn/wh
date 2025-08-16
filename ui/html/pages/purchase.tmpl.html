@@ -168,6 +168,7 @@
 			}
 		}
 
+		// Populate the options of items based on the selection of supplier
 		document.querySelector('#supplier').addEventListener('input', (e) => {
 			document.querySelector('#itemOpts').innerHTML = '';
 
@@ -180,36 +181,35 @@
 			addItemOptFromJSON(is);
 
 			document.querySelector('#itemList').innerHTML = '';
-
-			// fetch(domain + '/items-by-supplier?supplier=' + e.target.value.split(' / ')[0])
-			// 	.then(res => {
-			// 		if (res.ok) return res.json();
-			// 		else return res.text();
-			// 	})
-			// 	.then(data => {
-			// 		addItemOptFromJSON(data);
-			// 		document.querySelector('#itemList').innerHTML = '';
-			// 	});
 		});
 
 		Scanner.init(addItem);
 
+		// Populate the table of chosen items based on the selection of item
 		document.querySelector('#itemPick').addEventListener('input', (e) => {
 			addItem(e.target.value);
 		});
 
+		// Delete row in table of chosen items and repopulate the options of items
 		document.querySelector('#itemTable').addEventListener('click', (e) => {
 			delTR(e);
 		});
 
+		// Submit the purchase in JSON to server
 		document.querySelector('form').addEventListener('submit', (e) => {
 			e.preventDefault();
 
+			if (document.querySelector('#itemList').querySelectorAll('tr').length === 0) {
+				alert('Phải chọn ít nhất 1 mặt hàng');
+				return;
+			}
 			if (!e.target.checkValidity()) {
 				return;
 			}
 
-			if (confirm('Bạn đã chắc về thông tin của yêu cầu nhập?')) submitJSON();
+			if (confirm('Bạn đã chắc về thông tin của yêu cầu nhập?')) {
+				submitJSON();
+			}
 		});
 
 		function addItem(input) {
@@ -311,12 +311,18 @@
 						window.location.replace(res.url);
 						return;
 					}
-					else return res.text();
+					return res.text();
 				})
 				.then(data => {
 					if (!ok) alert(data);
 				});
 		}
+
+		// function itemTableEmpty() {
+		// 	console.log(document.querySelector('#itemList').querySelectorAll('tr') === null);
+		// 	return document.querySelector('#itemList').querySelectorAll('tr') === null;
+
+		// }
 	});
 
 </script>
