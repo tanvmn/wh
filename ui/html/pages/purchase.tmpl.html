@@ -67,9 +67,9 @@
 			<div class="col">
 				<label for="expectedAt" class="form-label">Muốn nhập lúc</label>
 				<input type="datetime-local" name="expectedAt" id="expectedAt"
-					value="{{.Purchase.ExpectedAt}}" min="{{.MinTimestamp}}"
-					class="form-control was-validated" required {{with
-					.Purchase.ID}}disabled{{end}}>
+					value="{{.Purchase.ExpectedAt}}" {{with .Purchase.ExpectedAt}} min="{{.}}"
+					{{else}} min="{{.MinTimestamp}}" {{end}} class="form-control was-validated"
+					required {{with .Purchase.ID}}disabled{{end}}>
 				<div class="invalid-feedback">
 					Thời điểm phải từ hiện tại trở về sau
 				</div>
@@ -159,6 +159,7 @@
 			});
 	}
 
+	// After getting items (above), begin others task from this point
 	document.addEventListener('DOMContentLoaded', function () {
 		if (document.querySelector('#addPurchasePage') !== null) {
 			document.querySelector('#supplier').value = '';
@@ -183,6 +184,7 @@
 			document.querySelector('#itemList').innerHTML = '';
 		});
 
+		// Initialize QR scanning
 		Scanner.init(addItem);
 
 		// Populate the table of chosen items based on the selection of item

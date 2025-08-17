@@ -72,6 +72,27 @@ func (ap *application) writeJSON(
 	return nil
 }
 
+func (ap *application) writeIndentJSON(
+	w http.ResponseWriter,
+	status int,
+	data any,
+	h http.Header,
+) error {
+	js, err := json.MarshalIndent(data, "", "\t")
+	if err != nil {
+		return err
+	}
+
+	// add to or replace exsting k/v in response's headers
+	maps.Copy(w.Header(), h)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	w.Write(js)
+
+	return nil
+}
+
 // decodeJSON decode JSON body, slog errors, and returns client error code and message
 func (ap *application) decodeJSON(w http.ResponseWriter, r *http.Request, dst any) error {
 	// If the Content-Type header is present, get the value,

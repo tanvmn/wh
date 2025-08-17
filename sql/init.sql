@@ -75,6 +75,7 @@ create table if not exists transfer (
 	account_id bigint not null,
 	created_dtime timestamp not null default now(),
 	version integer not null default 1,
+	note text default 'none',
 	expected_dtime timestamp not null
 );
 
@@ -102,6 +103,7 @@ create table if not exists inventory (
 	balanced boolean,
 	warehouse_id bigint not null,
 	version integer not null default 1,
+	note text default 'none',
 	account_id bigint not null
 );
 
@@ -146,6 +148,7 @@ create table if not exists purchase (
 	expected_dtime timestamp not null,
 	created_dtime timestamp not null default now(),
 	version integer not null default 1,
+	note text default 'none',
 	status status not null default 'Chờ phản hồi'
 );
 
@@ -208,6 +211,7 @@ create table if not exists resupply (
 	expected_dtime timestamp not null,
 	created_dtime timestamp not null default now(),
 	version integer not null default 1,
+	note text default 'none',
 	status status not null default 'Chờ phản hồi'
 );
 
@@ -242,6 +246,7 @@ create table if not exists receive (
 	actual_dtime timestamp not null default '1000-01-01 00:00:00',
 	created_dtime timestamp not null default now(),
 	version integer not null default 1,
+	note text default 'none',
 	transfer_id bigint
 );
 
@@ -260,6 +265,7 @@ create table if not exists export (
 	actual_dtime timestamp not null default '1000-01-01 00:00:00',
 	created_dtime timestamp not null default now(),
 	version integer not null default 1,
+	note text default 'none',
 	transfer_id bigint
 );
 
