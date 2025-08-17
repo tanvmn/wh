@@ -12,7 +12,8 @@ import (
 )
 
 var (
-	ErrInvalidPurchase = errors.New("invalid purchase")
+	ErrInvalidPurchase      = errors.New("invalid purchase")
+	ErrInvalidPurchaseItems = errors.New("invalid purchase items")
 )
 
 // validatePurchaseAdd validates *data.Purchase against the current data
@@ -227,6 +228,119 @@ func (ap *application) addPurchasePage() http.Handler {
 
 		if err := ap.render(w, http.StatusOK, "purchase", data); err != nil {
 			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+	})
+}
+
+func (ap *application) validatePurchaseSet(pc *data.Purchase) error {
+	before, oldExpectedAt, err := ap.data.BeforePurchaseExpectedAt(pc.ID, pc.ExpectedAt)
+	if errors.Is(err, data.ErrNoPurchases) {
+		return fmt.Errorf("%w:\n%v: ID %v", ErrInvalidPurchase, err.Error(), pc.ID)
+	} else if err != nil {
+		ap.logger.Error(err.Error())
+		return err
+	}
+
+	va := validator.Validator{}
+
+	if before {
+		va.AddErr(fmt.Sprintf("ExpectedAt: new %v cannot be before old %v", pc.ExpectedAt, oldExpectedAt))
+	}
+
+	err = ap.validatePurchaseAdd(pc)
+	if errors.Is(err, ErrInvalidPurchase) {
+		va.AddErr(err.Error())
+	} else if err != nil {
+		ap.logger.Error(err.Error())
+		return err
+	}
+
+	err = ap.validatePurchaseItemsSet(pc)
+	if errors.Is(err, ErrInvalidPurchaseItems) {
+		va.AddErr(err.Error())
+	} else if err != nil {
+		ap.logger.Error(err.Error())
+		return err
+	}
+
+	if !va.Valid() {
+		return fmt.Errorf("%w:\n%v", ErrInvalidPurchase, va.Message())
+	}
+
+	return nil
+}
+
+func (ap *application) validatePurchaseItemsSet(pc *data.Purchase) error {
+	is, err := ap.data.ReceiveItemByPurchase(pc.ID)
+	if err != nil {
+		ap.logger.Error(err.Error())
+		return err
+	}
+
+	va := validator.Validator{}
+
+	if len(is) == 0 {
+		for _, rI := range is {
+			contained := false
+
+			for _, pI := range pc.Items {
+				if rI.Item.GTIN == pI.Item.GTIN {
+					contained = true
+					va.Check(rI.Quantity > pI.Quantity, fmt.Sprintf("GTIN %v quantity %v < %v in all receives", pI.Item.GTIN, pI.Quantity, rI.Quantity))
+				}
+			}
+
+			if contained {
+				contained = false
+				continue
+			}
+			va.AddErr(fmt.Sprintf("GTIN %v is at least 1 receive but NOT in purchase", rI.Item.GTIN))
+		}
+	}
+
+	if !va.Valid() {
+		return fmt.Errorf("%w:\n%v", ErrInvalidPurchaseItems, va.Message())
+	}
+
+	return nil
+}
+
+func (ap *application) setPurchase() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var pc data.Purchase
+
+		err := ap.decodeJSON(w, r, &pc)
+		if err != nil {
+			ap.logger.Error(util.ErrLine)
+
+			var mr *util.MalformedRequest
+			if errors.As(err, &mr) {
+				http.Error(w, mr.Msg, mr.Status)
+			} else {
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			}
+			return
+		}
+
+		// Get account ID in context for validating purchase before setting
+		aID, ok := r.Context().Value(authenticatedCtxID).(string)
+		if !ok {
+			ap.logger.Error(fmt.Errorf("%w: %v", ErrConvertCtxVal, "cannot convert context accountID to string").Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		pc.Account.ID = aID
+
+		// Begin validating purchase before setting
+		err = ap.validatePurchaseSet(&pc)
+		if errors.Is(err, ErrInvalidPurchase) {
+			ap.logger.Error(err.Error())
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		} else if err != nil {
+			ap.logger.Error(util.ErrLine)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}

@@ -73,11 +73,12 @@ func Range(n int64) string {
 
 // id64 checks if id is at least 5 chars and if the code part is one of permittedCodes,
 // then parses the number part to an int64
-func id64(id string, permittedCodes ...string) (int64, error) {
+func id64(id string, permittedCodes string) (int64, error) {
 	va := validator.Validator{}
 
+	s := []string{permittedCodes}
 	va.Check(
-		validator.MinChars(id, 5) && validator.Permitted(id[:4], permittedCodes...),
+		validator.MinChars(id, 5) && validator.Permitted(id[:4], s...),
 		fmt.Sprintf("ID %v is less than 5 chars or the code is not within %v", id, permittedCodes),
 	)
 	if !va.Valid() {

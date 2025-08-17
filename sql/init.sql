@@ -73,10 +73,10 @@ create table if not exists transfer (
 	export_warehouse bigint not null,
 	receive_warehouse bigint not null,
 	account_id bigint not null,
-	created_dtime timestamp not null default now(),
+	created_at timestamp not null default now(),
 	version integer not null default 1,
 	note text default 'none',
-	expected_dtime timestamp not null
+	expected_at timestamp not null
 );
 
 create table if not exists bin (
@@ -98,8 +98,8 @@ create table if not exists tote (
 
 create table if not exists inventory (
 	id bigserial not null,
-	start_dtime timestamp not null,
-	end_dtime timestamp not null,
+	start_at timestamp not null,
+	end_at timestamp not null,
 	balanced boolean,
 	warehouse_id bigint not null,
 	version integer not null default 1,
@@ -145,8 +145,8 @@ create table if not exists purchase (
 	warehouse_id bigint not null,
 	account_id bigint not null,
 	supplier_id bigint not null,
-	expected_dtime timestamp not null,
-	created_dtime timestamp not null default now(),
+	expected_at timestamp not null,
+	created_at timestamp not null default now(),
 	version integer not null default 1,
 	note text default 'none',
 	status status not null default 'Chờ phản hồi'
@@ -208,8 +208,8 @@ create table if not exists resupply (
 	id bigserial not null,
 	account_id int not null,
 	store_id int not null,
-	expected_dtime timestamp not null,
-	created_dtime timestamp not null default now(),
+	expected_at timestamp not null,
+	created_at timestamp not null default now(),
 	version integer not null default 1,
 	note text default 'none',
 	status status not null default 'Chờ phản hồi'
@@ -242,9 +242,9 @@ create table if not exists receive (
 	id bigserial not null,
 	purchase_id bigint not null,
 	account_id bigint not null,
-	expected_dtime timestamp not null,
-	actual_dtime timestamp not null default '1000-01-01 00:00:00',
-	created_dtime timestamp not null default now(),
+	expected_at timestamp not null,
+	actual_at timestamp not null default '1000-01-01 00:00:00',
+	created_at timestamp not null default now(),
 	version integer not null default 1,
 	note text default 'none',
 	transfer_id bigint
@@ -261,9 +261,9 @@ create table if not exists receive_item (
 create table if not exists export (
 	id bigserial not null,
 	resupply_id bigint not null,
-	expected_dtime timestamp not null,
-	actual_dtime timestamp not null default '1000-01-01 00:00:00',
-	created_dtime timestamp not null default now(),
+	expected_at timestamp not null,
+	actual_at timestamp not null default '1000-01-01 00:00:00',
+	created_at timestamp not null default now(),
 	version integer not null default 1,
 	note text default 'none',
 	transfer_id bigint
@@ -463,7 +463,7 @@ insert into supplier (name, address, phone, email) values
 -- ;
 
 insert into item (gtin, characteristic, volume, weight, brand, material, color, size, price, type, shelf_life, img_fspath) values
-('619659115906', 'có túi', 1392, 200, 'Navy', 'Polyester', 'Lục', 'XL', 200000, 'Quần thun', 7, 'item/img/619659115906.jpeg'),		-- quần thun lục
+('619659115906', 'có túi', 1392, 200, 'Navy', 'Polyester', 'Lục', 'XL', 200000, 'Quần thun', 7, 'item/img/619659115906.jpeg'),			-- quần thun lục
 ('8888021200126', 'có cổ, tay dài', 1392, 200, 'Viettien', 'Cotton', 'Trắng', 'S', 150000, 'Áo sơmi', 7, 'item/img/8888021200126.jpeg'),	-- áo somi trắng tay dài
 ('4983435764166', 'không cổ, tay ngắn', 1392, 200, 'Gucci', 'Cotton', 'Vàng', 'L', 150000, 'Áo thun', 7, 'item/img/4983435764166.jpeg'),	-- áo thun vàng tay ngắn
 ('8904091104109', 'có túi', 1392, 200, 'GAP', 'Polyester', 'Lam', 'M', 200000, 'Quần tây', 7, 'item/img/8904091104109.jpeg'),			-- quần tây lam
@@ -496,7 +496,6 @@ alter table store add constraint pk_store primary key(id);
 alter table purchase add constraint pk_purchase primary key(id);
 alter table purchase_item add constraint pk_purchase_item primary key(purchase_id, gtin);
 alter table item add constraint pk_item primary key(gtin);
--- alter table type add constraint pk_type primary key(id);
 alter table resupply add constraint pk_resupply primary key(id);
 alter table tote add constraint pk_tote primary key(id);
 alter table bin add constraint pk_bin primary key(id);
@@ -532,8 +531,6 @@ alter table purchase add constraint fk_purchase_account_id foreign key(account_i
 
 alter table purchase_item add constraint fk_purchase_item_purchase_id foreign key(purchase_id) references purchase(id);
 alter table purchase_item add constraint fk_purchase_item_gtin foreign key(gtin) references item(gtin);
-
--- alter table item add constraint fk_item_type_id foreign key(type_id) references type(id);
 
 alter table resupply add constraint fk_resupply_account_id foreign key(account_id) references account(id);
 alter table resupply add constraint fk_resupply_store_id foreign key(store_id) references store(id);

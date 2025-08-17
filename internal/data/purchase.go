@@ -21,7 +21,7 @@ var (
 )
 
 type Purchase struct {
-	ID         string         `json:"purchase,omitempty,omitzero"`
+	ID         string         `json:"id,omitempty,omitzero"`
 	ExpectedAt string         `json:"expectedAt,omitempty,omitzero"`
 	Status     string         `json:"status,omitempty,omitzero"`
 	CreatedAt  string         `json:"createdAt,omitempty,omitzero"`
@@ -50,7 +50,7 @@ func addPurchase(tx *sql.Tx, pc *Purchase) (id string, version int, err error) {
 	defer cancel()
 
 	stmt := fmt.Sprintf(`
-	insert into purchase (warehouse_id, account_id, supplier_id, expected_dtime) values
+	insert into purchase (warehouse_id, account_id, supplier_id, expected_at) values
 	($1, $2, $3, $4)
 	returning '%v'||id, version`,
 		PurchaseIDCode,
@@ -145,8 +145,8 @@ func (db *Data) Purchase(id string) (*Purchase, error) {
 	,'%v'||warehouse_id
 	,'%v'||account_id
 	,'%v'||supplier_id
-	,expected_dtime
-	,created_dtime
+	,expected_at
+	,created_at
 	,purchase.version
 	,status
 	from purchase
@@ -297,4 +297,32 @@ func (db *Data) PurchaseItems(pc *Purchase) error {
 	}
 
 	return nil
+}
+
+func (db *Data) BeforePurchaseExpectedAt(purchaseID, datetime string) (bool, string, error) {
+	id, err := id64(purchaseID, PurchaseIDCode)
+	if err != nil {
+		return false, "", err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	stmt := `select $1 <= expected_at, expected_at from purchase where id = $2`
+	var (
+		before     bool
+		expectedAt string
+	)
+
+	err = db.DB.QueryRowContext(ctx, stmt, datetime, id).Scan(
+		&before,
+		&expectedAt,
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, "", ErrNoPurchases
+	} else if err != nil {
+		return false, "", err
+	}
+
+	return before, expectedAt, nil
 }
