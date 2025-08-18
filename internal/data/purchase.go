@@ -17,7 +17,8 @@ const (
 )
 
 var (
-	ErrNoPurchases = errors.New("data: no purchases found")
+	ErrNoPurchases     = errors.New("data: no purchases found")
+	ErrNoPurchaseItems = errors.New("data: no purchase items found")
 )
 
 type Purchase struct {
@@ -325,4 +326,134 @@ func (db *Data) BeforePurchaseExpectedAt(purchaseID, datetime string) (bool, str
 	}
 
 	return before, expectedAt, nil
+}
+
+func (db *Data) PurchaseReceived(purchaseID string) (bool, error) {
+	i, err := id64(purchaseID, PurchaseIDCode)
+	if err != nil {
+		return false, err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	stmt := fmt.Sprintf(`
+	select
+	true
+	from purchase
+	where
+	id = $1
+	and (status = '%v' or status = '%v');
+	`,
+		AwaitingResponse,
+		AwaitingReceive)
+	var received bool
+
+	err = db.DB.QueryRowContext(ctx, stmt, i).Scan(&received)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, ErrNoPurchases
+	} else if err != nil {
+		return false, err
+	}
+
+	return received, nil
+}
+
+func setPurchase(tx *sql.Tx, pc *Purchase) error {
+	i, err := id64(pc.ID, PurchaseIDCode)
+	if err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	stmt := `
+	update purchase
+	set
+	expected_at = $1
+	, version = version + 1
+	where id = $2
+	and version = $3
+	returning version;
+	`
+	var version int
+
+	err = tx.QueryRowContext(ctx, stmt, pc.ExpectedAt, i, pc.Version).Scan(&version)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrSetConflict
+	} else if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func delPurchaseItem(tx *sql.Tx, purchaseID64 int64) error {
+	stmt := `
+	delete
+	from purchase_item
+	where purchase_id = $1`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	result, err := tx.ExecContext(ctx, stmt, purchaseID64)
+	if err != nil {
+		return err
+	}
+
+	ra, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if ra == 0 {
+		return ErrNoPurchaseItems
+	}
+
+	return nil
+}
+
+func setPurchaseItem(tx *sql.Tx, pc *Purchase) error {
+	i, err := id64(pc.ID, PurchaseIDCode)
+	if err != nil {
+		return err
+	}
+
+	err = delPurchaseItem(tx, i)
+	if err != nil {
+		return err
+	}
+
+	err = addPurchaseItems(tx, pc)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (db *Data) SetPurchase(pc *Purchase) error {
+	tx, err := db.DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	err = setPurchase(tx, pc)
+	if err != nil {
+		return err
+	}
+
+	err = setPurchaseItem(tx, pc)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

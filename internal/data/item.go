@@ -35,6 +35,8 @@ type Item struct {
 type ItemQuantity struct {
 	// Item Item    `json:"item,omitempty,omitzero"`
 	Item     `json:"item,omitempty,omitzero"`
+	Receive  `json:"receive,omitempty,omitzero"`
+	Export   `json:"export,omitempty,omitzero"`
 	Quantity int64 `json:"quantity,omitempty,omitzero"`
 }
 

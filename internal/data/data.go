@@ -28,7 +28,8 @@ const (
 )
 
 var (
-	ErrInvalidID = errors.New("data: invalid ID")
+	ErrInvalidID   = errors.New("data: invalid ID")
+	ErrSetConflict = errors.New("data: set conflict")
 )
 
 func IDCodes() map[string]string {

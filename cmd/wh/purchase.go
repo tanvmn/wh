@@ -235,7 +235,7 @@ func (ap *application) addPurchasePage() http.Handler {
 }
 
 func (ap *application) validatePurchaseSet(pc *data.Purchase) error {
-	before, oldExpectedAt, err := ap.data.BeforePurchaseExpectedAt(pc.ID, pc.ExpectedAt)
+	pur, err := ap.data.Purchase(pc.ID)
 	if errors.Is(err, data.ErrNoPurchases) {
 		return fmt.Errorf("%w:\n%v: ID %v", ErrInvalidPurchase, err.Error(), pc.ID)
 	} else if err != nil {
@@ -243,11 +243,27 @@ func (ap *application) validatePurchaseSet(pc *data.Purchase) error {
 		return err
 	}
 
+	if !(pc.Warehouse.ID == pur.Warehouse.ID && pc.Supplier.ID == pur.Supplier.ID) {
+		return fmt.Errorf("%w:\n%v: ID %v", ErrInvalidPurchase, "Kho nhận và nhà cung cấp của yêu cầu nhập ID: %v không thể thay đổi", pc.ID)
+	}
+
 	va := validator.Validator{}
 
-	if before {
-		va.AddErr(fmt.Sprintf("ExpectedAt: new %v cannot be before old %v", pc.ExpectedAt, oldExpectedAt))
+	// Check if the new ExpectedAt is the same or after the old one
+	newT, err := time.Parse(util.DateTTime, pc.ExpectedAt)
+	if err != nil {
+		ap.logger.Error(err.Error())
+		return err
 	}
+	oldT, err := time.Parse(util.DateTTime, pur.ExpectedAt)
+	if err != nil {
+		ap.logger.Error(err.Error())
+		return err
+	}
+	va.Check(oldT.Compare(newT) <= 0, fmt.Sprintf("Thời điểm muốn nhận: mới %v không thể trước cũ %v", pc.ExpectedAt, pur.ExpectedAt))
+
+	// Check if the status of the old purchase is still awaiting response or awaiting receive
+	va.Check(pur.Status == data.AwaitingResponse || pur.Status == data.AwaitingReceive, fmt.Sprintf("Yêu cầu nhập ID %v đã có ít nhất 1 phiếu nhập được xử lý", pc.ID))
 
 	err = ap.validatePurchaseAdd(pc)
 	if errors.Is(err, ErrInvalidPurchase) {
@@ -281,14 +297,14 @@ func (ap *application) validatePurchaseItemsSet(pc *data.Purchase) error {
 
 	va := validator.Validator{}
 
-	if len(is) == 0 {
+	if len(is) != 0 {
 		for _, rI := range is {
 			contained := false
 
 			for _, pI := range pc.Items {
 				if rI.Item.GTIN == pI.Item.GTIN {
 					contained = true
-					va.Check(rI.Quantity > pI.Quantity, fmt.Sprintf("GTIN %v quantity %v < %v in all receives", pI.Item.GTIN, pI.Quantity, rI.Quantity))
+					va.Check(rI.Quantity <= pI.Quantity, fmt.Sprintf("GTIN %v, số lượng: %v < %v của tổng các phiếu nhập", pI.Item.GTIN, pI.Quantity, rI.Quantity))
 				}
 			}
 
@@ -296,7 +312,7 @@ func (ap *application) validatePurchaseItemsSet(pc *data.Purchase) error {
 				contained = false
 				continue
 			}
-			va.AddErr(fmt.Sprintf("GTIN %v is at least 1 receive but NOT in purchase", rI.Item.GTIN))
+			va.AddErr(fmt.Sprintf("GTIN %v có trong ít nhất 1 phiếu nhập nhưng KHÔNG có trong yêu cầu nhập", rI.Item.GTIN))
 		}
 	}
 
@@ -344,5 +360,15 @@ func (ap *application) setPurchase() http.Handler {
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
+
+		// Setting the purchase
+		err = ap.data.SetPurchase(&pc)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, err.Error(), 520)
+			return
+		}
+
+		http.Redirect(w, r, fmt.Sprintf("%v/purchase/%v", domain, pc.ID), http.StatusSeeOther)
 	})
 }
