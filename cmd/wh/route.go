@@ -86,6 +86,7 @@ func (ap *application) routes() http.Handler {
 
 	// Purchase
 	mux.Handle("GET /purchase/{id}", append(identify, ap.permit(data.Accountant, data.HeadAccountant)).then(ap.purchasePage()))
+	mux.Handle("GET /purchase/{id}/json", append(identify, ap.permit(data.Accountant, data.HeadAccountant)).then(ap.purchase()))
 	mux.Handle("GET /add-purchase", append(identify, ap.permit(data.Accountant, data.HeadAccountant)).then(ap.addPurchasePage()))
 	mux.Handle("POST /purchase", append(identify, ap.permit(data.Accountant, data.HeadAccountant)).then(ap.addPurchase()))
 	mux.Handle("PUT /purchase", append(identify, ap.permit(data.Accountant, data.HeadAccountant)).then(ap.setPurchase()))

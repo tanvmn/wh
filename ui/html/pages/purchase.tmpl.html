@@ -16,7 +16,18 @@
 
 <div class="container-fluid mt-3">
 	{{with .Purchase.ID}}
-	<div class="row"><strong>Yêu cầu nhập ID: <u><i>{{.}}</i></u></strong></div>
+	<div class="row">
+		<div class="col">
+			<strong>Yêu cầu nhập ID: <u><i id="purchaseID">{{.}}</i></u></strong>
+		</div>
+
+		<div class="col">
+			<div class="form-check">
+				<label class="form-check-label" for="setPurchase">Sửa</label>
+				<input class="form-check-input" type="checkbox" name="setPurchase" id="setPurchase">
+			</div>
+		</div>
+	</div>
 	<br>
 	{{else}}
 	<div class="row"><strong>Tạo yêu cầu nhập</strong></div>
@@ -76,23 +87,40 @@
 			</div>
 		</div>
 
-		<div class="row my-4" id="submitBtn" {{if .Purchase.ID}}style="display: none;" {{end}}>
+		<!-- <div class="row my-4" id="submitBtn" {{if .Purchase.ID}}style="display: none;" {{end}}>
 			<div class="col-4 mx-auto">
 				<button class="btn btn-primary" type="submit" id="addBtn">Tạo yêu cầu nhập</button>
 			</div>
+		</div> -->
+		{{if .Purchase.ID}}
+		<div class="row my-4" id="setBtnDiv" style="display: none;">
+			<div class="col-4 mx-auto">
+				<button class="btn btn-primary" type="submit" id="setPurchaseBtn">
+					Sửa yêu cầu nhập
+				</button>
+			</div>
 		</div>
+		{{else}}
+		<div class="row my-4" id="submitBtn">
+			<div class="col-4 mx-auto">
+				<button class="btn btn-primary" type="submit" id="addPurchaseBtn">
+					Tạo yêu cầu nhập
+				</button>
+			</div>
+		</div>
+
+		{{end}}
 
 		<!-- Begin items pick and datalist -->
 		<div class="row mt-3" id="itemInput" {{with .Purchase.ID}}style="display: none;" {{end}}>
 			<input onclick="this.value = ''" onblur="this.value = ''" list="itemOpts" id="itemPick"
 				placeholder="Tìm hàng...">
 			<datalist id="itemOpts">
-				<!-- {{range .Items}}
-				<option class="{{.ImgFSPath}}" value="{{.GTIN}}">{{.GTIN}} - {{.Name}}</option>
-				{{end}} -->
-				{{range .Purchase.Items}}
-				<option class="{{.Item.ImgFSPath}}" value="{{.Item.GTIN}}">{{.Item.GTIN}} -
-					{{.Item.Name}}</option>
+				{{if .Purchase.ID}}
+				{{range .Items}}
+				<option class="{{.ImgFSPath}}" value="{{.GTIN}}">{{.GTIN}} -
+					{{.Name}}</option>
+				{{end}}
 				{{end}}
 			</datalist>
 		</div>
@@ -142,6 +170,9 @@
 	let items;
 	getItems();
 
+	let pc;
+	getPurchase();
+
 	function getItems() {
 		let ok = false;
 		fetch(domain + '/items/json')
@@ -159,6 +190,55 @@
 			});
 	}
 
+	function getPurchase() {
+		if (document.querySelector('#purchaseID') !== null) {
+			const pID = document.querySelector('#purchaseID').innerText;
+			let ok = false;
+
+			fetch(domain + '/purchase/' + pID + '/json')
+				.then(res => {
+					ok = res.ok;
+					if (res.ok) return res.json();
+					else return res.text();
+				})
+				.then(data => {
+					if (!ok) {
+						console.log(data);
+						return;
+					}
+					pc = data;
+				});
+		}
+	}
+
+	// enable/disable edit
+	let setCheck = document.querySelector('#setPurchase');
+	if (setCheck !== null) {
+		setCheck.addEventListener('change', (e) => {
+			if (e.target.checked) {
+				document.querySelector('#expectedAt').disabled = false;
+				document.querySelectorAll('input[type=number]').forEach((ni, i) => {
+					ni.disabled = false;
+				});
+				document.querySelectorAll('.delete').forEach((b, i) => {
+					b.disabled = false;
+				});
+				document.querySelector('#setBtnDiv').style.display = 'block';
+				document.querySelector('#itemInput').style.display = 'block';
+			} else {
+				document.querySelector('#expectedAt').disabled = true;
+				document.querySelectorAll('input[type=number]').forEach((ni, i) => {
+					ni.disabled = true;
+				});
+				document.querySelectorAll('.delete').forEach((b, i) => {
+					b.disabled = true;
+				});
+				document.querySelector('#setBtnDiv').style.display = 'none';
+				document.querySelector('#itemInput').style.display = 'none';
+			}
+		});
+	}
+
 	// After getting items (above), begin others task from this point
 	document.addEventListener('DOMContentLoaded', function () {
 		if (document.querySelector('#addPurchasePage') !== null) {
@@ -170,7 +250,7 @@
 		}
 
 		// Populate the options of items based on the selection of supplier
-		document.querySelector('#supplier').addEventListener('input', (e) => {
+		document.querySelector('#supplier').addEventListener('change', (e) => {
 			document.querySelector('#itemOpts').innerHTML = '';
 
 			let is = [];
@@ -210,7 +290,12 @@
 			}
 
 			if (confirm('Bạn đã chắc về thông tin của yêu cầu nhập?')) {
-				submitJSON();
+				if (document.querySelector('#purchaseID') === null) {
+					requestAddPurchase();
+				}
+				else {
+					requestSetPurchase();
+				}
 			}
 		});
 
@@ -272,6 +357,20 @@
 
 		function addItemOptFromJSON(obj) {
 			obj.forEach((o, i) => {
+				// let chosen = false;
+				// document.querySelectorAll('tdGTIN').forEach((td) => {
+				// 	if (td.innerText === o.gtin) chosen = true;
+				// 	return;
+				// });
+				// if (!chosen) {
+				// 	let op = document.createElement('option');
+				// 	op.className = o.imgFSPath;
+				// 	op.value = o.gtin;
+				// 	op.innerText = `${o.gtin} - ${o.name}`;
+
+				// 	chosen = false;
+				// }
+
 				let op = document.createElement('option');
 				op.className = o.imgFSPath;
 				op.value = o.gtin;
@@ -281,7 +380,7 @@
 			});
 		}
 
-		function submitJSON() {
+		function purchaseInput() {
 			let o = {
 				warehouse: { id: document.querySelector('#warehouse').value.split(' / ')[0] },
 				supplier: { id: document.querySelector('#supplier').value.split(' / ')[0] },
@@ -298,10 +397,43 @@
 			});
 
 			console.log(JSON.stringify(o));
+			return o;
+		}
+
+		function requestAddPurchase() {
+			let o = purchaseInput();
 
 			let ok = false;
 			fetch(domain + '/purchase', {
 				method: 'POST',
+				body: JSON.stringify(o),
+				headers: {
+					'Content-Type': 'application/json'
+				}
+			})
+				.then(res => {
+					ok = res.ok;
+					if (res.redirected) {
+						window.location.replace(res.url);
+						return;
+					}
+					return res.text();
+				})
+				.then(data => {
+					if (!ok) alert(data);
+				});
+		}
+
+		function requestSetPurchase() {
+			let o = purchaseInput();
+			// o.id = document.querySelector('#purchaseID').innerText;
+			o.id = pc.id;
+			o.version = pc.version;
+			console.log(JSON.stringify(o));
+
+			let ok = false;
+			fetch(domain + '/purchase', {
+				method: 'PUT',
 				body: JSON.stringify(o),
 				headers: {
 					'Content-Type': 'application/json'

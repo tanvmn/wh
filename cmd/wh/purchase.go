@@ -207,7 +207,33 @@ func (ap *application) purchasePage() http.Handler {
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
-		data.Purchase = *pc
+
+		if pc != nil {
+			data.Purchase = *pc
+
+			is, err := ap.data.ItemsBySupplier(pc.Supplier.ID)
+			if err != nil {
+				ap.logger.Error(err.Error())
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				return
+			}
+
+			for _, i := range is {
+				picked := false
+
+				for _, pi := range pc.Items {
+					if i.GTIN == pi.Item.GTIN {
+						picked = true
+						break
+					}
+				}
+				if picked {
+					picked = false
+				} else {
+					data.Items = append(data.Items, i)
+				}
+			}
+		}
 
 		if err := ap.render(w, http.StatusOK, "purchase", data); err != nil {
 			ap.logger.Error(err.Error())
@@ -370,5 +396,23 @@ func (ap *application) setPurchase() http.Handler {
 		}
 
 		http.Redirect(w, r, fmt.Sprintf("%v/purchase/%v", domain, pc.ID), http.StatusSeeOther)
+	})
+}
+
+func (ap *application) purchase() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		pc, err := ap.data.Purchase(r.PathValue("id"))
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		err = ap.writeJSON(w, http.StatusOK, pc, nil)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
 	})
 }
