@@ -141,9 +141,9 @@ func (db *Data) Items(gtins ...string) ([]Item, error) {
 		return nil, err
 	}
 	defer func() {
-		err := rows.Close()
-		if err != nil {
-			panic(err)
+		err2 := rows.Close()
+		if err2 != nil {
+			panic(err2)
 		}
 	}()
 
@@ -231,7 +231,7 @@ func (db *Data) Serials(gtin string) ([]Serial, error) {
 	,bin.col
 	,warehouse.name
 	,'%v'||serial.receive_id
-	,receive.actual_dtime
+	,receive.actual_at
 	,'%v'||serial.purchase_id
 	,gtin
 	,'%v'||export_id
@@ -257,9 +257,9 @@ func (db *Data) Serials(gtin string) ([]Serial, error) {
 		return nil, err
 	}
 	defer func() {
-		err := rows.Close()
-		if err != nil {
-			panic(err)
+		err2 := rows.Close()
+		if err2 != nil {
+			panic(err2)
 		}
 	}()
 
@@ -316,9 +316,9 @@ func (db *Data) GTINsBySupplier(supplierID string) ([]string, error) {
 		return nil, err
 	}
 	defer func() {
-		err := rows.Close()
-		if err != nil {
-			panic(err)
+		err2 := rows.Close()
+		if err2 != nil {
+			panic(err2)
 		}
 	}()
 

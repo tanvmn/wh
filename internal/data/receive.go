@@ -74,7 +74,7 @@ func (db *Data) ReceiveItemByPurchase(purchaseID string) ([]ItemQuantity, error)
 	defer func() {
 		err2 := rows.Close()
 		if err2 != nil {
-			panic(err)
+			panic(err2)
 		}
 	}()
 

@@ -213,6 +213,106 @@ func (db *Data) Purchase(id string) (*Purchase, error) {
 	return &pc, nil
 }
 
+func (db *Data) Purchases() ([]Purchase, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	stmt := fmt.Sprintf(`
+	select
+	'%v'||id
+	,'%v'||warehouse_id
+	,'%v'||account_id
+	,'%v'||supplier_id
+	,to_char(expected_at, 'DD-MM-YYYY HH24:MI')
+	,to_char(created_at, 'DD-MM-YYYY HH24:MI')
+	,purchase.version
+	,status
+	from purchase
+	;
+	`,
+		PurchaseIDCode,
+		WarehouseIDCode,
+		AccountIDCode,
+		SupplierIDCode)
+	var ps []Purchase
+
+	rows, err := db.DB.QueryContext(ctx, stmt)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		err2 := rows.Close()
+		if err2 != nil {
+			panic(err2)
+		}
+	}()
+
+	for rows.Next() {
+		var pc Purchase
+
+		err = rows.Scan(
+			&pc.ID,
+			&pc.Warehouse.ID,
+			&pc.Account.ID,
+			&pc.Supplier.ID,
+			&pc.ExpectedAt,
+			&pc.CreatedAt,
+			&pc.Version,
+			&pc.Status,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		// pc.CreatedAt, err = util.FormatRFC3339(pc.CreatedAt, time.DateTime)
+		// if err != nil {
+		// 	return nil, err
+		// }
+
+		// pc.ExpectedAt, err = util.FormatRFC3339(pc.ExpectedAt, time.DateTime)
+		// if err != nil {
+		// 	return nil, err
+		// }
+
+		ps = append(ps, pc)
+	}
+
+	for i := range ps {
+		// Add purchase items
+		err = db.PurchaseItems(&ps[i])
+		if err != nil {
+			return nil, err
+		}
+
+		// Add warehouse
+		wh, err := db.Warehouse(ps[i].Warehouse.ID)
+		if err != nil {
+			return nil, err
+		}
+		ps[i].Warehouse = *wh
+
+		// Add supplier
+		sp, err := db.Supplier(ps[i].Supplier.ID)
+		if err != nil {
+			return nil, err
+		}
+		ps[i].Supplier = *sp
+
+		// Add account
+		ac, err := db.Account(ps[i].Account.ID)
+		if err != nil {
+			return nil, err
+		}
+		ps[i].Account = *ac
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return ps, nil
+}
+
 func (db *Data) PurchaseItems(pc *Purchase) error {
 	i, err := id64(pc.ID, PurchaseIDCode)
 	if err != nil {

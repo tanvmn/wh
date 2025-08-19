@@ -31,11 +31,13 @@ CTY BÁN LẺ QUẦN ÁO, ĐƠN HÀNG {{.ID}}, LẦN {{.Version}}
 </head>
 
 <body>
-	<p>Kính gửi đến quý cty {{.Supplier.Name}}, đơn mua hàng ID: <strong>{{.ID}}</strong>, <strong>lần
-			{{.Version}}</strong></p>
+	<p>
+		Kính gửi đến quý cty {{.Supplier.Name}}, đơn mua hàng ID: <strong>{{.ID}}</strong>, <strong>lần
+			{{.Version}}</strong>
+	</p>
 	<p>Khi phản hồi, vui lòng thêm ID của đơn hàng vào tiêu đề và nội dung email</p>
 	<br>
-	<p><strong>Thời điểm giao hàng (yyyy-mm-dd hh:mm <u><i>24h</i></u>): </strong>{{.ExpectedAt}}</p>
+	<p><strong>Thời điểm giao hàng: </strong>{{.ExpectedAt}} (dd-mm-yyyy 24hh:mi)</p>
 	<p><strong>Nơi nhận:</strong></p>
 	<ul>
 		<li><strong>Tên: </strong>Kho {{.Warehouse.Name}}</li>

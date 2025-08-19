@@ -1,11 +1,8 @@
 package main
 
 import (
-	"errors"
-	"fmt"
 	"net/http"
 
-	"github.com/lib/pq"
 	"github.com/tanNguyen2220022/wh/internal/data"
 	"github.com/tanNguyen2220022/wh/rec"
 	"github.com/tanNguyen2220022/wh/ui"
@@ -15,19 +12,19 @@ func (ap *application) routes() http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/t", func(w http.ResponseWriter, r *http.Request) {
-		stmt := `insert into account (phone) values (0000000001)`
-		_, err := ap.data.DB.Exec(stmt)
-		if err != nil {
-			var pErr *pq.Error
-			if errors.As(err, &pErr) {
-				fmt.Printf("%+v\n", pErr)
-				fmt.Println(pErr.Code)
-				fmt.Println(pErr.Message)
-				fmt.Println(pErr.SQLState())
-				fmt.Println(pErr.Code.Class())
-				fmt.Println(pErr.Code.Name())
-			}
-		}
+		// stmt := `insert into account (phone) values (0000000001)`
+		// _, err := ap.data.DB.Exec(stmt)
+		// if err != nil {
+		// 	var pErr *pq.Error
+		// 	if errors.As(err, &pErr) {
+		// 		fmt.Printf("%+v\n", pErr)
+		// 		fmt.Println(pErr.Code)
+		// 		fmt.Println(pErr.Message)
+		// 		fmt.Println(pErr.SQLState())
+		// 		fmt.Println(pErr.Code.Class())
+		// 		fmt.Println(pErr.Code.Name())
+		// 	}
+		// }
 
 		// o := struct {
 		// 	Bytes []byte `json:"bytes"`
@@ -54,6 +51,20 @@ func (ap *application) routes() http.Handler {
 		// }
 
 		// fmt.Fprintf(w, "%v bytes written\n", n)
+
+		ps, err := ap.data.Purchases()
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		err = ap.writeJSON(w, http.StatusOK, ps, nil)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	})
 
 	identify := middlewares{ap.sessionsManager.LoadAndSave, ap.identify}
@@ -87,6 +98,7 @@ func (ap *application) routes() http.Handler {
 	// Purchase
 	mux.Handle("GET /purchase/{id}", append(identify, ap.permit(data.Accountant, data.HeadAccountant)).then(ap.purchasePage()))
 	mux.Handle("GET /purchase/{id}/json", append(identify, ap.permit(data.Accountant, data.HeadAccountant)).then(ap.purchase()))
+	mux.Handle("GET /purchases", append(identify, ap.permit(data.Accountant, data.HeadAccountant)).then(ap.purchasesPage()))
 	mux.Handle("GET /add-purchase", append(identify, ap.permit(data.Accountant, data.HeadAccountant)).then(ap.addPurchasePage()))
 	mux.Handle("POST /purchase", append(identify, ap.permit(data.Accountant, data.HeadAccountant)).then(ap.addPurchase()))
 	mux.Handle("PUT /purchase", append(identify, ap.permit(data.Accountant, data.HeadAccountant)).then(ap.setPurchase()))

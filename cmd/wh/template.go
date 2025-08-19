@@ -47,9 +47,31 @@ type templData struct {
 	Serials          []data.Serial
 	Warehouses       []data.Warehouse
 	Suppliers        []data.Supplier
+	Purchases        []data.Purchase
 	data.Item
 	data.Purchase
 	data.Account
+}
+
+func badgeBg(status string) string {
+	switch status {
+	case data.AwaitingResponse:
+		return "secondary"
+	case data.AwaitingReceive:
+		return "primary"
+	case data.Receiving:
+		return "warning"
+	case data.Ended:
+		return "success"
+	case data.Declined:
+		return "danger"
+	default:
+		return "dark"
+	}
+}
+
+var fns = template.FuncMap{
+	"badgeBg": badgeBg,
 }
 
 func (ap *application) newTemplData(r *http.Request) (templData, error) {
@@ -142,7 +164,7 @@ func newTemplCache(lg *slog.Logger) (map[string]*template.Template, error) {
 			path,
 		}
 
-		tmpl, err := template.New(name).ParseFS(ui.Files, patterns...)
+		tmpl, err := template.New(name).Funcs(fns).ParseFS(ui.Files, patterns...)
 		if err != nil {
 			lg.Error(err.Error())
 			return nil, err

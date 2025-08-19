@@ -164,7 +164,7 @@ func (ap *application) addPurchase() http.Handler {
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
-		p.ExpectedAt, err = util.FormatDateTTime(p.ExpectedAt, time.DateTime)
+		p.ExpectedAt, err = util.FormatDateTTime(p.ExpectedAt, util.DDMMYYYY24HMI)
 		if err != nil {
 			ap.logger.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -395,6 +395,29 @@ func (ap *application) setPurchase() http.Handler {
 			return
 		}
 
+		// Get the set purchase to supply data for template
+		p, err := ap.data.Purchase(pc.ID)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		p.ExpectedAt, err = util.FormatDateTTime(p.ExpectedAt, util.DDMMYYYY24HMI)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		// Send purchase email to supplier in the background with a new go routine
+		ap.background(func() {
+			err = ap.mailer.Send(p.Supplier.Email, "purchase_mail", p)
+			if err != nil {
+				ap.logger.Error(err.Error())
+				return
+			}
+		})
+
 		http.Redirect(w, r, fmt.Sprintf("%v/purchase/%v", domain, pc.ID), http.StatusSeeOther)
 	})
 }
@@ -445,6 +468,55 @@ func (ap *application) delPurchase() http.Handler {
 			return
 		}
 
-		fmt.Fprintf(w, "Đã có xóa yêu cầu nhập ID: %v", id)
+		// // Get the about to be deleted purchase to supply data for template
+		// p, err := ap.data.Purchase(pc.ID)
+		// if err != nil {
+		// 	ap.logger.Error(err.Error())
+		// 	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		// 	return
+		// }
+		pc.ExpectedAt, err = util.FormatDateTTime(pc.ExpectedAt, util.DDMMYYYY24HMI)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		// Send purchase email to supplier in the background with a new go routine
+		ap.background(func() {
+			err = ap.mailer.Send(pc.Supplier.Email, "purchase_del_mail", pc)
+			if err != nil {
+				ap.logger.Error(err.Error())
+				return
+			}
+		})
+
+		http.Redirect(w, r, "/purchases", http.StatusSeeOther)
+	})
+}
+
+func (ap *application) purchasesPage() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ps, err := ap.data.Purchases()
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		data, err := ap.newTemplData(r)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		data.Purchases = ps
+
+		err = ap.render(w, http.StatusOK, "purchases", data)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
 	})
 }

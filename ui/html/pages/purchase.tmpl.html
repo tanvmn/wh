@@ -79,7 +79,7 @@
 			</div>
 
 			<div class="col">
-				<label for="expectedAt" class="form-label">Muốn nhập lúc</label>
+				<label for="expectedAt" class="form-label">Dự kiển nhập</label>
 				<input type="datetime-local" name="expectedAt" id="expectedAt"
 					value="{{.Purchase.ExpectedAt}}" {{with .Purchase.ExpectedAt}} min="{{.}}"
 					{{else}} min="{{.MinTimestamp}}" {{end}} class="form-control was-validated"
@@ -314,7 +314,7 @@
 							if (!res.ok) {
 								return res.text();
 							} else if (res.redirected) {
-								window.href.replace(res.url);
+								window.location.replace(res.url);
 								return;
 							} else {
 								return res.text();

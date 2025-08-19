@@ -1,0 +1,22 @@
+{{define "subject"}}
+CTY BÁN LẺ QUẦN ÁO, HỦY ĐƠN HÀNG {{.ID}}, LẦN {{.Version}}
+{{end}}
+
+{{define "html"}}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+<body>
+	<p>Kính chào quý cty {{.Supplier.Name}},</p>
+	<p>Hiện cty bán lẻ quần áo đã hủy đơn đặt hàng ID: <strong>{{.ID}}</strong>, <strong>lần {{.Version}}</p>
+	<p>Kính mong quý cty thông cảm</p>
+	<p>Xin cảm ơn</p>
+</body>
+
+</html>
+{{end}}

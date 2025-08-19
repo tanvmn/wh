@@ -1,0 +1,92 @@
+{{define "title"}}
+Yêu cầu nhập
+{{end}}
+
+{{define "main"}}
+<link rel="stylesheet" href="https://cdn.datatables.net/2.3.2/css/dataTables.dataTables.css" />
+<style>
+	ul.no-bullets {
+		list-style-type: none;
+		margin: 0;
+		padding: 0;
+	}
+</style>
+
+<div class="container-fluid">
+	<table id="purchasesTable" class="display compact">
+		<thead>
+			<tr>
+				<th>ID</th>
+				<th>Kho</th>
+				<th>Nhà cung<br>cấp</th>
+				<th>Dự kiến nhập<br>(dd-mm-yyyy hh24:mi)</th>
+				<th>Trạng thái</th>
+				<th>Tạo bởi</th>
+				<th>Tạo lúc<br>(dd-mm-yyyy hh24:mi)</th>
+				<th></th>
+			</tr>
+		</thead>
+		<tbody id="tbody">
+			{{$domain := .Domain}}
+			{{range .Purchases}}
+			<tr>
+				<td>{{.ID}}</td>
+				<td>
+					<strong>ID: </strong>{{.Warehouse.ID}}<br>
+					<strong>Tên: </strong>{{.Warehouse.Name}}<br>
+				</td>
+				<td>
+					<strong>ID: </strong>{{.Supplier.ID}}<br>
+					<strong>Tên: </strong>{{.Supplier.Name}}<br>
+				</td>
+				<td>{{.ExpectedAt}}</td>
+				<td>
+					<span class="badge text-bg-{{badgeBg .Status}}">
+						{{.Status}}
+					</span>
+				</td>
+				<td>
+					<strong>ID: </strong>{{.Account.ID}}<br>
+					<strong>Tên: </strong>{{.Account.Name}}<br>
+					<strong>CVụ: </strong>{{.Account.Role}}<br>
+				</td>
+				<td>{{.CreatedAt}}</td>
+				<td>
+					<a class="btn btn-sm btn-info" href="{{$domain}}/purchase/{{.ID}}"
+						target="_blank">
+						Xem
+					</a>
+				</td>
+			</tr>
+			{{end}}
+		</tbody>
+	</table>
+</div>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script src="https://cdn.datatables.net/2.3.2/js/dataTables.js"></script>
+<script type="module">
+	import { Scanner } from "../static/js/util.js";
+
+	function filterRow(table) {
+		return function (code) {
+			table.search(code);
+			table.draw();
+		};
+	}
+	document.addEventListener('DOMContentLoaded', () => {
+		let table = new DataTable('#purchasesTable', {
+			columnDefs: [
+				{
+					targets: '_all',
+					className: 'dt-center'
+				},
+			],
+			pageLength: 5,
+			lengthMenu: [5, 10, 25, 50, 75, 100],
+		});
+
+		Scanner.init(filterRow(table));
+	});
+</script>
+{{end}}
