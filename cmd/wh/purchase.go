@@ -468,13 +468,6 @@ func (ap *application) delPurchase() http.Handler {
 			return
 		}
 
-		// // Get the about to be deleted purchase to supply data for template
-		// p, err := ap.data.Purchase(pc.ID)
-		// if err != nil {
-		// 	ap.logger.Error(err.Error())
-		// 	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		// 	return
-		// }
 		pc.ExpectedAt, err = util.FormatDateTTime(pc.ExpectedAt, util.DDMMYYYY24HMI)
 		if err != nil {
 			ap.logger.Error(err.Error())
