@@ -389,7 +389,11 @@ func (ap *application) setPurchase() http.Handler {
 
 		// Setting the purchase
 		err = ap.data.SetPurchase(&pc)
-		if err != nil {
+		if errors.Is(err, data.ErrSetConflict) {
+			ap.logger.Error(err.Error())
+			http.Error(w, fmt.Sprintf("1 tài khoản khác có thể đã điều chỉnh yêu cầu nhập ID: %v trong khi bạn chưa hoàn thành.\nHãy tải lại và thực hiện lại", pc.ID), http.StatusUnprocessableEntity)
+			return
+		} else if err != nil {
 			ap.logger.Error(err.Error())
 			http.Error(w, err.Error(), 520)
 			return
