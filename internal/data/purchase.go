@@ -8,17 +8,10 @@ import (
 	"time"
 )
 
-const (
-	AwaitingResponse = "Chờ phản hồi"
-	AwaitingReceive  = "Chờ nhập"
-	Receiving        = "Đang nhập"
-	Ended            = "Kết thúc"
-	Declined         = "Từ chối"
-)
-
 var (
-	ErrNoPurchases     = errors.New("data: no purchases found")
-	ErrNoPurchaseItems = errors.New("data: no purchase items found")
+	ErrNoPurchases      = errors.New("data: no purchases found")
+	ErrNoPurchaseItems  = errors.New("data: no purchase items found")
+	ErrPurchaseReceived = errors.New("data: purchase received")
 )
 
 type Purchase struct {
@@ -389,38 +382,13 @@ func setPurchase(tx *sql.Tx, pc *Purchase) error {
 	return nil
 }
 
-func delPurchaseItem(tx *sql.Tx, purchaseID64 int64) error {
-	stmt := `
-	delete
-	from purchase_item
-	where purchase_id = $1`
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	result, err := tx.ExecContext(ctx, stmt, purchaseID64)
-	if err != nil {
-		return err
-	}
-
-	ra, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if ra == 0 {
-		return ErrNoPurchaseItems
-	}
-
-	return nil
-}
-
 func setPurchaseItem(tx *sql.Tx, pc *Purchase) error {
 	i, err := id64(pc.ID, PurchaseIDCode)
 	if err != nil {
 		return err
 	}
 
-	err = delPurchaseItem(tx, i)
+	err = delPurchaseItems(tx, i)
 	if err != nil {
 		return err
 	}
@@ -446,6 +414,96 @@ func (db *Data) SetPurchase(pc *Purchase) error {
 	}
 
 	err = setPurchaseItem(tx, pc)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func delPurchaseItems(tx *sql.Tx, purchaseID64 int64) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	stmt := `
+	delete from purchase_item
+	where
+	purchase_id = $1`
+
+	result, err := tx.ExecContext(ctx, stmt, purchaseID64)
+	if err != nil {
+		return err
+	}
+
+	ra, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if ra == 0 {
+		return ErrNoPurchaseItems
+	}
+
+	return nil
+}
+
+func delPurchase(tx *sql.Tx, purchaseID64 int64) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	stmt := `
+	delete from purchase
+	where
+	id = $1`
+
+	result, err := tx.ExecContext(ctx, stmt, purchaseID64)
+	if err != nil {
+		return err
+	}
+
+	ra, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if ra == 0 {
+		return ErrNoPurchases
+	}
+
+	return nil
+}
+
+func (db *Data) DelPurchase(purchaseID string) error {
+	i, err := id64(purchaseID, PurchaseIDCode)
+	if err != nil {
+		return err
+	}
+
+	tx, err := db.DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	err = delReceiveItemsByPurchase(tx, i)
+	if err != nil {
+		return err
+	}
+
+	err = delReceivesByPurchase(tx, i)
+	if err != nil {
+		return err
+	}
+
+	err = delPurchaseItems(tx, i)
+	if err != nil {
+		return err
+	}
+
+	err = delPurchase(tx, i)
 	if err != nil {
 		return err
 	}

@@ -27,22 +27,18 @@ const (
 	ExportIDCode    = "EXP-"
 )
 
+const (
+	AwaitingResponse = "Chờ phản hồi"
+	AwaitingReceive  = "Chờ nhập"
+	Receiving        = "Đang nhập"
+	Ended            = "Kết thúc"
+	Declined         = "Từ chối"
+)
+
 var (
 	ErrInvalidID   = errors.New("data: invalid ID")
 	ErrSetConflict = errors.New("data: set conflict")
 )
-
-func IDCodes() map[string]string {
-	m := make(map[string]string)
-	m["account"] = AccountIDCode
-	m["item"] = ItemIDCode
-	m["bin"] = BinIDCode
-	m["tote"] = ToteIDCode
-	m["box"] = BoxIDCode
-	m["staff"] = StaffIDCode
-
-	return m
-}
 
 type Data struct {
 	DB     *sql.DB

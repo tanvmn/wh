@@ -17,15 +17,18 @@
 <div class="container-fluid mt-3">
 	{{with .Purchase.ID}}
 	<div class="row">
-		<div class="col">
+		<div class="col-3">
 			<strong>Yêu cầu nhập ID: <u><i id="purchaseID">{{.}}</i></u></strong>
 		</div>
 
-		<div class="col">
-			<div class="form-check">
-				<label class="form-check-label" for="setPurchase">Sửa</label>
-				<input class="form-check-input" type="checkbox" name="setPurchase" id="setPurchase">
-			</div>
+		<div class="col-1">
+			<label class="form-check-label" for="setPurchase">Sửa</label>
+			<input class="form-check-input" type="checkbox" name="setPurchase" id="setPurchase">
+
+		</div>
+
+		<div class="col-8">
+			<button id="delPurchaseBtn" class="btn btn-danger ms-5">Xóa</button>
 		</div>
 	</div>
 	<br>
@@ -87,11 +90,6 @@
 			</div>
 		</div>
 
-		<!-- <div class="row my-4" id="submitBtn" {{if .Purchase.ID}}style="display: none;" {{end}}>
-			<div class="col-4 mx-auto">
-				<button class="btn btn-primary" type="submit" id="addBtn">Tạo yêu cầu nhập</button>
-			</div>
-		</div> -->
 		{{if .Purchase.ID}}
 		<div class="row my-4" id="setBtnDiv" style="display: none;">
 			<div class="col-4 mx-auto">
@@ -118,8 +116,9 @@
 			<datalist id="itemOpts">
 				{{if .Purchase.ID}}
 				{{range .Items}}
-				<option class="{{.ImgFSPath}}" value="{{.GTIN}}">{{.GTIN}} -
-					{{.Name}}</option>
+				<option class="{{.ImgFSPath}}" value="{{.GTIN}}">
+					{{.GTIN}} - {{.Name}}
+				</option>
 				{{end}}
 				{{end}}
 			</datalist>
@@ -207,37 +206,11 @@
 						return;
 					}
 					pc = data;
+					console.log(pc);
 				});
 		}
 	}
 
-	// enable/disable edit
-	let setCheck = document.querySelector('#setPurchase');
-	if (setCheck !== null) {
-		setCheck.addEventListener('change', (e) => {
-			if (e.target.checked) {
-				document.querySelector('#expectedAt').disabled = false;
-				document.querySelectorAll('input[type=number]').forEach((ni, i) => {
-					ni.disabled = false;
-				});
-				document.querySelectorAll('.delete').forEach((b, i) => {
-					b.disabled = false;
-				});
-				document.querySelector('#setBtnDiv').style.display = 'block';
-				document.querySelector('#itemInput').style.display = 'block';
-			} else {
-				document.querySelector('#expectedAt').disabled = true;
-				document.querySelectorAll('input[type=number]').forEach((ni, i) => {
-					ni.disabled = true;
-				});
-				document.querySelectorAll('.delete').forEach((b, i) => {
-					b.disabled = true;
-				});
-				document.querySelector('#setBtnDiv').style.display = 'none';
-				document.querySelector('#itemInput').style.display = 'none';
-			}
-		});
-	}
 
 	// After getting items (above), begin others task from this point
 	document.addEventListener('DOMContentLoaded', function () {
@@ -247,6 +220,34 @@
 			if (!document.querySelector('#warehouse').disabled) {
 				document.querySelector('#warehouse').value = '';
 			}
+		}
+
+		// enable/disable edit
+		let setCheck = document.querySelector('#setPurchase');
+		if (setCheck !== null) {
+			setCheck.addEventListener('change', (e) => {
+				if (e.target.checked) {
+					document.querySelector('#expectedAt').disabled = false;
+					document.querySelectorAll('input[type=number]').forEach((ni, i) => {
+						ni.disabled = false;
+					});
+					document.querySelectorAll('.delete').forEach((b, i) => {
+						b.disabled = false;
+					});
+					document.querySelector('#setBtnDiv').style.display = 'block';
+					document.querySelector('#itemInput').style.display = 'block';
+				} else {
+					document.querySelector('#expectedAt').disabled = true;
+					document.querySelectorAll('input[type=number]').forEach((ni, i) => {
+						ni.disabled = true;
+					});
+					document.querySelectorAll('.delete').forEach((b, i) => {
+						b.disabled = true;
+					});
+					document.querySelector('#setBtnDiv').style.display = 'none';
+					document.querySelector('#itemInput').style.display = 'none';
+				}
+			});
 		}
 
 		// Populate the options of items based on the selection of supplier
@@ -298,6 +299,35 @@
 				}
 			}
 		});
+
+		// Delete purchase btn event
+		let delPurchaseBtn = document.querySelector('#delPurchaseBtn');
+		if (delPurchaseBtn !== null) {
+			delPurchaseBtn.addEventListener('click', (e) => {
+				if (confirm("Bạn có chắc muốn xóa yêu cầu nhập ID: " + pc.id)) {
+					let ok = false;
+					fetch(domain + '/purchase/' + pc.id, {
+						method: 'DELETE',
+					})
+						.then(res => {
+							ok = res.ok;
+							if (!res.ok) {
+								return res.text();
+							} else if (res.redirected) {
+								window.href.replace(res.url);
+								return;
+							} else {
+								return res.text();
+							}
+						})
+						.then(data => {
+							if (!ok) alert(data);
+							else alert(data);
+						});
+				}
+			});
+
+		}
 
 		function addItem(input) {
 			document.querySelector('#itemOpts').querySelectorAll('option').forEach((o, i) => {
@@ -426,7 +456,6 @@
 
 		function requestSetPurchase() {
 			let o = purchaseInput();
-			// o.id = document.querySelector('#purchaseID').innerText;
 			o.id = pc.id;
 			o.version = pc.version;
 			console.log(JSON.stringify(o));

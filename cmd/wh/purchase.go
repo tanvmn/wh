@@ -416,3 +416,35 @@ func (ap *application) purchase() http.Handler {
 		}
 	})
 }
+
+func (ap *application) delPurchase() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		id := r.PathValue("id")
+
+		pc, err := ap.data.Purchase(id)
+		if err != nil {
+			ap.logger.Error(err.Error())
+
+			if errors.Is(err, data.ErrNoPurchases) || errors.Is(err, data.ErrInvalidID) {
+				http.Error(w, fmt.Sprintf("Không tìm thấy yêu cầu nhập ID: %v", id), http.StatusNotFound)
+			} else {
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			}
+			return
+		}
+		if !(pc.Status == data.AwaitingResponse || pc.Status == data.AwaitingReceive) {
+			ap.logger.Error(fmt.Sprintf("%v; ID: %v", data.ErrPurchaseReceived, id))
+			http.Error(w, fmt.Sprintf("Yêu cầu nhập ID: %v đã nhập ít nhất 1 lần", id), http.StatusBadRequest)
+			return
+		}
+
+		err = ap.data.DelPurchase(id)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		fmt.Fprintf(w, "Đã có xóa yêu cầu nhập ID: %v", id)
+	})
+}

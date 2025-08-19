@@ -1,6 +1,31 @@
 const domain = "http://localhost:4000";
 const itemImgFSPath = "item/img/";
 
+const Status = {
+  AwaitingResponse: "Chờ phản hồi",
+  AwaitingReceive: "Chờ nhập",
+  Receiving: "Đang nhập",
+  Ended: "Kết thúc",
+  Declined: "Từ chối",
+};
+
+const IDCode = {
+  AccountIDCode: "ACC-",
+  ItemIDCode: "ITE-",
+  SerialIDCode: "SER-",
+  BinIDCode: "BIN-",
+  ToteIDCode: "TOT-",
+  BoxIDCode: "BOX-",
+  StaffIDCode: "STA-",
+  WarehouseIDCode: "WAR-",
+  StoreIDCode: "STO-",
+  SupplierIDCode: "SUP-",
+  PurchaseIDCode: "PUR-",
+  ReceiveIDCode: "REC-",
+  ResupplyIDCode: "RES-",
+  ExportIDCode: "EXP-",
+};
+
 class Scanner {
   static code = "";
   static interval;
@@ -69,4 +94,4 @@ class Scanner {
   }
 }
 
-export { domain, Scanner };
+export { domain, Status, IDCode, Scanner };

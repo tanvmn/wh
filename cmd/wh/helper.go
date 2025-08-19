@@ -78,7 +78,7 @@ func (ap *application) writeIndentJSON(
 	data any,
 	h http.Header,
 ) error {
-	js, err := json.MarshalIndent(data, "", "\t")
+	js, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
 		return err
 	}

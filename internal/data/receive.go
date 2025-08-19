@@ -2,6 +2,8 @@ package data
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"time"
 )
 
@@ -15,6 +17,11 @@ type Receive struct {
 	Transfer   Transfer       `json:"transfer,omitempty,omitzero"`
 	Items      []ItemQuantity `json:"items,omitempty,omitzero"`
 }
+
+var (
+	ErrNoReceives = errors.New("data: no receives found")
+	ErrNoReceiveItems = errors.New("data: no receive items found")
+)
 
 func (db *Data) ReceiveItemByPurchase(purchaseID string) ([]ItemQuantity, error) {
 	i, err := id64(purchaseID, PurchaseIDCode)
@@ -99,4 +106,38 @@ func (db *Data) ReceiveItemByPurchase(purchaseID string) ([]ItemQuantity, error)
 	}
 
 	return is, nil
+}
+
+func delReceiveItemsByPurchase(tx *sql.Tx, purchaseID64 int64) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	stmt := `
+	delete from receive_item
+	where
+	purchase_id = $1`
+
+	_, err := tx.ExecContext(ctx, stmt, purchaseID64)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func delReceivesByPurchase(tx *sql.Tx, purchaseID64 int64) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	stmt := `
+	delete from receive
+	where
+	purchase_id = $1`
+
+	_, err := tx.ExecContext(ctx, stmt, purchaseID64)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
