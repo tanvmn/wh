@@ -391,7 +391,7 @@ func (ap *application) setPurchase() http.Handler {
 		err = ap.data.SetPurchase(&pc)
 		if errors.Is(err, data.ErrSetConflict) {
 			ap.logger.Error(err.Error())
-			http.Error(w, fmt.Sprintf("1 tài khoản khác có thể đã điều chỉnh yêu cầu nhập ID: %v trong khi bạn chưa hoàn thành.\nHãy tải lại và thực hiện lại", pc.ID), http.StatusUnprocessableEntity)
+			http.Error(w, fmt.Sprintf("Yêu cầu nhập ID: %v có thể đã được sửa bởi tài khoản khác khi bạn chưa hoàn thành.\nHãy tải lại và thực hiện lại", pc.ID), http.StatusUnprocessableEntity)
 			return
 		} else if err != nil {
 			ap.logger.Error(err.Error())
