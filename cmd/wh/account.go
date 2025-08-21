@@ -11,7 +11,7 @@ import (
 // account handles GET /account?id= and response a JSON of internal/data.Account
 func (ap *application) account() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		id := r.URL.Query().Get("id")
+		id := r.PathValue("id")
 
 		ac, err := ap.data.Account(id)
 		if errors.Is(err, data.ErrNoAccounts) {

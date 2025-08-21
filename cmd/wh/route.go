@@ -81,7 +81,7 @@ func (ap *application) routes() http.Handler {
 	mux.Handle("POST /login", identify.then(ap.login()))
 
 	// Account
-	mux.Handle("GET /account", identify.then(ap.account()))
+	mux.Handle("GET /account/{id}", identify.then(ap.account()))
 
 	// Item
 	mux.Handle("GET /items", identify.then(ap.itemsPage()))
