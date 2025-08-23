@@ -15,6 +15,7 @@
 </style>
 
 <div class="container-fluid mt-3">
+	{{$domain := .Domain}}
 	{{with .Purchase.ID}}
 	<div class="row">
 		<div class="col-3">
@@ -25,13 +26,19 @@
 		</div>
 
 		<div class="col-1">
-			<label class="form-check-label" for="setPurchase"><h4>Sửa</h4></label>
+			<label class="form-check-label" for="setPurchase">
+				<h4>Sửa</h4>
+			</label>
 			<input class="form-check-input" type="checkbox" name="setPurchase" id="setPurchase">
 
 		</div>
 
-		<div class="col-8">
+		<div class="col-1">
 			<button id="delPurchaseBtn" class="btn btn-danger ms-5"><strong>Xóa</strong></button>
+		</div>
+		<div class="col-7">
+			<a href="{{$domain}}/add-receive?purchase={{.}}" target="_blank" id="addReceiveBtn"
+				class="btn btn-dark ms-5"><strong>Thêm phiếu nhập</strong></a>
 		</div>
 	</div>
 	<br>
@@ -82,7 +89,7 @@
 			</div>
 
 			<div class="col">
-				<label for="expectedAt" class="form-label">Dự kiển nhập</label>
+				<label for="expectedAt" class="form-label">Dự kiến nhập</label>
 				<input type="datetime-local" name="expectedAt" id="expectedAt"
 					value="{{.Purchase.ExpectedAt}}" {{with .Purchase.ExpectedAt}} min="{{.}}"
 					{{else}} min="{{.MinTimestamp}}" {{end}} class="form-control was-validated"
@@ -274,6 +281,7 @@
 		// Populate the table of chosen items based on the selection of item
 		document.querySelector('#itemPick').addEventListener('input', (e) => {
 			addItem(e.target.value);
+			e.target.value = '';
 		});
 
 		// Delete row in table of chosen items and repopulate the options of items
