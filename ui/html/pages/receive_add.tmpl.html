@@ -1,5 +1,5 @@
 {{define "title"}}
-{{with .Purchase.ID}}Yêu {{else}}Tạo yêu {{end}}cầu nhập
+Tạo phiếu nhập
 {{end}}
 
 {{define "main"}}
@@ -14,117 +14,55 @@
 	}
 </style>
 
-<div class="container-fluid mt-3">
+<div class="container-fluid">
 	{{with .Purchase.ID}}
-	<div class="row">
-		<div class="col-3">
-			<h3 class="d-inline">
-				Yêu cầu nhập ID:&nbsp&nbsp
-				<span class="badge text-bg-info">{{.}}</span>
-			</h3>
-		</div>
-
-		<div class="col-1">
-			<label class="form-check-label" for="setPurchase"><h4>Sửa</h4></label>
-			<input class="form-check-input" type="checkbox" name="setPurchase" id="setPurchase">
-
-		</div>
-
-		<div class="col-8">
-			<button id="delPurchaseBtn" class="btn btn-danger ms-5"><strong>Xóa</strong></button>
-		</div>
+	<div class="row p-2">
+		<h3 class="d-inline">Tạo phiếu nhập cho yêu cầu nhập ID:&nbsp&nbsp<span
+				class="badge text-bg-info">{{.}}</span>
+		</h3>
 	</div>
-	<br>
-	{{else}}
-	<div class="row"><strong>Tạo yêu cầu nhập</strong></div>
-	<br>
 	{{end}}
 
-	<!-- Begin form warehouse, supplier, expectedAt -->
-	<form class="row was-validated" novalidate>
+	<form class="was-validated" novalidate>
+		<!-- Begin warehouse, supplier, expectedAt -->
 		<div class="row">
+			{{with .Purchase}}
 			<div class="col">
 				<label for="warehouse" class="form-label">Kho</label>
-				<select name="warehouse" id="warehouse" class="form-select" required {{$isAccountant
-					:=eq .Account.Role .Accountant}} {{if $isAccountant}} disabled {{end}}>
-					{{if not $isAccountant}}
-					{{range .Warehouses}}
-					<option value="{{.ID}} / Kho {{.Name}}">
-						{{.ID}} / Kho {{.Name}}</option>
-					{{end}}
-					{{else}}
-					<option selected
-						value="{{.Account.Warehouse.ID}} / Kho {{.Account.Warehouse.Name}}">
-						{{.Account.Warehouse.ID}} / Kho {{.Account.Warehouse.Name}}
-					</option>
-					{{end}}
-				</select>
-				<div class="invalid-feedback">
-					Bắt buộc chọn
-				</div>
+				<input name="warehouse" id="warehouse" class="form-control"
+					value="{{.Warehouse.ID}} - {{.Warehouse.Name}}" disabled>
 			</div>
 
 			<div class="col">
 				<label for="supplier" class="form-label">Nhà cung cấp</label>
-				<select name="supplier" id="supplier" class="form-select" required {{if
-					.Purchase.ID}}disabled{{end}}>
-					{{$psID := .Purchase.Supplier.ID}}
-					{{range .Suppliers}}
-					<option {{if eq .ID $psID}}selected{{end}}
-						value="{{.ID}} / Nhà cung cấp {{.Name}}">{{.ID}} / Nhà cung cấp
-						{{.Name}}
-					</option>
-					{{end}}
-				</select>
-				<div class="invalid-feedback">
-					Bắt buộc chọn
-				</div>
+				<input name="supplier" id="supplier" class="form-control"
+					value="{{.Supplier.ID}} - {{.Supplier.Name}}" disabled>
 			</div>
-
+			{{end}}
 			<div class="col">
-				<label for="expectedAt" class="form-label">Dự kiển nhập</label>
-				<input type="datetime-local" name="expectedAt" id="expectedAt"
-					value="{{.Purchase.ExpectedAt}}" {{with .Purchase.ExpectedAt}} min="{{.}}"
-					{{else}} min="{{.MinTimestamp}}" {{end}} class="form-control was-validated"
-					required {{with .Purchase.ID}}disabled{{end}}>
+				<label for="expectedAt" class="form-label">Dự kiến nhập</label>
+				<input type="datetime-local" name="expectedAt" id="expectedAt" min="{{.MinTimestamp}}"
+					class="form-control was-validated" required>
 				<div class="invalid-feedback">
 					Thời điểm phải từ hiện tại trở về sau
 				</div>
 			</div>
 		</div>
+		<!-- End warehouse, supplier, expectedAt -->
 
-		{{if .Purchase.ID}}
-		<div class="row my-4" id="setBtnDiv" style="display: none;">
-			<div class="col-4 mx-auto">
-				<button class="btn btn-primary" type="submit" id="setPurchaseBtn">
-					Sửa yêu cầu nhập
-				</button>
-			</div>
-		</div>
-		{{else}}
 		<div class="row my-4" id="submitBtn">
 			<div class="col-4 mx-auto">
-				<button class="btn btn-primary" type="submit" id="addPurchaseBtn">
-					Tạo yêu cầu nhập
+				<button class="btn btn-primary" type="submit" id="addReceiveBtn">
+					Tạo phiếu nhập
 				</button>
 			</div>
 		</div>
 
-		{{end}}
-
 		<!-- Begin items pick and datalist -->
-		<div class="row mt-3" id="itemInput" {{with .Purchase.ID}}style="display: none;" {{end}}>
+		<div class="row mt-3" id="itemInput">
 			<input onclick="this.value = ''" onblur="this.value = ''" list="itemOpts" id="itemPick"
 				placeholder="Tìm hàng...">
-			<datalist id="itemOpts">
-				{{if .Purchase.ID}}
-				{{range .Items}}
-				<option class="{{.ImgFSPath}}" value="{{.GTIN}}">
-					{{.GTIN}} - {{.Name}}
-				</option>
-				{{end}}
-				{{end}}
-			</datalist>
+			<datalist id="itemOpts"></datalist>
 		</div>
 		<!-- End items pick and datalist -->
 
@@ -139,18 +77,21 @@
 					<th></th>
 				</thead>
 				<tbody id="itemList">
-					{{range .Purchase.Items}}
+					{{range .ItemQuantitys}}
 					<tr>
 						<td><img height="100" src="/rec/{{.Item.ImgFSPath}}"
 								alt="/rec/{{.Item.ImgFSPath}}">
 						</td>
 						<td class="tdGTIN">{{.Item.GTIN}}</td>
 						<td class="tdName">{{.Item.Name}}</td>
-						<td><input type="number" class="form-control was-validated tdQuantity"
-								min="1" required value="{{.Quantity}}" {{if
-								.Quantity}}disabled{{end}}></td>
-						<td><button class="btn btn-danger delete" {{if
-								.Quantity}}disabled{{end}}>X</button></td>
+						<td>
+							<input type="number"
+								class="form-control was-validated tdQuantity" min="1"
+								required value="{{.Quantity}}">
+						</td>
+						<td>
+							<button class="btn btn-danger delete">X</button>
+						</td>
 					</tr>
 					{{end}}
 				</tbody>
@@ -158,15 +99,8 @@
 		</div>
 		<!-- End items pick table -->
 	</form>
-	<!-- End form warehouse, supplier, expectedAt -->
-
-	{{if .Purchase.ID}}
-	{{else}}
-	<div id="addPurchasePage" style="display: none;"></div>
-	{{end}}
 </div>
-
-<script type="module">
+<script>
 	import { domain, Scanner } from "/static/js/util.js";
 
 	let items;
@@ -274,6 +208,7 @@
 		// Populate the table of chosen items based on the selection of item
 		document.querySelector('#itemPick').addEventListener('input', (e) => {
 			addItem(e.target.value);
+			e.target.value = '';
 		});
 
 		// Delete row in table of chosen items and repopulate the options of items
@@ -484,6 +419,5 @@
 				});
 		}
 	});
-
 </script>
 {{end}}

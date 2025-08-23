@@ -315,7 +315,7 @@ func (ap *application) validatePurchaseSet(pc *data.Purchase) error {
 }
 
 func (ap *application) validatePurchaseItemsSet(pc *data.Purchase) error {
-	is, err := ap.data.ReceiveItemByPurchase(pc.ID)
+	is, err := ap.data.ReceiveItemsByPurchase(pc.ID)
 	if err != nil {
 		ap.logger.Error(err.Error())
 		return err

@@ -9,21 +9,23 @@ import (
 )
 
 var (
-	ErrNoPurchases      = errors.New("data: no purchases found")
-	ErrNoPurchaseItems  = errors.New("data: no purchase items found")
-	ErrPurchaseReceived = errors.New("data: purchase received")
+	ErrNoPurchases        = errors.New("data: no purchases found")
+	ErrNoPurchaseItems    = errors.New("data: no purchase items found")
+	ErrPurchaseReceived   = errors.New("data: purchase received")
+	ErrAddReceiveConflict = errors.New("data: purchase's add_receive_owner is claimed")
 )
 
 type Purchase struct {
-	ID         string         `json:"id,omitempty,omitzero"`
-	ExpectedAt string         `json:"expectedAt,omitempty,omitzero"`
-	Status     string         `json:"status,omitempty,omitzero"`
-	CreatedAt  string         `json:"createdAt,omitempty,omitzero"`
-	Version    int            `json:"version,omitempty,omitzero"`
-	Items      []ItemQuantity `json:"items,omitempty,omitzero"`
-	Account    `json:"account,omitempty,omitzero"`
-	Warehouse  `json:"warehouse,omitempty,omitzero"`
-	Supplier   `json:"supplier,omitempty,omitzero"`
+	ID              string         `json:"id,omitempty,omitzero"`
+	ExpectedAt      string         `json:"expectedAt,omitempty,omitzero"`
+	Status          string         `json:"status,omitempty,omitzero"`
+	CreatedAt       string         `json:"createdAt,omitempty,omitzero"`
+	Version         int            `json:"version,omitempty,omitzero"`
+	ReceiveAddOwner string         `json:"receiveAddOwner,omitempty,omitzero"`
+	Items           []ItemQuantity `json:"items,omitempty,omitzero"`
+	Account         `json:"account,omitempty,omitzero"`
+	Warehouse       `json:"warehouse,omitempty,omitzero"`
+	Supplier        `json:"supplier,omitempty,omitzero"`
 }
 
 func addPurchase(tx *sql.Tx, pc *Purchase) (id string, version int, err error) {
@@ -143,13 +145,16 @@ func (db *Data) Purchase(id string) (*Purchase, error) {
 	,created_at
 	,purchase.version
 	,status
+	,'%v'||receive_add_owner
 	from purchase
 	where id=$1
 	`,
 		PurchaseIDCode,
 		WarehouseIDCode,
 		AccountIDCode,
-		SupplierIDCode)
+		SupplierIDCode,
+		AccountIDCode,
+	)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -164,6 +169,7 @@ func (db *Data) Purchase(id string) (*Purchase, error) {
 		&pc.CreatedAt,
 		&pc.Version,
 		&pc.Status,
+		&pc.ReceiveAddOwner,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, fmt.Errorf("%w, ID %v", ErrNoPurchases, id)
@@ -609,6 +615,73 @@ func (db *Data) DelPurchase(purchaseID string) error {
 	}
 
 	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (db *Data) ClaimReceiveAddOwner(purchaseID, accountID string) error {
+	pI, err := id64(purchaseID, PurchaseIDCode)
+	if err != nil {
+		return err
+	}
+	aI, err := id64(accountID, AccountIDCode)
+	if err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	stmt := `
+	update purchase
+	set
+	receive_add_owner = $1
+	where
+	id = $2
+	and receive_add_owner = 0
+	returning receive_add_owner
+	;`
+	var owner int64
+
+	err = db.DB.QueryRowContext(ctx, stmt, aI, pI).Scan(&owner)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrAddReceiveConflict
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (db *Data) UnclaimReceiveAddOwner(purchaseID, accountID string) error {
+	pI, err := id64(purchaseID, PurchaseIDCode)
+	if err != nil {
+		return err
+	}
+	aI, err := id64(accountID, AccountIDCode)
+	if err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	stmt := `
+	update purchase
+	set
+	receive_add_owner = 0
+	where
+	id = $1
+	and receive_add_owner = $2
+	returning receive_add_owner
+	;`
+	var owner int64
+
+	err = db.DB.QueryRowContext(ctx, stmt, pI, aI).Scan(&owner)
 	if err != nil {
 		return err
 	}

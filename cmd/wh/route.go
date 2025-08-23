@@ -104,6 +104,9 @@ func (ap *application) routes() http.Handler {
 	mux.Handle("PUT /purchase", append(identify, ap.permit(data.Accountant, data.HeadAccountant)).then(ap.setPurchase()))
 	mux.Handle("DELETE /purchase/{id}", append(identify, ap.permit(data.Accountant, data.HeadAccountant)).then(ap.delPurchase()))
 
+	// Receive
+	mux.Handle("GET /add-receive", append(identify, ap.permit(data.Accountant, data.HeadAccountant)).then(ap.addReceivePage()))
+
 	pre := middlewares{ap.recoverPanic, ap.logRequest, ap.addHeaders}
 
 	return pre.then(mux)

@@ -23,7 +23,7 @@ var (
 	ErrNoReceiveItems = errors.New("data: no receive items found")
 )
 
-func (db *Data) ReceiveItemByPurchase(purchaseID string) ([]ItemQuantity, error) {
+func (db *Data) ReceiveItemsByPurchase(purchaseID string) ([]ItemQuantity, error) {
 	i, err := id64(purchaseID, PurchaseIDCode)
 	if err != nil {
 		return nil, err

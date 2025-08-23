@@ -149,6 +149,7 @@ create table if not exists purchase (
 	created_at timestamp not null default now(),
 	version integer not null default 1,
 	note text default 'none',
+	receive_add_owner bigint default 0,
 	status status not null default 'Chờ phản hồi'
 );
 
@@ -212,6 +213,7 @@ create table if not exists resupply (
 	created_at timestamp not null default now(),
 	version integer not null default 1,
 	note text default 'none',
+	export_add_owner bigint default 0,
 	status status not null default 'Chờ phản hồi'
 );
 
@@ -247,6 +249,7 @@ create table if not exists receive (
 	created_at timestamp not null default now(),
 	version integer not null default 1,
 	note text default 'none',
+	edit_owner bigint default 0,
 	transfer_id bigint
 );
 
@@ -266,6 +269,7 @@ create table if not exists export (
 	created_at timestamp not null default now(),
 	version integer not null default 1,
 	note text default 'none',
+	edit_owner bigint default 0,
 	transfer_id bigint
 );
 

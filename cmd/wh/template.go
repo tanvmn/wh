@@ -44,6 +44,7 @@ type templData struct {
 	Ended            string
 	Declined         string
 	Items            []data.Item
+	ItemQuantitys    []data.ItemQuantity
 	Serials          []data.Serial
 	Warehouses       []data.Warehouse
 	Suppliers        []data.Supplier
