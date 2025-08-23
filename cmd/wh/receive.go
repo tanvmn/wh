@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/tanNguyen2220022/wh/internal/data"
 )
@@ -87,16 +86,17 @@ func (ap *application) addReceivePage() http.Handler {
 				}
 				return
 			}
-			ap.background(func() {
-				time.Sleep(20 * time.Minute)
-				println("begin unclaiming receive add owner", aID)
+			// ap.background(func() {
+			// 	time.Sleep(20 * time.Minute)
+			// 	// time.Sleep(4 * time.Second)
+			// 	println("begin unclaiming receive add owner", aID)
 
-				err2 := ap.data.UnclaimReceiveAddOwner(pc.ID, aID)
-				if err2 != nil {
-					ap.logger.Error(err2.Error())
-					panic(err)
-				}
-			})
+			// 	err2 := ap.data.UnclaimReceiveAddOwner(pc.ID, aID)
+			// 	if err2 != nil {
+			// 		ap.logger.Error(err2.Error())
+			// 		panic(err)
+			// 	}
+			// })
 		}
 
 		// else serve the add receive page response
