@@ -688,3 +688,51 @@ func (db *Data) UnclaimReceiveAddOwner(purchaseID, accountID string) error {
 
 	return nil
 }
+
+func updatePurchaseStatus(tx *sql.Tx, purchaseID, currentStatus, newStatus string) error {
+	pI, err := id64(purchaseID, PurchaseIDCode)
+	if err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	stmt := `
+	update purchase set status = $1
+	where id = $2
+	and status = $3
+	returning status
+	;`
+	var status string
+
+	err = tx.QueryRowContext(ctx, stmt, newStatus, pI, currentStatus).Scan(&status)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrNoPurchases
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (db *Data) UpdatePurchaseStatus(purchaseID, currentStatus, newStatus string) error {
+	tx, err := db.DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	err = updatePurchaseStatus(tx, purchaseID, currentStatus, newStatus)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

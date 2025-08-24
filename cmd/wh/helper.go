@@ -93,6 +93,15 @@ func (ap *application) writeIndentJSON(
 	return nil
 }
 
+func printIndenJSON(data any) {
+	js, err := json.MarshalIndent(data, "", "    ")
+	if err != nil {
+		panic(err)
+	}
+
+	println(string(js))
+}
+
 // decodeJSON decode JSON body, slog errors, and returns client error code and message
 func (ap *application) decodeJSON(w http.ResponseWriter, r *http.Request, dst any) error {
 	// If the Content-Type header is present, get the value,

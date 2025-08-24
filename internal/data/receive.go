@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 )
 
@@ -15,11 +16,12 @@ type Receive struct {
 	ActualAt   string         `json:"actualAt,omitempty,omitzero"`
 	CreatedAt  string         `json:"createdAt,omitempty,omitzero"`
 	Transfer   Transfer       `json:"transfer,omitempty,omitzero"`
+	Version    int            `json:"version,omitempty,omitzero"`
 	Items      []ItemQuantity `json:"items,omitempty,omitzero"`
 }
 
 var (
-	ErrNoReceives = errors.New("data: no receives found")
+	ErrNoReceives     = errors.New("data: no receives found")
 	ErrNoReceiveItems = errors.New("data: no receive items found")
 )
 
@@ -135,6 +137,91 @@ func delReceivesByPurchase(tx *sql.Tx, purchaseID64 int64) error {
 	purchase_id = $1`
 
 	_, err := tx.ExecContext(ctx, stmt, purchaseID64)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func addReceiveItems(tx *sql.Tx, rc *Receive) error {
+	pI, err := id64(rc.Purchase.ID, PurchaseIDCode)
+	if err != nil {
+		return err
+	}
+	rI, err := id64(rc.ID, ReceiveIDCode)
+	if err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	stmt := `
+	insert into receive_item (purchase_id, gtin, receive_id, quantity) values
+	($1,$2,$3,$4)
+	;
+	`
+	for _, it := range rc.Items {
+		_, err = tx.ExecContext(ctx, stmt, pI, it.Item.GTIN, rI, it.Quantity)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func addReceive(tx *sql.Tx, rc *Receive) error {
+	aI, err := id64(rc.Account.ID, AccountIDCode)
+	if err != nil {
+		return err
+	}
+	pI, err := id64(rc.Purchase.ID, PurchaseIDCode)
+	if err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	stmt := fmt.Sprintf(`
+	insert into receive (purchase_id, account_id, expected_at) values
+	($1,$2,$3)
+	returning '%v'||id, version
+	;`, ReceiveIDCode)
+
+	err = tx.QueryRowContext(ctx, stmt, pI, aI, rc.ExpectedAt).Scan(&rc.ID, &rc.Version)
+	if err != nil {
+		return err
+	}
+
+	err = addReceiveItems(tx, rc)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (db *Data) AddReceive(rc *Receive) error {
+	tx, err := db.DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	err = addReceive(tx, rc)
+	if err != nil {
+		return err
+	}
+
+	err = db.UnclaimReceiveAddOwner(rc.Purchase.ID, rc.Account.ID)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
 	if err != nil {
 		return err
 	}

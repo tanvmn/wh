@@ -89,6 +89,7 @@ Tạo phiếu nhập
 							<input type="number"
 								class="form-control was-validated tdQuantity" min="1"
 								max="{{.Quantity}}" required value="{{.Quantity}}">
+							<div class="invalid-feedback">Min 1, Max {{.Quantity}}</div>
 						</td>
 						<td>
 							<button class="btn btn-danger delete">X</button>
@@ -106,30 +107,30 @@ Tạo phiếu nhập
 
 	let iqs = [];
 
-	let pc;
-	getPurchase();
+	// let pc;
+	// getPurchase();
 
-	function getPurchase() {
-		if (document.querySelector('#purchaseID') !== null) {
-			const pID = document.querySelector('#purchaseID').innerText;
-			let ok = false;
+	// function getPurchase() {
+	// 	if (document.querySelector('#purchaseID') !== null) {
+	// 		const pID = document.querySelector('#purchaseID').innerText;
+	// 		let ok = false;
 
-			fetch(domain + '/purchase/' + pID + '/json')
-				.then(res => {
-					ok = res.ok;
-					if (res.ok) return res.json();
-					else return res.text();
-				})
-				.then(data => {
-					if (!ok) {
-						console.log(data);
-						return;
-					}
-					pc = data;
-					console.log(pc);
-				});
-		}
-	}
+	// 		fetch(domain + '/purchase/' + pID + '/json')
+	// 			.then(res => {
+	// 				ok = res.ok;
+	// 				if (res.ok) return res.json();
+	// 				else return res.text();
+	// 			})
+	// 			.then(data => {
+	// 				if (!ok) {
+	// 					console.log(data);
+	// 					return;
+	// 				}
+	// 				pc = data;
+	// 				console.log(pc);
+	// 			});
+	// 	}
+	// }
 
 
 	// After getting items (above), begin others task from this point
@@ -160,28 +161,6 @@ Tạo phiếu nhập
 			delTR(e);
 		});
 
-		// // Submit the purchase in JSON to server
-		// document.querySelector('form').addEventListener('submit', (e) => {
-		// 	e.preventDefault();
-
-		// 	if (document.querySelector('#itemList').querySelectorAll('tr').length === 0) {
-		// 		alert('Phải chọn ít nhất 1 mặt hàng');
-		// 		return;
-		// 	}
-		// 	if (!e.target.checkValidity()) {
-		// 		return;
-		// 	}
-
-		// 	if (confirm('Bạn đã chắc về thông tin của yêu cầu nhập?')) {
-		// 		if (document.querySelector('#purchaseID') === null) {
-		// 			requestAddPurchase();
-		// 		}
-		// 		else {
-		// 			requestSetPurchase();
-		// 		}
-		// 	}
-		// });
-
 		function addItem(input) {
 			document.querySelector('#itemOpts').querySelectorAll('option').forEach((o, i) => {
 				if (o.value === input) {
@@ -196,7 +175,7 @@ Tạo phiếu nhập
 								<td>${iq.name}</td>
 								<td>
 									<input class="form-control was-validated" type="number" min="1" value="${iq.quantity}" required>
-									<div class="invalid-feedback">Ít nhất 1 cái</div>
+									<div class="invalid-feedback">Min 1 , Max ${iq.quantity}</div>
 								</td>
 								<td><button class="btn btn-danger btn-sm delete">X</button></td>
 								`;
@@ -242,49 +221,67 @@ Tạo phiếu nhập
 			}
 		}
 
-		// function purchaseInput() {
-		// 	let o = {
-		// 		warehouse: { id: document.querySelector('#warehouse').value.split(' / ')[0] },
-		// 		supplier: { id: document.querySelector('#supplier').value.split(' / ')[0] },
-		// 		expectedAt: document.querySelector('#expectedAt').value,
-		// 		items: [],
-		// 	};
+		function receiveInput() {
+			let o = {
+				// warehouse: { id: document.querySelector('#warehouse').value.split(' / ')[0] },
+				purchase: { id: document.querySelector('#purchaseID').innerText },
+				expectedAt: document.querySelector('#expectedAt').value,
+				items: [],
+			};
 
-		// 	document.querySelector('#itemList').querySelectorAll('tr').forEach((tr, i) => {
-		// 		let it = {
-		// 			item: { gtin: tr.firstElementChild.nextElementSibling.innerText },
-		// 			quantity: parseInt(tr.querySelector('input[type=number]').value),
-		// 		};
-		// 		o.items.push(it);
-		// 	});
+			document.querySelector('#itemList').querySelectorAll('tr').forEach((tr, idx) => {
+				let it = {
+					item: { gtin: tr.firstElementChild.nextElementSibling.innerText },
+					quantity: parseInt(tr.querySelector('input[type=number]').value),
+				};
+				o.items.push(it);
+			});
 
-		// 	console.log(JSON.stringify(o));
-		// 	return o;
-		// }
+			console.log(JSON.stringify(o));
+			return o;
+		}
 
-		// function requestAddPurchase() {
-		// 	let o = purchaseInput();
+		function requestAddReceive(obj) {
+			// let o = receiveInput();
 
-		// 	let ok = false;
-		// 	fetch(domain + '/purchase', {
-		// 		method: 'POST',
-		// 		body: JSON.stringify(o),
-		// 		headers: {
-		// 			'Content-Type': 'application/json'
-		// 		}
-		// 	})
-		// 		.then(res => {
-		// 			ok = res.ok;
-		// 			if (res.redirected) {
-		// 				window.location.replace(res.url);
-		// 				return;
-		// 			}
-		// 			return res.text();
-		// 		})
-		// 		.then(data => {
-		// 			if (!ok) alert(data);
-		// 		});
-		// }
+			let ok = false;
+			fetch(domain + '/receive', {
+				method: 'POST',
+				body: JSON.stringify(obj),
+				headers: {
+					'Content-Type': 'application/json'
+				}
+			})
+				// .then(res => {
+				// 	ok = res.ok;
+				// 	if (res.redirected) {
+				// 		window.location.replace(res.url);
+				// 		return;
+				// 	}
+				// 	return res.text();
+				// })
+				// .then(data => {
+				// 	if (!ok) alert(data);
+				// });
+		}
+
+		// Submit the purchase in JSON to server
+		document.querySelector('form').addEventListener('submit', (e) => {
+			e.preventDefault();
+
+			if (document.querySelector('#itemList').querySelectorAll('tr').length === 0) {
+				alert('Phải chọn ít nhất 1 mặt hàng');
+				return;
+			}
+			if (!e.target.checkValidity()) {
+				return;
+			}
+
+			if (confirm('Bạn đã chắc về thông tin của yêu cầu nhập?')) {
+				requestAddReceive(receiveInput());
+			}
+		});
+
 	});
 </script>
 {{end}}

@@ -19,10 +19,10 @@ func (ap *application) routes() http.Handler {
 		// 	if errors.As(err, &pErr) {
 		// 		fmt.Printf("%+v\n", pErr)
 		// 		fmt.Println(pErr.Code)
+		// 		fmt.Println(pErr.Code.Name())
 		// 		fmt.Println(pErr.Message)
 		// 		fmt.Println(pErr.SQLState())
 		// 		fmt.Println(pErr.Code.Class())
-		// 		fmt.Println(pErr.Code.Name())
 		// 	}
 		// }
 
@@ -106,6 +106,7 @@ func (ap *application) routes() http.Handler {
 
 	// Receive
 	mux.Handle("GET /add-receive", append(identify, ap.permit(data.Accountant, data.HeadAccountant)).then(ap.addReceivePage()))
+	mux.Handle("POST /receive", append(identify, ap.permit(data.Accountant, data.HeadAccountant)).then(ap.addReceive()))
 
 	pre := middlewares{ap.recoverPanic, ap.logRequest, ap.addHeaders}
 
