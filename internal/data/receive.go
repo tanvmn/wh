@@ -9,14 +9,16 @@ import (
 )
 
 type Receive struct {
-	ID         string         `json:"id,omitempty,omitzero"`
-	Purchase   Purchase       `json:"purchase,omitempty,omitzero"`
-	Account    Account        `json:"account,omitempty,omitzero"`
+	ID       string   `json:"id,omitempty,omitzero"`
+	Purchase Purchase `json:"purchase,omitempty,omitzero"`
+	Account  Account  `json:"account,omitempty,omitzero"`
+	// EditOwner  Account        `json:"editOwner,omitempty,omitzero"`
 	ExpectedAt string         `json:"expectedAt,omitempty,omitzero"`
 	ActualAt   string         `json:"actualAt,omitempty,omitzero"`
 	CreatedAt  string         `json:"createdAt,omitempty,omitzero"`
 	Transfer   Transfer       `json:"transfer,omitempty,omitzero"`
 	Version    int            `json:"version,omitempty,omitzero"`
+	Note       string         `json:"note,omitempty,omitzero"`
 	Items      []ItemQuantity `json:"items,omitempty,omitzero"`
 }
 
@@ -66,8 +68,7 @@ func (db *Data) ReceiveItemsByPurchase(purchaseID string) ([]ItemQuantity, error
 	,currency
 	,type
 	,shelf_life
-	;
-	`
+	;`
 
 	rows, err := db.DB.QueryContext(ctx, stmt, i)
 	if err != nil {
@@ -100,6 +101,9 @@ func (db *Data) ReceiveItemsByPurchase(purchaseID string) ([]ItemQuantity, error
 			&iq.Item.Name,
 			&iq.Quantity,
 		)
+		if err != nil {
+			return nil, err
+		}
 		is = append(is, iq)
 	}
 
@@ -227,4 +231,255 @@ func (db *Data) AddReceive(rc *Receive) error {
 	}
 
 	return nil
+}
+
+func (db *Data) ReceiveItems(rc *Receive) error {
+	i, err := id64(rc.ID, ReceiveIDCode)
+	if err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	stmt := `
+	select
+	ri.gtin
+	,characteristic
+	,volume
+	,weight
+	,brand
+	,material
+	,color
+	,size
+	,price
+	,currency
+	,type
+	,shelf_life
+	,type||', '||brand||', màu '||color||', cỡ '||size||', '||material
+	,quantity
+	from receive_item as ri
+	join item on item.gtin = ri.gtin
+	join receive on receive.id = ri.receive_id
+	where receive_id = $1
+	;`
+
+	rows, err := db.DB.QueryContext(ctx, stmt, i)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		err2 := rows.Close()
+		if err2 != nil {
+			panic(err2)
+		}
+	}()
+
+	rc.Items = nil
+	for rows.Next() {
+		var iq ItemQuantity
+
+		err = rows.Scan(
+			&iq.Item.GTIN,
+			&iq.Item.Characteristic,
+			&iq.Item.Volume,
+			&iq.Item.Weight,
+			&iq.Item.Brand,
+			&iq.Item.Material,
+			&iq.Item.Color,
+			&iq.Item.Size,
+			&iq.Item.Price,
+			&iq.Item.Currency,
+			&iq.Item.Type,
+			&iq.Item.ShelfLife,
+			&iq.Item.Name,
+			&iq.Quantity,
+		)
+		if err != nil {
+			return err
+		}
+		rc.Items = append(rc.Items, iq)
+	}
+
+	if err = rows.Err(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (db *Data) Receive(id string) (*Receive, error) {
+	i, err := id64(id, ReceiveIDCode)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	stmt := fmt.Sprintf(`
+	select
+	'%v'||receive.id
+	,'%v'||purchase_id
+	,'%v'||account_id
+	,expected_at
+	,actual_at
+	,created_at
+	,'%v'||transfer_id
+	,version
+	,note
+	from receive
+	join account where account.id = receive.id
+	where receive.id = $1
+	;`,
+		ReceiveIDCode,
+		PurchaseIDCode,
+		AccountIDCode,
+		TransferIDCode,
+	)
+	var (
+		rc         Receive
+		transferID sql.NullString
+	)
+
+	err = db.DB.QueryRowContext(ctx, stmt, i).Scan(
+		&rc.ID,
+		&rc.Purchase.ID,
+		&rc.Account.ID,
+		&rc.ExpectedAt,
+		&rc.ActualAt,
+		&rc.CreatedAt,
+		&transferID,
+		&rc.Version,
+		&rc.Note,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrNoReceives
+		}
+		return nil, err
+	}
+
+	pc, err := db.Purchase(rc.Purchase.ID)
+	if err != nil {
+		return nil, err
+	}
+	rc.Purchase = *pc
+
+	ac, err := db.Account(rc.Account.ID)
+	if err != nil {
+		return nil, err
+	}
+	rc.Account = *ac
+
+	if transferID.Valid {
+		tf, err := db.Transfer(rc.Transfer.ID)
+		if err != nil {
+			if !errors.Is(err, ErrNoTransfers) {
+				return nil, err
+			}
+		}
+		rc.Transfer = *tf
+	}
+
+	err = db.ReceiveItems(&rc)
+	if err != nil {
+		return nil, err
+	}
+
+	return &rc, nil
+}
+
+func (db *Data) ReceivesByPurchase(purchaseID string) ([]Receive, error) {
+	i, err := id64(purchaseID, PurchaseIDCode)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	stmt := fmt.Sprintf(`
+	select
+	'%v'||receive.id
+	,'%v'||purchase_id
+	,'%v'||account_id
+	,expected_at
+	,actual_at
+	,created_at
+	,'%v'||transfer_id
+	,receive.version
+	,note
+	from receive
+	join account on account.id = receive.account_id
+	where receive.purchase_id = $1
+	;`,
+		ReceiveIDCode,
+		PurchaseIDCode,
+		AccountIDCode,
+		TransferIDCode,
+	)
+	var (
+		rs         []Receive
+		transferID sql.NullString
+	)
+
+	rows, err := db.DB.QueryContext(ctx, stmt, i)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		err2 := rows.Close()
+		if err2 != nil {
+			panic(err2)
+		}
+	}()
+
+	for rows.Next() {
+		var rc Receive
+		err = rows.Scan(
+			&rc.ID,
+			&rc.Purchase.ID,
+			&rc.Account.ID,
+			&rc.ExpectedAt,
+			&rc.ActualAt,
+			&rc.CreatedAt,
+			&transferID,
+			&rc.Version,
+			&rc.Note,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		if transferID.Valid {
+			rc.Transfer.ID = transferID.String
+			tf, err := db.Transfer(rc.Transfer.ID)
+			if err != nil {
+				if !errors.Is(err, ErrNoTransfers) {
+					return nil, err
+				}
+			}
+			rc.Transfer = *tf
+		}
+
+		ac, err := db.Account(rc.Account.ID)
+		if err != nil {
+			return nil, err
+		}
+		rc.Account = *ac
+
+		err = db.ReceiveItems(&rc)
+		if err != nil {
+			return nil, err
+		}
+
+		rs = append(rs, rc)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return rs, nil
 }

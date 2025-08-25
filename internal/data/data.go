@@ -25,6 +25,7 @@ const (
 	ReceiveIDCode   = "REC-"
 	ResupplyIDCode  = "RES-"
 	ExportIDCode    = "EXP-"
+	TransferIDCode  = "TRA-"
 )
 
 const (

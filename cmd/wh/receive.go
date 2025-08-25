@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/lib/pq"
 	"github.com/tanNguyen2220022/wh/internal/data"
@@ -26,21 +25,21 @@ func (ap *application) unreceivedPurchaseItems(pc *data.Purchase) ([]data.ItemQu
 
 	pi := pc.Items
 	for i := range pi {
+		iq := pi[i]
 		for _, ri := range ris {
 			if pi[i].Item.GTIN == ri.Item.GTIN {
 				if pi[i].Quantity < ri.Quantity {
-					err = fmt.Errorf("purchase item %v's quantity is less then added to receives", pi[i].Item.ID)
+					err = fmt.Errorf("purchase item %v's quantity is less then added to receives", pi[i].Item.GTIN)
 					ap.logger.Error(err.Error())
 					return nil, err
 				}
 
-				iq := pi[i]
 				iq.Quantity = pi[i].Quantity - ri.Quantity
-				if iq.Quantity > 0 {
-					iqs = append(iqs, iq)
-				}
 				break
 			}
+		}
+		if iq.Quantity > 0 {
+			iqs = append(iqs, iq)
 		}
 	}
 
@@ -86,7 +85,7 @@ func (ap *application) addReceivePage() http.Handler {
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
-		if upi == nil {
+		if len(upi) == 0 {
 			s := fmt.Sprintf("Tất cả hàng của yêu cầu nhập ID %v đã được thêm vào các phiếu nhập", pc.ID)
 			ap.logger.Error(s)
 			http.Error(w, s, http.StatusUnprocessableEntity)
@@ -106,18 +105,18 @@ func (ap *application) addReceivePage() http.Handler {
 				}
 				return
 			}
-			ap.background(func() {
-				fmt.Print("\nREMEMBER, a new goroutine is about to unclaim the add receive owner in the background\n\n")
-				time.Sleep(15 * time.Minute)
-				// time.Sleep(4 * time.Second)
-				println("begin unclaiming receive add owner", aID)
+			// ap.background(func() {
+			// 	fmt.Print("\nREMEMBER, a new goroutine is about to unclaim the add receive owner in the background\n\n")
+			// 	time.Sleep(15 * time.Minute)
+			// 	// time.Sleep(4 * time.Second)
+			// 	println("begin unclaiming receive add owner", aID)
 
-				err2 := ap.data.UnclaimReceiveAddOwner(pc.ID, aID)
-				if err2 != nil {
-					ap.logger.Error(err2.Error())
-					panic(err)
-				}
-			})
+			// 	err2 := ap.data.UnclaimReceiveAddOwner(pc.ID, aID)
+			// 	if err2 != nil {
+			// 		ap.logger.Error(err2.Error())
+			// 		panic(err)
+			// 	}
+			// })
 		}
 
 		// else serve the add receive page if there items of purchase that are not added to receive
@@ -148,7 +147,10 @@ func (ap *application) validateReceive(rc *data.Receive) error {
 	va := validator.Validator{}
 	for _, ri := range rc.Items {
 		for _, pi := range pc.Items {
-			va.Check(ri.Quantity <= pi.Quantity, fmt.Sprintf("Receive item %v, quantity %v > %v in purchase %v", ri.Item.ID, ri.Quantity, pi.Quantity, pc.ID))
+			if ri.Item.GTIN == pi.Item.GTIN {
+				va.Check(ri.Quantity <= pi.Quantity, fmt.Sprintf("Receive item %v, quantity %v > purchase item %v, quantity %v in purchase %v", ri.Item.GTIN, ri.Quantity, pi.Item.GTIN, pi.Quantity, pc.ID))
+				break
+			}
 		}
 	}
 
@@ -253,6 +255,14 @@ func (ap *application) addReceive() http.Handler {
 			return
 		}
 
-		fmt.Printf("Đã thêm phiếu nhập ID %v cho yêu cầu nhập ID %v", rc.ID, rc.Purchase.ID)
+		// fmt.Printf("Đã thêm phiếu nhập ID %v cho yêu cầu nhập ID %v", rc.ID, rc.Purchase.ID)
+		http.Redirect(w, r, "/receive/"+rc.ID, http.StatusSeeOther)
+	})
+}
+
+func (ap *application) receivePage() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		id := r.PathValue("id")
+		w.Write([]byte("receive page " + id))
 	})
 }

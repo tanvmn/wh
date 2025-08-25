@@ -1,5 +1,5 @@
 {{define "title"}}
-Tạo phiếu nhập
+Phiếu nhập
 {{end}}
 
 {{define "main"}}
@@ -15,19 +15,33 @@ Tạo phiếu nhập
 </style>
 
 <div class="container-fluid">
-	{{with .Purchase.ID}}
+	{{with .Receive.ID}}
 	<div class="row p-2">
-		<h3 class="d-inline">
-			Tạo phiếu nhập cho yêu cầu nhập ID:&nbsp&nbsp
-			<span id="purchaseID" class="badge text-bg-info">{{.}}</span>
-		</h3>
+		<div class="col-3">
+			<h3 class="d-inline">
+				Phiếu nhập ID:&nbsp&nbsp
+				<span id="receiveID" class="badge text-bg-info">{{.}}</span>
+			</h3>
+		</div>
+
+		<div class="col-1">
+			<label class="form-check-label" for="setReceive">
+				<h4>Sửa</h4>
+			</label>
+			<input class="form-check-input" type="checkbox" name="setReceive" id="setReceive">
+
+		</div>
+
+		<div class="col-1">
+			<button id="delReceiveBtn" class="btn btn-danger ms-5"><strong>Xóa</strong></button>
+		</div>
 	</div>
 	{{end}}
 
 	<form class="was-validated" novalidate>
 		<!-- Begin warehouse, supplier, expectedAt -->
 		<div class="row">
-			{{with .Purchase}}
+			{{with .Receive}}
 			<div class="col">
 				<label for="warehouse" class="form-label">Kho</label>
 				<input name="warehouse" id="warehouse" class="form-control"
@@ -53,8 +67,8 @@ Tạo phiếu nhập
 
 		<div class="row my-4" id="submitBtn">
 			<div class="col-4 mx-auto">
-				<button class="btn btn-primary" type="submit" id="addReceiveBtn">
-					Tạo phiếu nhập
+				<button class="btn btn-primary" type="submit" id="setReceiveBtn">
+					Sửa phiếu nhập
 				</button>
 			</div>
 		</div>
@@ -78,7 +92,7 @@ Tạo phiếu nhập
 					<th></th>
 				</thead>
 				<tbody id="itemList">
-					{{range .ItemQuantitys}}
+					{{range .Receive.Items}}
 					<tr>
 						<td><img height="100" src="/rec/{{.Item.ImgFSPath}}"
 								alt="/rec/{{.Item.ImgFSPath}}">
@@ -106,6 +120,32 @@ Tạo phiếu nhập
 	import { domain, Scanner } from "/static/js/util.js";
 
 	let iqs = [];
+
+	// let pc;
+	// getPurchase();
+
+	// function getPurchase() {
+	// 	if (document.querySelector('#purchaseID') !== null) {
+	// 		const pID = document.querySelector('#purchaseID').innerText;
+	// 		let ok = false;
+
+	// 		fetch(domain + '/purchase/' + pID + '/json')
+	// 			.then(res => {
+	// 				ok = res.ok;
+	// 				if (res.ok) return res.json();
+	// 				else return res.text();
+	// 			})
+	// 			.then(data => {
+	// 				if (!ok) {
+	// 					console.log(data);
+	// 					return;
+	// 				}
+	// 				pc = data;
+	// 				console.log(pc);
+	// 			});
+	// 	}
+	// }
+
 
 	// After getting items (above), begin others task from this point
 	document.addEventListener('DOMContentLoaded', function () {
@@ -198,7 +238,8 @@ Tạo phiếu nhập
 		function receiveInput() {
 			let o = {
 				// warehouse: { id: document.querySelector('#warehouse').value.split(' / ')[0] },
-				purchase: { id: document.querySelector('#purchaseID').innerText },
+				// purchase: { id: document.querySelector('#purchaseID').innerText },
+				id: document.querySelector('#receiveID').innerText,
 				expectedAt: document.querySelector('#expectedAt').value,
 				items: [],
 			};
@@ -215,28 +256,28 @@ Tạo phiếu nhập
 			return o;
 		}
 
-		function requestAddReceive(obj) {
+		function requestSetReceive(obj) {
 			// let o = receiveInput();
 
 			let ok = false;
 			fetch(domain + '/receive', {
-				method: 'POST',
+				method: 'PUT',
 				body: JSON.stringify(obj),
 				headers: {
 					'Content-Type': 'application/json'
 				}
-			})
-				.then(res => {
-					ok = res.ok;
-					if (res.redirected) {
-						window.location.replace(res.url);
-						return;
-					}
-					return res.text();
-				})
-				.then(data => {
-					if (!ok) alert(data);
-				});
+			});
+			// .then(res => {
+			// 	ok = res.ok;
+			// 	if (res.redirected) {
+			// 		window.location.replace(res.url);
+			// 		return;
+			// 	}
+			// 	return res.text();
+			// })
+			// .then(data => {
+			// 	if (!ok) alert(data);
+			// });
 		}
 
 		// Submit the purchase in JSON to server
@@ -252,7 +293,7 @@ Tạo phiếu nhập
 			}
 
 			if (confirm('Bạn đã chắc về thông tin của yêu cầu nhập?')) {
-				requestAddReceive(receiveInput());
+				requestSetReceive(receiveInput());
 			}
 		});
 

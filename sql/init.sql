@@ -149,7 +149,8 @@ create table if not exists purchase (
 	created_at timestamp not null default now(),
 	version integer not null default 1,
 	note text default 'none',
-	receive_add_owner bigint default 0,
+	-- receive_add_owner bigint default 0,
+	receive_add_owner bigint,
 	status status not null default 'Chờ phản hồi'
 );
 
@@ -213,7 +214,8 @@ create table if not exists resupply (
 	created_at timestamp not null default now(),
 	version integer not null default 1,
 	note text default 'none',
-	export_add_owner bigint default 0,
+	-- export_add_owner bigint default 0,
+	export_add_owner bigint,
 	status status not null default 'Chờ phản hồi'
 );
 
@@ -249,7 +251,6 @@ create table if not exists receive (
 	created_at timestamp not null default now(),
 	version integer not null default 1,
 	note text default 'none',
-	edit_owner bigint default 0,
 	transfer_id bigint
 );
 
@@ -269,7 +270,6 @@ create table if not exists export (
 	created_at timestamp not null default now(),
 	version integer not null default 1,
 	note text default 'none',
-	edit_owner bigint default 0,
 	transfer_id bigint
 );
 
@@ -532,11 +532,13 @@ alter table bin add constraint fk_bin_store_warehouse_id foreign key(warehouse_i
 alter table purchase add constraint fk_purchase_warehouse_id foreign key(warehouse_id) references warehouse(id);
 alter table purchase add constraint fk_purchase_supplier_id foreign key(supplier_id) references supplier(id);
 alter table purchase add constraint fk_purchase_account_id foreign key(account_id) references account(id);
+alter table purchase add constraint fk_purchase_receive_add_owner foreign key(receive_add_owner) references account(id);
 
 alter table purchase_item add constraint fk_purchase_item_purchase_id foreign key(purchase_id) references purchase(id);
 alter table purchase_item add constraint fk_purchase_item_gtin foreign key(gtin) references item(gtin);
 
 alter table resupply add constraint fk_resupply_account_id foreign key(account_id) references account(id);
+alter table resupply add constraint fk_resupply_export_add_owner foreign key(export_add_owner) references account(id);
 alter table resupply add constraint fk_resupply_store_id foreign key(store_id) references store(id);
 
 alter table supplier_item add constraint fk_supplier_gtin foreign key(gtin) references item(gtin);

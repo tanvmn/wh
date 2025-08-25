@@ -158,7 +158,10 @@ func (db *Data) Purchase(id string) (*Purchase, error) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	var pc Purchase
+	var (
+		pc              Purchase
+		receiveAddOwner sql.NullString
+	)
 
 	err = db.DB.QueryRowContext(ctx, stmt, i).Scan(
 		&pc.ID,
@@ -169,12 +172,19 @@ func (db *Data) Purchase(id string) (*Purchase, error) {
 		&pc.CreatedAt,
 		&pc.Version,
 		&pc.Status,
-		&pc.ReceiveAddOwner,
+		&receiveAddOwner,
+		// &pc.ReceiveAddOwner,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, fmt.Errorf("%w, ID %v", ErrNoPurchases, id)
 	} else if err != nil {
 		return nil, err
+	}
+
+	if receiveAddOwner.Valid {
+		pc.ReceiveAddOwner = receiveAddOwner.String
+	} else {
+		pc.ReceiveAddOwner = AccountIDCode + "0"
 	}
 
 	// pc.CreatedAt, err = util.FormatRFC3339(pc.CreatedAt, time.DateTime)
@@ -508,11 +518,33 @@ func setPurchaseItem(tx *sql.Tx, pc *Purchase) error {
 }
 
 func (db *Data) SetPurchase(pc *Purchase) error {
+	i, err := id64(pc.ID, PurchaseIDCode)
+	if err != nil {
+		return err
+	}
+
+	rs, err := db.ReceivesByPurchase(pc.ID)
+	if err != nil {
+		if !errors.Is(err, ErrNoReceives) {
+			return err
+		}
+	}
+
 	tx, err := db.DB.Begin()
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
+
+	err = delReceiveItemsByPurchase(tx, i)
+	if err != nil {
+		return err
+	}
+
+	err = delReceivesByPurchase(tx, i)
+	if err != nil {
+		return err
+	}
 
 	err = setPurchase(tx, pc)
 	if err != nil {
@@ -522,6 +554,15 @@ func (db *Data) SetPurchase(pc *Purchase) error {
 	err = setPurchaseItem(tx, pc)
 	if err != nil {
 		return err
+	}
+
+	for _, rc := range rs {
+		err = addReceive(tx, &rc)
+		if err != nil {
+			if !errors.Is(err, sql.ErrNoRows) {
+				return err
+			}
+		}
 	}
 
 	err = tx.Commit()
@@ -641,7 +682,7 @@ func (db *Data) ClaimReceiveAddOwner(purchaseID, accountID string) error {
 	receive_add_owner = $1
 	where
 	id = $2
-	and receive_add_owner = 0
+	and receive_add_owner is null
 	returning receive_add_owner
 	;`
 	var owner int64
@@ -673,13 +714,13 @@ func (db *Data) UnclaimReceiveAddOwner(purchaseID, accountID string) error {
 	stmt := `
 	update purchase
 	set
-	receive_add_owner = 0
+	receive_add_owner = null
 	where
 	id = $1
 	and receive_add_owner = $2
 	returning receive_add_owner
 	;`
-	var owner int64
+	var owner sql.NullInt64
 
 	err = db.DB.QueryRowContext(ctx, stmt, pI, aI).Scan(&owner)
 	if err != nil {

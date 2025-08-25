@@ -94,7 +94,7 @@ func (ap *application) writeIndentJSON(
 }
 
 func printIndenJSON(data any) {
-	js, err := json.MarshalIndent(data, "", "    ")
+	js, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
 		panic(err)
 	}

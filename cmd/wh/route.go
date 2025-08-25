@@ -106,6 +106,7 @@ func (ap *application) routes() http.Handler {
 
 	// Receive
 	mux.Handle("GET /add-receive", append(identify, ap.permit(data.Accountant, data.HeadAccountant)).then(ap.addReceivePage()))
+	mux.Handle("GET /receive/{id}", append(identify, ap.permit(data.Accountant, data.HeadAccountant)).then(ap.receivePage()))
 	mux.Handle("POST /receive", append(identify, ap.permit(data.Accountant, data.HeadAccountant)).then(ap.addReceive()))
 
 	pre := middlewares{ap.recoverPanic, ap.logRequest, ap.addHeaders}
