@@ -257,6 +257,7 @@ func (db *Data) ReceiveItems(rc *Receive) error {
 	,type
 	,shelf_life
 	,type||', '||brand||', màu '||color||', cỡ '||size||', '||material
+	,img_fspath
 	,quantity
 	from receive_item as ri
 	join item on item.gtin = ri.gtin
@@ -293,6 +294,7 @@ func (db *Data) ReceiveItems(rc *Receive) error {
 			&iq.Item.Type,
 			&iq.Item.ShelfLife,
 			&iq.Item.Name,
+			&iq.ImgFSPath,
 			&iq.Quantity,
 		)
 		if err != nil {
@@ -326,10 +328,9 @@ func (db *Data) Receive(id string) (*Receive, error) {
 	,actual_at
 	,created_at
 	,'%v'||transfer_id
-	,version
+	,receive.version
 	,note
 	from receive
-	join account where account.id = receive.id
 	where receive.id = $1
 	;`,
 		ReceiveIDCode,
@@ -355,8 +356,16 @@ func (db *Data) Receive(id string) (*Receive, error) {
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, ErrNoReceives
+			return nil, fmt.Errorf("%w: %v", ErrNoReceives, id)
 		}
+		return nil, err
+	}
+
+	rc.ExpectedAt = rc.ExpectedAt[:16]
+	rc.CreatedAt = rc.CreatedAt[:16]
+
+	err = db.ReceiveItems(&rc)
+	if err != nil {
 		return nil, err
 	}
 
@@ -380,11 +389,6 @@ func (db *Data) Receive(id string) (*Receive, error) {
 			}
 		}
 		rc.Transfer = *tf
-	}
-
-	err = db.ReceiveItems(&rc)
-	if err != nil {
-		return nil, err
 	}
 
 	return &rc, nil

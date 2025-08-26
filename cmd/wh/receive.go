@@ -20,9 +20,9 @@ import (
 // 	if ris == nil {
 // 		return pc.Items, nil
 // 	}
-// 
+//
 // 	var iqs []data.ItemQuantity
-// 
+//
 // 	pi := pc.Items
 // 	for i := range pi {
 // 		iq := pi[i]
@@ -33,7 +33,7 @@ import (
 // 					ap.logger.Error(err.Error())
 // 					return nil, err
 // 				}
-// 
+//
 // 				iq.Quantity = pi[i].Quantity - ri.Quantity
 // 				break
 // 			}
@@ -42,7 +42,7 @@ import (
 // 			iqs = append(iqs, iq)
 // 		}
 // 	}
-// 
+//
 // 	return iqs, nil
 // }
 
@@ -219,7 +219,7 @@ func (ap *application) addReceive() http.Handler {
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
-		if uri == nil {
+		if len(uri) == 0 {
 			ap.logger.Error("All items of purchase %v are added to receives, but somehow add receive request (POST) is still made")
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
@@ -263,6 +263,33 @@ func (ap *application) addReceive() http.Handler {
 func (ap *application) receivePage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
-		w.Write([]byte("receive page " + id))
+
+		rc, err := ap.data.Receive(id)
+		if err != nil {
+			ap.logger.Error(err.Error())
+
+			if errors.Is(err, data.ErrNoReceives) {
+				http.Error(w, fmt.Sprintf("Không tìm thấy phiếu nhập ID: %v", id), http.StatusNotFound)
+			} else {
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			}
+			return
+		}
+		printIndenJSON(rc)
+
+		td, err := ap.newTemplData(r)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		td.Receive = *rc
+
+		err = ap.render(w, http.StatusOK, "receive", td)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
 	})
 }

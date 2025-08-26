@@ -41,27 +41,28 @@ Phiếu nhập
 	<form class="was-validated" novalidate>
 		<!-- Begin warehouse, supplier, expectedAt -->
 		<div class="row">
+			{{$minTStamp := .MinTimestamp}}
 			{{with .Receive}}
 			<div class="col">
 				<label for="warehouse" class="form-label">Kho</label>
 				<input name="warehouse" id="warehouse" class="form-control"
-					value="{{.Warehouse.ID}} - {{.Warehouse.Name}}" disabled>
+					value="{{.Purchase.Warehouse.ID}} - {{.Purchase.Warehouse.Name}}" disabled>
 			</div>
 
 			<div class="col">
 				<label for="supplier" class="form-label">Nhà cung cấp</label>
 				<input name="supplier" id="supplier" class="form-control"
-					value="{{.Supplier.ID}} - {{.Supplier.Name}}" disabled>
+					value="{{.Purchase.Supplier.ID}} - {{.Purchase.Supplier.Name}}" disabled>
 			</div>
-			{{end}}
 			<div class="col">
 				<label for="expectedAt" class="form-label">Dự kiến nhập</label>
-				<input type="datetime-local" name="expectedAt" id="expectedAt" min="{{.MinTimestamp}}"
+				<input type="datetime-local" name="expectedAt" id="expectedAt" min="{{$minTStamp}}" value="{{.ExpectedAt}}"
 					class="form-control was-validated" required>
 				<div class="invalid-feedback">
 					Thời điểm phải từ hiện tại trở về sau
 				</div>
 			</div>
+			{{end}}
 		</div>
 		<!-- End warehouse, supplier, expectedAt -->
 

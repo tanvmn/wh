@@ -52,6 +52,7 @@ type templData struct {
 	data.Item
 	data.Purchase
 	data.Account
+	data.Receive
 }
 
 func badgeBg(status string) string {
