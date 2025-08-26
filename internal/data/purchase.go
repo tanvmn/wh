@@ -777,3 +777,38 @@ func (db *Data) UpdatePurchaseStatus(purchaseID, currentStatus, newStatus string
 
 	return nil
 }
+
+func (db *Data) UnreceivedPurchaseItems(pc *Purchase) ([]ItemQuantity, error) {
+	ris, err := db.ReceiveItemsByPurchase(pc.ID)
+	if err != nil {
+		return nil, err
+	}
+	if ris == nil {
+		return pc.Items, nil
+	}
+
+	var iqs []ItemQuantity
+
+	pi := pc.Items
+	for i := range pi {
+		iq := pi[i]
+		for _, ri := range ris {
+			if pi[i].Item.GTIN == ri.Item.GTIN {
+				if pi[i].Quantity < ri.Quantity {
+					// err = fmt.Errorf("purchase item %v's quantity is less then added to receives", pi[i].Item.GTIN)
+					// ap.logger.Error(err.Error())
+					// return nil, err
+					return nil, fmt.Errorf("%w: purchase item %v's quantity is less then added to receives",ErrCorruptedData, pi[i].Item.GTIN)
+				}
+
+				iq.Quantity = pi[i].Quantity - ri.Quantity
+				break
+			}
+		}
+		if iq.Quantity > 0 {
+			iqs = append(iqs, iq)
+		}
+	}
+
+	return iqs, nil
+}

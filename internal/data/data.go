@@ -39,6 +39,7 @@ const (
 var (
 	ErrInvalidID   = errors.New("data: invalid ID")
 	ErrSetConflict = errors.New("data: set conflict")
+	ErrCorruptedData = errors.New("data: corrupted data")
 )
 
 type Data struct {

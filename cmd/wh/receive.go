@@ -12,39 +12,39 @@ import (
 )
 
 // unreceivePurchaseItems returns quantities of items in purchase that haven't been added to any receives
-func (ap *application) unreceivedPurchaseItems(pc *data.Purchase) ([]data.ItemQuantity, error) {
-	ris, err := ap.data.ReceiveItemsByPurchase(pc.ID)
-	if err != nil {
-		return nil, err
-	}
-	if ris == nil {
-		return pc.Items, nil
-	}
-
-	var iqs []data.ItemQuantity
-
-	pi := pc.Items
-	for i := range pi {
-		iq := pi[i]
-		for _, ri := range ris {
-			if pi[i].Item.GTIN == ri.Item.GTIN {
-				if pi[i].Quantity < ri.Quantity {
-					err = fmt.Errorf("purchase item %v's quantity is less then added to receives", pi[i].Item.GTIN)
-					ap.logger.Error(err.Error())
-					return nil, err
-				}
-
-				iq.Quantity = pi[i].Quantity - ri.Quantity
-				break
-			}
-		}
-		if iq.Quantity > 0 {
-			iqs = append(iqs, iq)
-		}
-	}
-
-	return iqs, nil
-}
+// func (ap *application) unreceivedPurchaseItems(pc *data.Purchase) ([]data.ItemQuantity, error) {
+// 	ris, err := ap.data.ReceiveItemsByPurchase(pc.ID)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	if ris == nil {
+// 		return pc.Items, nil
+// 	}
+// 
+// 	var iqs []data.ItemQuantity
+// 
+// 	pi := pc.Items
+// 	for i := range pi {
+// 		iq := pi[i]
+// 		for _, ri := range ris {
+// 			if pi[i].Item.GTIN == ri.Item.GTIN {
+// 				if pi[i].Quantity < ri.Quantity {
+// 					err = fmt.Errorf("purchase item %v's quantity is less then added to receives", pi[i].Item.GTIN)
+// 					ap.logger.Error(err.Error())
+// 					return nil, err
+// 				}
+// 
+// 				iq.Quantity = pi[i].Quantity - ri.Quantity
+// 				break
+// 			}
+// 		}
+// 		if iq.Quantity > 0 {
+// 			iqs = append(iqs, iq)
+// 		}
+// 	}
+// 
+// 	return iqs, nil
+// }
 
 func (ap *application) addReceivePage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -79,7 +79,7 @@ func (ap *application) addReceivePage() http.Handler {
 		}
 
 		// if all items of purchase are added to receives then response the client and return
-		upi, err := ap.unreceivedPurchaseItems(pc)
+		upi, err := ap.data.UnreceivedPurchaseItems(pc)
 		if err != nil {
 			ap.logger.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -213,7 +213,7 @@ func (ap *application) addReceive() http.Handler {
 
 		// Check if purchase still has items that have not been added to receives.
 		// If there aren't, but this request is still present then there has to be an error from the dev
-		uri, err := ap.unreceivedPurchaseItems(pc)
+		uri, err := ap.data.UnreceivedPurchaseItems(pc)
 		if err != nil {
 			ap.logger.Error(ErrConvertCtxVal.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
