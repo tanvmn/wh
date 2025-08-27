@@ -25,7 +25,7 @@ type templData struct {
 	Manager          string
 	Employee         string
 	AccountIDCode    string
-	ItemIDCode       string
+	GTINIDCode       string
 	SerialIDCode     string
 	BinIDCode        string
 	ToteIDCode       string
@@ -118,7 +118,7 @@ func (ap *application) newTemplData(r *http.Request) (templData, error) {
 		Manager:          data.Manager,
 		Employee:         data.Employee,
 		AccountIDCode:    data.AccountIDCode,
-		ItemIDCode:       data.ItemIDCode,
+		GTINIDCode:       data.GTINIDCode,
 		SerialIDCode:     data.SerialIDCode,
 		BinIDCode:        data.BinIDCode,
 		ToteIDCode:       data.ToteIDCode,

@@ -96,18 +96,18 @@ func (ap *application) routes() http.Handler {
 	mux.Handle("GET /{$}", identify.then(ap.homePage()))
 
 	// Purchase
-	mux.Handle("GET /purchase/{id}", append(identify, ap.permit(data.Accountant, data.HeadAccountant)).then(ap.purchasePage()))
-	mux.Handle("GET /purchase/{id}/json", append(identify, ap.permit(data.Accountant, data.HeadAccountant)).then(ap.purchase()))
-	mux.Handle("GET /purchases", append(identify, ap.permit(data.Accountant, data.HeadAccountant)).then(ap.purchasesPage()))
-	mux.Handle("GET /add-purchase", append(identify, ap.permit(data.Accountant, data.HeadAccountant)).then(ap.addPurchasePage()))
-	mux.Handle("POST /purchase", append(identify, ap.permit(data.Accountant, data.HeadAccountant)).then(ap.addPurchase()))
-	mux.Handle("PUT /purchase", append(identify, ap.permit(data.Accountant, data.HeadAccountant)).then(ap.setPurchase()))
-	mux.Handle("DELETE /purchase/{id}", append(identify, ap.permit(data.Accountant, data.HeadAccountant)).then(ap.delPurchase()))
+	mux.Handle("GET /purchase/{id}", append(identify, ap.permit(data.Accountant)).then(ap.purchasePage()))
+	mux.Handle("GET /purchase/{id}/json", append(identify, ap.permit(data.Accountant)).then(ap.purchase()))
+	mux.Handle("GET /purchases", append(identify, ap.permit(data.Accountant)).then(ap.purchasesPage()))
+	mux.Handle("GET /add-purchase", append(identify, ap.permit(data.Accountant)).then(ap.addPurchasePage()))
+	mux.Handle("POST /purchase", append(identify, ap.permit(data.Accountant)).then(ap.addPurchase()))
+	mux.Handle("PUT /purchase", append(identify, ap.permit(data.Accountant)).then(ap.setPurchase()))
+	mux.Handle("DELETE /purchase/{id}", append(identify, ap.permit(data.Accountant)).then(ap.delPurchase()))
 
 	// Receive
-	mux.Handle("GET /add-receive", append(identify, ap.permit(data.Accountant, data.HeadAccountant)).then(ap.addReceivePage()))
-	mux.Handle("GET /receive/{id}", append(identify, ap.permit(data.Accountant, data.HeadAccountant)).then(ap.receivePage()))
-	mux.Handle("POST /receive", append(identify, ap.permit(data.Accountant, data.HeadAccountant)).then(ap.addReceive()))
+	mux.Handle("GET /add-receive", append(identify, ap.permit(data.Accountant)).then(ap.addReceivePage()))
+	mux.Handle("GET /receive/{id}", append(identify, ap.permit(data.Accountant)).then(ap.receivePage()))
+	mux.Handle("POST /receive", append(identify, ap.permit(data.Accountant)).then(ap.addReceive()))
 
 	pre := middlewares{ap.recoverPanic, ap.logRequest, ap.addHeaders}
 

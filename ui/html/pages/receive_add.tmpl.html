@@ -48,6 +48,14 @@ Tạo phiếu nhập
 					Thời điểm phải từ hiện tại trở về sau
 				</div>
 			</div>
+			<div class="col">
+				<label for="voucherID" class="form-label">Chứng từ gốc</label>
+				<input type="text" name="voucherID" id="voucherID" class="form-control was-validated"
+					required>
+				<div class="invalid-feedback">
+					Không thể rỗng
+				</div>
+			</div>
 		</div>
 		<!-- End warehouse, supplier, expectedAt -->
 
@@ -103,7 +111,7 @@ Tạo phiếu nhập
 	</form>
 </div>
 <script type="module">
-	import { domain, Scanner } from "/static/js/util.js";
+	import { domain, IDCode, Scanner } from "/static/js/util.js";
 
 	let iqs = [];
 
@@ -151,7 +159,7 @@ Tạo phiếu nhập
 									<input class="form-control was-validated" type="number" min="1" value="${iq.quantity}" required>
 									<div class="invalid-feedback">Min 1 , Max ${iq.quantity}</div>
 								</td>
-								<td><button class="btn btn-danger btn-sm delete">X</button></td>
+								<td><button class="btn btn-danger delete">X</button></td>
 								`;
 
 							document.querySelector('#itemList').appendChild(tr);
@@ -197,7 +205,7 @@ Tạo phiếu nhập
 
 		function receiveInput() {
 			let o = {
-				// warehouse: { id: document.querySelector('#warehouse').value.split(' / ')[0] },
+				voucherID: IDCode.VoucherIDCode + document.querySelector('#voucherID').value,
 				purchase: { id: document.querySelector('#purchaseID').innerText },
 				expectedAt: document.querySelector('#expectedAt').value,
 				items: [],

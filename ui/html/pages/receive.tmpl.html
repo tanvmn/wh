@@ -56,17 +56,22 @@ Phiếu nhập
 			</div>
 			<div class="col">
 				<label for="expectedAt" class="form-label">Dự kiến nhập</label>
-				<input type="datetime-local" name="expectedAt" id="expectedAt" min="{{$minTStamp}}" value="{{.ExpectedAt}}"
-					class="form-control was-validated" required>
+				<input type="datetime-local" name="expectedAt" id="expectedAt" min="{{$minTStamp}}"
+					value="{{.ExpectedAt}}" class="form-control was-validated" required disabled>
 				<div class="invalid-feedback">
 					Thời điểm phải từ hiện tại trở về sau
 				</div>
+			</div>
+			<div class="col">
+				<label for="voucherID" class="form-label">Chứng từ gốc</label>
+				<input name="voucherID" id="voucherID" class="form-control"
+					value="{{.VoucherID}}" disabled>
 			</div>
 			{{end}}
 		</div>
 		<!-- End warehouse, supplier, expectedAt -->
 
-		<div class="row my-4" id="submitBtn">
+		<div class="row my-4 d-none" id="submitBtn">
 			<div class="col-4 mx-auto">
 				<button class="btn btn-primary" type="submit" id="setReceiveBtn">
 					Sửa phiếu nhập
@@ -75,10 +80,15 @@ Phiếu nhập
 		</div>
 
 		<!-- Begin items pick and datalist -->
-		<div class="row mt-3" id="itemInput">
+		<div class="row mt-3 d-none" id="itemInput">
 			<input onclick="this.value = ''" onblur="this.value = ''" list="itemOpts" id="itemPick"
 				placeholder="Tìm hàng...">
-			<datalist id="itemOpts"></datalist>
+			<datalist id="itemOpts">
+				{{range .ItemQuantitys}}
+				<option value="{{.Item.GTIN}}#{{.Quantity}}#{{.Item.ImgFSPath}}#{{.Item.Name}}">
+					{{.Item.GTIN}} - {{.Item.Name}}</option>
+				{{end}}
+			</datalist>
 		</div>
 		<!-- End items pick and datalist -->
 
@@ -103,11 +113,13 @@ Phiếu nhập
 						<td>
 							<input type="number"
 								class="form-control was-validated tdQuantity" min="1"
-								max="{{.Quantity}}" required value="{{.Quantity}}">
-							<div class="invalid-feedback">Min 1, Max {{.Quantity}}</div>
+								max="{{.MaxReceiveQuantity}}" required
+								value="{{.Quantity}}" disabled>
+							<div class="invalid-feedback">Min 1, Max {{.MaxReceiveQuantity}}
+							</div>
 						</td>
 						<td>
-							<button class="btn btn-danger delete">X</button>
+							<button class="btn btn-danger delete" disabled>X</button>
 						</td>
 					</tr>
 					{{end}}
@@ -150,17 +162,43 @@ Phiếu nhập
 
 	// After getting items (above), begin others task from this point
 	document.addEventListener('DOMContentLoaded', function () {
-		document.querySelector('#itemList').querySelectorAll('tr').forEach((tr, idx) => {
-			console.log(tr.querySelector('.tdGTIN').innerText);
-			let iq = {
-				gtin: tr.querySelector('.tdGTIN').innerText,
-				img: tr.querySelector('img').src,
-				name: tr.querySelector('.tdName').innerText,
-				quantity: tr.querySelector('input[type=number]').value,
-			};
-			iqs.push(iq);
+		// document.querySelector('#itemList').querySelectorAll('tr').forEach((tr, idx) => {
+		// 	console.log(tr.querySelector('.tdGTIN').innerText);
+		// 	let iq = {
+		// 		gtin: tr.querySelector('.tdGTIN').innerText,
+		// 		img: tr.querySelector('img').src,
+		// 		name: tr.querySelector('.tdName').innerText,
+		// 		quantity: tr.querySelector('input[type=number]').value,
+		// 	};
+		// 	iqs.push(iq);
+		// });
+		// console.log(iqs);
+
+		document.querySelector('#setReceive').addEventListener('change', (e) => {
+			if (e.target.checked) {
+				document.querySelector('#expectedAt').disabled = false;
+				document.querySelector('#voucherID').disabled = false;
+				document.querySelector('#submitBtn').classList.remove('d-none');
+				document.querySelector('#itemInput').classList.remove('d-none');
+				document.querySelectorAll('input[type=number]').forEach((i, idx) => {
+					i.disabled = false;
+				});
+				document.querySelectorAll('.delete').forEach((b, idx) => {
+					b.disabled = false;
+				});
+			} else {
+				document.querySelector('#expectedAt').disabled = true;
+				document.querySelector('#voucherID').disabled = true;
+				document.querySelector('#submitBtn').classList.add('d-none');
+				document.querySelector('#itemInput').classList.add('d-none');
+				document.querySelectorAll('input[type=number]').forEach((i, idx) => {
+					i.disabled = true;
+				});
+				document.querySelectorAll('.delete').forEach((b, idx) => {
+					b.disabled = true;
+				});
+			}
 		});
-		console.log(iqs);
 
 		// Initialize QR scanning
 		Scanner.init(addItem);
@@ -179,35 +217,55 @@ Phiếu nhập
 		function addItem(input) {
 			document.querySelector('#itemOpts').querySelectorAll('option').forEach((o, i) => {
 				if (o.value === input) {
-					console.log(o.value, o.className, o.innerText.split(' - ')[1]);
+					let gtin = o.value.split('#')[0];
+					let maxQuantity = o.value.split('#')[1];
+					let img = o.value.split('#')[2];
+					let name = o.value.split('#')[3];
+					console.log(gtin, maxQuantity, img, name);
 
-					iqs.forEach((iq, idx) => {
-						if (iq.gtin === input) {
-							let tr = document.createElement('tr');
-							tr.innerHTML = `
-								<td><img height="90" src="${iq.img}" alt="${iq.img}"></td>
-								<td class>${iq.gtin}</td>
-								<td>${iq.name}</td>
+					let tr = document.createElement('tr');
+					tr.innerHTML = `
+								<td><img height="90" src="/rec/${img}" alt="/rec/${img}"></td>
+								<td class>${gtin}</td>
+								<td>${name}</td>
 								<td>
-									<input class="form-control was-validated" type="number" min="1" value="${iq.quantity}" required>
-									<div class="invalid-feedback">Min 1 , Max ${iq.quantity}</div>
+									<input class="form-control was-validated" type="number" min="1" value="${maxQuantity}" max="${maxQuantity}" required>
+									<div class="invalid-feedback">Min 1 , Max ${maxQuantity}</div>
 								</td>
-								<td><button class="btn btn-danger btn-sm delete">X</button></td>
+								<td><button class="btn btn-danger delete">X</button></td>
 								`;
 
-							document.querySelector('#itemList').appendChild(tr);
+					document.querySelector('#itemList').appendChild(tr);
 
-							delOpt(o.value);
-						}
-					});
+					delOpt(o.value);
+
+					// iqs.forEach((iq, idx) => {
+					// 	if (iq.gtin === input) {
+					// 		let tr = document.createElement('tr');
+					// 		tr.innerHTML = `
+					// 			<td><img height="90" src="${iq.img}" alt="${iq.img}"></td>
+					// 			<td class>${iq.gtin}</td>
+					// 			<td>${iq.name}</td>
+					// 			<td>
+					// 				<input class="form-control was-validated" type="number" min="1" value="${iq.quantity}" required>
+					// 				<div class="invalid-feedback">Min 1 , Max ${iq.quantity}</div>
+					// 			</td>
+					// 			<td><button class="btn btn-danger btn-sm delete">X</button></td>
+					// 			`;
+
+					// 		document.querySelector('#itemList').appendChild(tr);
+
+					// 		delOpt(o.value);
+					// 	}
+					// });
 				}
 			});
 
 		}
 
-		function delOpt(gtin) {
+		function delOpt(value) {
 			document.querySelector('#itemOpts').querySelectorAll('option').forEach((o, i) => {
-				if (o.value === gtin) {
+				if (o.value === value) {
 					o.remove();
 				}
 			});
@@ -218,7 +276,7 @@ Phiếu nhập
 				let existed = false;
 
 				document.querySelector('#itemOpts').querySelectorAll('option').forEach((o, i) => {
-					if (o.value === e.target.parentElement.previousElementSibling.previousElementSibling.previousElementSibling.innerText) {
+					if (o.value.split('#')[0] === e.target.parentElement.previousElementSibling.previousElementSibling.previousElementSibling.innerText) {
 						existed = true;
 					}
 				});
@@ -226,8 +284,10 @@ Phiếu nhập
 				if (!existed) {
 					let op = document.createElement('option');
 					op.value = e.target.parentElement.previousElementSibling.previousElementSibling.previousElementSibling.innerText;
+					op.value += '#' + e.target.parentElement.previousElementSibling.querySelector('input[type=number]').max;
+					op.value += '#' + e.target.parentElement.previousElementSibling.previousElementSibling.previousElementSibling.previousElementSibling.querySelector('img').src.split('/rec/')[1];
+					op.value += '#' + e.target.parentElement.previousElementSibling.previousElementSibling.innerText;
 					op.innerText = `${e.target.parentElement.previousElementSibling.previousElementSibling.previousElementSibling.innerText} - ${e.target.parentElement.previousElementSibling.previousElementSibling.innerText}`;
-					op.className = e.target.parentElement.previousElementSibling.previousElementSibling.previousElementSibling.previousElementSibling.querySelector('img').src.split('/rec/')[1];
 
 					document.querySelector('#itemOpts').appendChild(op);
 				}
@@ -242,6 +302,7 @@ Phiếu nhập
 				// purchase: { id: document.querySelector('#purchaseID').innerText },
 				id: document.querySelector('#receiveID').innerText,
 				expectedAt: document.querySelector('#expectedAt').value,
+				voucherID: document.querySelector('#voucherID').value,
 				items: [],
 			};
 
@@ -258,16 +319,14 @@ Phiếu nhập
 		}
 
 		function requestSetReceive(obj) {
-			// let o = receiveInput();
-
-			let ok = false;
-			fetch(domain + '/receive', {
-				method: 'PUT',
-				body: JSON.stringify(obj),
-				headers: {
-					'Content-Type': 'application/json'
-				}
-			});
+			// let ok = false;
+			// fetch(domain + '/receive', {
+			// 	method: 'PUT',
+			// 	body: JSON.stringify(obj),
+			// 	headers: {
+			// 		'Content-Type': 'application/json'
+			// 	}
+			// });
 			// .then(res => {
 			// 	ok = res.ok;
 			// 	if (res.redirected) {
@@ -293,7 +352,7 @@ Phiếu nhập
 				return;
 			}
 
-			if (confirm('Bạn đã chắc về thông tin của yêu cầu nhập?')) {
+			if (confirm('Bạn đã chắc về thông tin của phiếu nhập?')) {
 				requestSetReceive(receiveInput());
 			}
 		});

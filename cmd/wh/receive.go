@@ -57,7 +57,7 @@ func (ap *application) addReceivePage() http.Handler {
 			ap.logger.Error(err.Error())
 
 			if errors.Is(err, data.ErrNoPurchases) {
-				http.Error(w, fmt.Sprintf("Không tìm thấy yêu cầu nhập ID: %v", pID), http.StatusBadRequest)
+				http.Error(w, fmt.Sprintf("Không tìm thấy yêu cầu nhập ID: %v", pc.ID), http.StatusBadRequest)
 			} else {
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			}
@@ -67,14 +67,6 @@ func (ap *application) addReceivePage() http.Handler {
 		if !ok {
 			ap.logger.Error(fmt.Sprintf("%v; %v", ErrConvertCtxVal.Error(), aID))
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-			return
-		}
-
-		// if purchase's receive add ID is not ACC-0 or the authenticated ID, then "another acc is adding receive to this pur, please wait and retry later"
-		if pc.ReceiveAddOwner != data.AccountIDCode+"0" && pc.ReceiveAddOwner != aID {
-			s := fmt.Sprintf("Một tài khoản khác đang thêm phiếu nhập cho yêu cầu nhập ID %v.\nHãy thử lại sau", pc.ID)
-			ap.logger.Error(s + "; owner" + pc.ID)
-			http.Error(w, s, http.StatusUnprocessableEntity)
 			return
 		}
 
@@ -92,8 +84,13 @@ func (ap *application) addReceivePage() http.Handler {
 			return
 		}
 
-		// if receive_add_owner is 0 then claim receive_add_owner
-		if pc.ReceiveAddOwner == data.AccountIDCode+"0" {
+		// if purchase's receive add ID is not ACC-0 or the authenticated ID, then "another acc is adding receive to this pur, please wait and retry later"
+		if pc.ReceiveAddOwner != data.AccountIDCode+"0" && pc.ReceiveAddOwner != aID {
+			s := fmt.Sprintf("Một tài khoản khác đang thêm phiếu nhập cho yêu cầu nhập ID %v.\nHãy thử lại sau", pc.ID)
+			ap.logger.Error(s + "; add_receive_owner " + pc.ID)
+			http.Error(w, s, http.StatusUnprocessableEntity)
+			return
+		} else if pc.ReceiveAddOwner == data.AccountIDCode+"0" { // if receive_add_owner is 0 then claim receive_add_owner
 			err = ap.data.ClaimReceiveAddOwner(pc.ID, aID)
 			if err != nil {
 				ap.logger.Error(err.Error())
@@ -107,7 +104,7 @@ func (ap *application) addReceivePage() http.Handler {
 			}
 			// ap.background(func() {
 			// 	fmt.Print("\nREMEMBER, a new goroutine is about to unclaim the add receive owner in the background\n\n")
-			// 	time.Sleep(15 * time.Minute)
+			// 	time.Sleep(7 * time.Minute)
 			// 	// time.Sleep(4 * time.Second)
 			// 	println("begin unclaiming receive add owner", aID)
 
@@ -116,6 +113,8 @@ func (ap *application) addReceivePage() http.Handler {
 			// 		ap.logger.Error(err2.Error())
 			// 		panic(err)
 			// 	}
+
+			// 	println("finished unclaiming receive add owner", aID)
 			// })
 		}
 
@@ -201,7 +200,7 @@ func (ap *application) addReceive() http.Handler {
 			return
 		}
 		if pc.ReceiveAddOwner == data.AccountIDCode+"0" {
-			s := fmt.Sprintf("Đã hết hạn 15ph để tạo phiếu cho yêu cầu nhập ID %v.\nHãy tải lại trang và thực hiện lại", pc.ID)
+			s := fmt.Sprintf("Đã hết hạn 7ph để tạo phiếu cho yêu cầu nhập ID %v.\nHãy tải lại trang và thực hiện lại", pc.ID)
 			ap.logger.Error(s)
 			http.Error(w, s, http.StatusUnprocessableEntity)
 			return
@@ -226,8 +225,8 @@ func (ap *application) addReceive() http.Handler {
 		}
 
 		// Start to add the receive
-		rc.Account.ID = aID
 		// Also unclaims receive add owner at this step
+		rc.Account.ID = aID
 		err = ap.data.AddReceive(&rc)
 		if err != nil {
 			ap.logger.Error(err.Error())
@@ -255,7 +254,6 @@ func (ap *application) addReceive() http.Handler {
 			return
 		}
 
-		// fmt.Printf("Đã thêm phiếu nhập ID %v cho yêu cầu nhập ID %v", rc.ID, rc.Purchase.ID)
 		http.Redirect(w, r, "/receive/"+rc.ID, http.StatusSeeOther)
 	})
 }
@@ -275,7 +273,6 @@ func (ap *application) receivePage() http.Handler {
 			}
 			return
 		}
-		printIndenJSON(rc)
 
 		td, err := ap.newTemplData(r)
 		if err != nil {
@@ -284,6 +281,13 @@ func (ap *application) receivePage() http.Handler {
 			return
 		}
 		td.Receive = *rc
+
+		td.ItemQuantitys, err = ap.data.UnreceivedPurchaseItemsOpt(rc)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
 
 		err = ap.render(w, http.StatusOK, "receive", td)
 		if err != nil {

@@ -12,7 +12,7 @@ import (
 
 const (
 	AccountIDCode   = "ACC-"
-	ItemIDCode      = "ITE-"
+	GTINIDCode      = "GTI-"
 	SerialIDCode    = "SER-"
 	BinIDCode       = "BIN-"
 	ToteIDCode      = "TOT-"
@@ -26,6 +26,7 @@ const (
 	ResupplyIDCode  = "RES-"
 	ExportIDCode    = "EXP-"
 	TransferIDCode  = "TRA-"
+	VoucherIDCode  = "VOU-"
 )
 
 const (

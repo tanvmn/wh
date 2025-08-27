@@ -251,6 +251,7 @@ create table if not exists receive (
 	created_at timestamp not null default now(),
 	version integer not null default 1,
 	note text default 'none',
+	voucher_id text not null,
 	transfer_id bigint
 );
 
@@ -259,6 +260,7 @@ create table if not exists receive_item (
 	gtin text not null,
 	receive_id bigint not null,
 	version integer not null default 1,
+	note text default 'none',
 	quantity bigint not null
 );
 
@@ -270,6 +272,7 @@ create table if not exists export (
 	created_at timestamp not null default now(),
 	version integer not null default 1,
 	note text default 'none',
+	voucher_id text not null,
 	transfer_id bigint
 );
 
@@ -278,6 +281,7 @@ create table if not exists export_item (
 	resupply_id bigint not null,
 	gtin text not null,
 	version integer not null default 1,
+	note text default 'none',
 	quantity bigint not null
 );
 

@@ -9,13 +9,13 @@ import (
 )
 
 type Receive struct {
-	ID       string   `json:"id,omitempty,omitzero"`
-	Purchase Purchase `json:"purchase,omitempty,omitzero"`
-	Account  Account  `json:"account,omitempty,omitzero"`
-	// EditOwner  Account        `json:"editOwner,omitempty,omitzero"`
+	ID         string         `json:"id,omitempty,omitzero"`
+	Purchase   Purchase       `json:"purchase,omitempty,omitzero"`
+	Account    Account        `json:"account,omitempty,omitzero"`
 	ExpectedAt string         `json:"expectedAt,omitempty,omitzero"`
 	ActualAt   string         `json:"actualAt,omitempty,omitzero"`
 	CreatedAt  string         `json:"createdAt,omitempty,omitzero"`
+	VoucherID  string         `json:"voucherID,omitempty,omitzero"`
 	Transfer   Transfer       `json:"transfer,omitempty,omitzero"`
 	Version    int            `json:"version,omitempty,omitzero"`
 	Note       string         `json:"note,omitempty,omitzero"`
@@ -190,12 +190,12 @@ func addReceive(tx *sql.Tx, rc *Receive) error {
 	defer cancel()
 
 	stmt := fmt.Sprintf(`
-	insert into receive (purchase_id, account_id, expected_at) values
-	($1,$2,$3)
+	insert into receive (purchase_id, account_id, expected_at, voucher_id) values
+	($1,$2,$3,$4)
 	returning '%v'||id, version
 	;`, ReceiveIDCode)
 
-	err = tx.QueryRowContext(ctx, stmt, pI, aI, rc.ExpectedAt).Scan(&rc.ID, &rc.Version)
+	err = tx.QueryRowContext(ctx, stmt, pI, aI, rc.ExpectedAt, rc.VoucherID).Scan(&rc.ID, &rc.Version)
 	if err != nil {
 		return err
 	}
@@ -330,6 +330,7 @@ func (db *Data) Receive(id string) (*Receive, error) {
 	,'%v'||transfer_id
 	,receive.version
 	,note
+	,voucher_id
 	from receive
 	where receive.id = $1
 	;`,
@@ -353,6 +354,7 @@ func (db *Data) Receive(id string) (*Receive, error) {
 		&transferID,
 		&rc.Version,
 		&rc.Note,
+		&rc.VoucherID,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -389,6 +391,11 @@ func (db *Data) Receive(id string) (*Receive, error) {
 			}
 		}
 		rc.Transfer = *tf
+	}
+
+	err = db.MaxReceiveQuantity(&rc)
+	if err != nil {
+		return nil, err
 	}
 
 	return &rc, nil
@@ -467,6 +474,12 @@ func (db *Data) ReceivesByPurchase(purchaseID string) ([]Receive, error) {
 			rc.Transfer = *tf
 		}
 
+		pc, err := db.Purchase(rc.Purchase.ID)
+		if err != nil {
+			return nil, err
+		}
+		rc.Purchase = *pc
+
 		ac, err := db.Account(rc.Account.ID)
 		if err != nil {
 			return nil, err
@@ -474,6 +487,11 @@ func (db *Data) ReceivesByPurchase(purchaseID string) ([]Receive, error) {
 		rc.Account = *ac
 
 		err = db.ReceiveItems(&rc)
+		if err != nil {
+			return nil, err
+		}
+
+		err = db.MaxReceiveQuantity(&rc)
 		if err != nil {
 			return nil, err
 		}
@@ -486,4 +504,25 @@ func (db *Data) ReceivesByPurchase(purchaseID string) ([]Receive, error) {
 	}
 
 	return rs, nil
+}
+
+func (db *Data) MaxReceiveQuantity(rc *Receive) error {
+	pis, err := db.UnreceivedPurchaseItems(&rc.Purchase)
+	if err != nil {
+		return err
+	}
+
+	for i := range rc.Items {
+		for _, pi := range pis {
+			if pi.Item.GTIN == rc.Items[i].Item.GTIN {
+				rc.Items[i].MaxReceiveQuantity = rc.Items[i].Quantity + pi.Quantity
+				break
+			}
+		}
+		if rc.Items[i].MaxReceiveQuantity == 0 {
+			rc.Items[i].MaxReceiveQuantity = rc.Items[i].Quantity
+		}
+	}
+
+	return nil
 }

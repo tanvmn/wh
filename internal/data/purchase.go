@@ -724,7 +724,9 @@ func (db *Data) UnclaimReceiveAddOwner(purchaseID, accountID string) error {
 
 	err = db.DB.QueryRowContext(ctx, stmt, pI, aI).Scan(&owner)
 	if err != nil {
-		return err
+		if errors.Is(err, sql.ErrNoRows) {
+			return err
+		}
 	}
 
 	return nil
@@ -798,7 +800,7 @@ func (db *Data) UnreceivedPurchaseItems(pc *Purchase) ([]ItemQuantity, error) {
 					// err = fmt.Errorf("purchase item %v's quantity is less then added to receives", pi[i].Item.GTIN)
 					// ap.logger.Error(err.Error())
 					// return nil, err
-					return nil, fmt.Errorf("%w: purchase item %v's quantity is less then added to receives",ErrCorruptedData, pi[i].Item.GTIN)
+					return nil, fmt.Errorf("%w: purchase item %v's quantity is less then added to receives", ErrCorruptedData, pi[i].Item.GTIN)
 				}
 
 				iq.Quantity = pi[i].Quantity - ri.Quantity
@@ -807,6 +809,32 @@ func (db *Data) UnreceivedPurchaseItems(pc *Purchase) ([]ItemQuantity, error) {
 		}
 		if iq.Quantity > 0 {
 			iqs = append(iqs, iq)
+		}
+	}
+
+	return iqs, nil
+}
+
+func (db *Data) UnreceivedPurchaseItemsOpt(rc *Receive) ([]ItemQuantity, error) {
+	uis, err := db.UnreceivedPurchaseItems(&rc.Purchase)
+	if err != nil {
+		return nil, err
+	}
+	
+	var iqs []ItemQuantity
+
+	for _, ui := range uis {
+		contained := false
+		for _, ri := range rc.Items {
+			if ui.Item.GTIN == ri.Item.GTIN {
+				contained = true
+			}
+		}
+
+		if !contained {
+			iqs = append(iqs, ui)
+		} else {
+			contained = true
 		}
 	}
 

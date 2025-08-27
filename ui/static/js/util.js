@@ -24,6 +24,8 @@ const IDCode = {
   ReceiveIDCode: "REC-",
   ResupplyIDCode: "RES-",
   ExportIDCode: "EXP-",
+  TransferIDCode: "TRA-",
+  VoucherIDCode: "VOU-",
 };
 
 class Scanner {

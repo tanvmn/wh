@@ -33,11 +33,11 @@ type Item struct {
 }
 
 type ItemQuantity struct {
-	// Item Item    `json:"item,omitempty,omitzero"`
-	Item     `json:"item,omitempty,omitzero"`
-	Receive  `json:"receive,omitempty,omitzero"`
-	Export   `json:"export,omitempty,omitzero"`
-	Quantity int64 `json:"quantity,omitempty,omitzero"`
+	Quantity           int64 `json:"quantity,omitempty,omitzero"`
+	MaxReceiveQuantity int64 `json:"maxReceiveQuantity,omitempty,omitzero"`
+	Item               `json:"item,omitempty,omitzero"`
+	Receive            `json:"receive,omitempty,omitzero"`
+	Export             `json:"export,omitempty,omitzero"`
 }
 
 type Serial struct {
