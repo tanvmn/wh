@@ -28,7 +28,11 @@ Yêu cầu nhập
 		</thead>
 		<tbody id="tbody">
 			{{$domain := .Domain}}
+			{{$endedStatus := .Ended}}
+			{{$declinedStatus := .Declined}}
 			{{range .Purchases}}
+			{{$ended := (ne $endedStatus .Status)}}
+			{{$declined := (ne $declinedStatus .Status)}}
 			<tr>
 				<td>{{.ID}}</td>
 				<td>
@@ -56,10 +60,12 @@ Yêu cầu nhập
 						target="_blank">
 						Xem
 					</a>
-					<a class="btn btn-sm btn-dark ms-2" href="{{$domain}}/add-receive?purchase={{.ID}}"
-						target="_blank">
+					{{if (and $ended $declined)}}
+					<a class="btn btn-sm btn-dark ms-2"
+						href="{{$domain}}/add-receive?purchase={{.ID}}" target="_blank">
 						+ Phiếu nhập
 					</a>
+					{{end}}
 				</td>
 			</tr>
 			{{end}}

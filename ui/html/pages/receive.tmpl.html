@@ -16,7 +16,7 @@ Phiếu nhập
 
 <div class="container-fluid">
 	{{with .Receive.ID}}
-	<div class="row p-2">
+	<div class="row p-3">
 		<div class="col-3">
 			<h3 class="d-inline">
 				Phiếu nhập ID:&nbsp&nbsp
@@ -64,9 +64,10 @@ Phiếu nhập
 			</div>
 			<div class="col">
 				<label for="voucherID" class="form-label">Chứng từ gốc</label>
-				<input name="voucherID" id="voucherID" class="form-control"
-					value="{{.VoucherID}}" disabled>
+				<input name="voucherID" id="voucherID" class="form-control" value="{{.VoucherID}}"
+					disabled>
 			</div>
+			<input type="text" name="" id="version" value="{{.Version}}" style="display: none;">
 			{{end}}
 		</div>
 		<!-- End warehouse, supplier, expectedAt -->
@@ -132,7 +133,7 @@ Phiếu nhập
 <script type="module">
 	import { domain, Scanner } from "/static/js/util.js";
 
-	let iqs = [];
+	// let iqs = [];
 
 	// let pc;
 	// getPurchase();
@@ -173,6 +174,7 @@ Phiếu nhập
 		// 	iqs.push(iq);
 		// });
 		// console.log(iqs);
+		console.log('version', document.querySelector('#version').value);
 
 		document.querySelector('#setReceive').addEventListener('change', (e) => {
 			if (e.target.checked) {
@@ -289,6 +291,7 @@ Phiếu nhập
 					op.value += '#' + e.target.parentElement.previousElementSibling.previousElementSibling.innerText;
 					op.innerText = `${e.target.parentElement.previousElementSibling.previousElementSibling.previousElementSibling.innerText} - ${e.target.parentElement.previousElementSibling.previousElementSibling.innerText}`;
 
+
 					document.querySelector('#itemOpts').appendChild(op);
 				}
 
@@ -303,6 +306,7 @@ Phiếu nhập
 				id: document.querySelector('#receiveID').innerText,
 				expectedAt: document.querySelector('#expectedAt').value,
 				voucherID: document.querySelector('#voucherID').value,
+				version: parseInt(document.querySelector('#version').value),
 				items: [],
 			};
 
@@ -319,25 +323,25 @@ Phiếu nhập
 		}
 
 		function requestSetReceive(obj) {
-			// let ok = false;
-			// fetch(domain + '/receive', {
-			// 	method: 'PUT',
-			// 	body: JSON.stringify(obj),
-			// 	headers: {
-			// 		'Content-Type': 'application/json'
-			// 	}
-			// });
-			// .then(res => {
-			// 	ok = res.ok;
-			// 	if (res.redirected) {
-			// 		window.location.replace(res.url);
-			// 		return;
-			// 	}
-			// 	return res.text();
-			// })
-			// .then(data => {
-			// 	if (!ok) alert(data);
-			// });
+			let ok = false;
+			fetch(domain + '/receive', {
+				method: 'PUT',
+				body: JSON.stringify(obj),
+				headers: {
+					'Content-Type': 'application/json'
+				}
+			})
+				.then(res => {
+					ok = res.ok;
+					if (res.redirected) {
+						window.location.replace(res.url);
+						return;
+					}
+					return res.text();
+				})
+				.then(data => {
+					if (!ok) alert(data);
+				});
 		}
 
 		// Submit the purchase in JSON to server

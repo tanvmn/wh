@@ -14,10 +14,12 @@
 	}
 </style>
 
-<div class="container-fluid mt-3">
+<div class="container-fluid">
 	{{$domain := .Domain}}
+	{{$awaitingResponse := (eq .AwaitingResponse .Purchase.Status)}}
+	{{$awaitingReceive := (eq .AwaitingReceive .Purchase.Status)}}
 	{{with .Purchase.ID}}
-	<div class="row">
+	<div class="row p-3">
 		<div class="col-3">
 			<h3 class="d-inline">
 				Yêu cầu nhập ID:&nbsp&nbsp
@@ -25,6 +27,7 @@
 			</h3>
 		</div>
 
+		{{if (or $awaitingReceive $awaitingResponse)}}
 		<div class="col-1">
 			<label class="form-check-label" for="setPurchase">
 				<h4>Sửa</h4>
@@ -32,6 +35,7 @@
 			<input class="form-check-input" type="checkbox" name="setPurchase" id="setPurchase">
 
 		</div>
+		{{end}}
 
 		<div class="col-1">
 			<button id="delPurchaseBtn" class="btn btn-danger ms-5"><strong>Xóa</strong></button>
@@ -41,10 +45,10 @@
 				class="btn btn-dark ms-5"><strong>+ Phiếu nhập</strong></a>
 		</div>
 	</div>
-	<br>
 	{{else}}
-	<div class="row"><strong>Tạo yêu cầu nhập</strong></div>
-	<br>
+	<div class="row p-3">
+		<h3>Tạo yêu cầu nhập</h3>
+	</div>
 	{{end}}
 
 	<!-- Begin form warehouse, supplier, expectedAt -->

@@ -526,3 +526,97 @@ func (db *Data) MaxReceiveQuantity(rc *Receive) error {
 
 	return nil
 }
+
+func delReceiveItems(tx *sql.Tx, receiveID64 int64) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	stmt := `
+	delete from receive_item
+	where
+	receive_id = $1
+	;`
+
+	_, err := tx.ExecContext(ctx, stmt, receiveID64)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func setReceiveItems(tx *sql.Tx, rc *Receive) error {
+	i, err := id64(rc.ID, ReceiveIDCode)
+	if err != nil {
+		return err
+	}
+
+	err = delReceiveItems(tx, i)
+	if err != nil {
+		return err
+	}
+
+	err = addReceiveItems(tx, rc)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func setReceive(tx *sql.Tx, rc *Receive) error {
+	i, err := id64(rc.ID, ReceiveIDCode)
+	if err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	stmt := `
+	update receive set
+	expected_at = $1
+	, version = version + 1
+	, voucher_id = $2
+	where
+	id = $3
+	and version = $4
+	returning version
+	;`
+	var version int
+
+	err = tx.QueryRowContext(ctx, stmt, rc.ExpectedAt, rc.VoucherID, i, rc.Version).Scan(&version)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (db *Data) SetReceive(rc *Receive) error {
+	tx, err := db.DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	err = setReceive(tx, rc)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrNoReceives
+		}
+		return err
+	}
+
+	err = setReceiveItems(tx, rc)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

@@ -11,41 +11,6 @@ import (
 	"github.com/tanNguyen2220022/wh/internal/validator"
 )
 
-// unreceivePurchaseItems returns quantities of items in purchase that haven't been added to any receives
-// func (ap *application) unreceivedPurchaseItems(pc *data.Purchase) ([]data.ItemQuantity, error) {
-// 	ris, err := ap.data.ReceiveItemsByPurchase(pc.ID)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	if ris == nil {
-// 		return pc.Items, nil
-// 	}
-//
-// 	var iqs []data.ItemQuantity
-//
-// 	pi := pc.Items
-// 	for i := range pi {
-// 		iq := pi[i]
-// 		for _, ri := range ris {
-// 			if pi[i].Item.GTIN == ri.Item.GTIN {
-// 				if pi[i].Quantity < ri.Quantity {
-// 					err = fmt.Errorf("purchase item %v's quantity is less then added to receives", pi[i].Item.GTIN)
-// 					ap.logger.Error(err.Error())
-// 					return nil, err
-// 				}
-//
-// 				iq.Quantity = pi[i].Quantity - ri.Quantity
-// 				break
-// 			}
-// 		}
-// 		if iq.Quantity > 0 {
-// 			iqs = append(iqs, iq)
-// 		}
-// 	}
-//
-// 	return iqs, nil
-// }
-
 func (ap *application) addReceivePage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// get the purchase ID
@@ -211,7 +176,7 @@ func (ap *application) addReceive() http.Handler {
 		}
 
 		// Check if purchase still has items that have not been added to receives.
-		// If there aren't, but this request is still present then there has to be an error from the dev
+		// If there aren't, but this request is still present then there has to be an logic error somewhere
 		uri, err := ap.data.UnreceivedPurchaseItems(pc)
 		if err != nil {
 			ap.logger.Error(ErrConvertCtxVal.Error())
@@ -295,5 +260,49 @@ func (ap *application) receivePage() http.Handler {
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
+	})
+}
+
+func (ap *application) setReceive() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var rc data.Receive
+
+		err := ap.decodeJSON(w, r, &rc)
+		if err != nil {
+			ap.logger.Error(err.Error())
+
+			var mr *util.MalformedRequest
+			if errors.As(err, &mr) {
+				http.Error(w, mr.Msg, mr.Status)
+			} else {
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			}
+			return
+		}
+
+		rcp, err := ap.data.Receive(rc.ID)
+		if err != nil {
+			if errors.Is(err, data.ErrNoReceives) {
+				http.Error(w, fmt.Sprintf("Không tìm thấy phiếu nhập ID %v", rc.ID), http.StatusUnprocessableEntity)
+			} else {
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			}
+			return
+		}
+		rc.Purchase = rcp.Purchase
+
+		err = ap.data.SetReceive(&rc)
+		if err != nil {
+			ap.logger.Error(err.Error())
+
+			if errors.Is(err, data.ErrNoReceives) {
+				http.Error(w, fmt.Sprintf("Phiếu nhập ID %v có thể đã hoặc đang được điều chỉnh bởi 1 tài khoản khác. Hãy tải lại trang và thử lại", rc.ID), http.StatusUnprocessableEntity)
+			} else {
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			}
+			return
+		}
+
+		http.Redirect(w, r, "receive/"+rc.ID, http.StatusSeeOther)
 	})
 }
