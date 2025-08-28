@@ -11,6 +11,9 @@
 	td {
 		padding: 0;
 		text-align: center;
+		/* flex-direction: row;
+		justify-content: center;
+		align-items: center; */
 	}
 </style>
 
@@ -47,7 +50,7 @@
 	</div>
 	{{else}}
 	<div class="row p-3">
-		<h3>Tạo yêu cầu nhập</h3>
+		<h3>Thêm yêu cầu nhập</h3>
 	</div>
 	{{end}}
 
@@ -358,7 +361,7 @@
 							<input class="form-control was-validated" type="number" min="1" required>
 							<div class="invalid-feedback">Ít nhất 1 cái</div>
 						</td>
-						<td><button class="btn btn-danger btn-sm delete">X</button></td>
+						<td><button class="btn btn-danger delete">X</button></td>
 						`;
 
 					document.querySelector('#itemList').appendChild(tr);
@@ -402,20 +405,6 @@
 
 		function addItemOptFromJSON(obj) {
 			obj.forEach((o, i) => {
-				// let chosen = false;
-				// document.querySelectorAll('tdGTIN').forEach((td) => {
-				// 	if (td.innerText === o.gtin) chosen = true;
-				// 	return;
-				// });
-				// if (!chosen) {
-				// 	let op = document.createElement('option');
-				// 	op.className = o.imgFSPath;
-				// 	op.value = o.gtin;
-				// 	op.innerText = `${o.gtin} - ${o.name}`;
-
-				// 	chosen = false;
-				// }
-
 				let op = document.createElement('option');
 				op.className = o.imgFSPath;
 				op.value = o.gtin;
