@@ -51,20 +51,6 @@ func (ap *application) routes() http.Handler {
 		// }
 
 		// fmt.Fprintf(w, "%v bytes written\n", n)
-
-		ps, err := ap.data.Purchases()
-		if err != nil {
-			ap.logger.Error(err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		err = ap.writeJSON(w, http.StatusOK, ps, nil)
-		if err != nil {
-			ap.logger.Error(err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
 	})
 
 	identify := middlewares{ap.sessionsManager.LoadAndSave, ap.identify}
