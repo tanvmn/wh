@@ -235,7 +235,7 @@ func (ap *application) purchasePage() http.Handler {
 			}
 		}
 
-		if err := ap.render(w, http.StatusOK, "purchase", data); err != nil {
+		if err := ap.render(w, http.StatusOK, "purchase_set", data); err != nil {
 			ap.logger.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
@@ -252,7 +252,7 @@ func (ap *application) addPurchasePage() http.Handler {
 			return
 		}
 
-		if err := ap.render(w, http.StatusOK, "purchase", data); err != nil {
+		if err := ap.render(w, http.StatusOK, "purchase_add", data); err != nil {
 			ap.logger.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
