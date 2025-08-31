@@ -1,5 +1,5 @@
 {{define "title"}}
-Yêu cầu nhập
+Phiếu nhập
 {{end}}
 
 {{define "main"}}
@@ -13,25 +13,19 @@ Yêu cầu nhập
 </style>
 
 <div class="container-fluid">
-	<div class="p-3">
-		<h3 class="d-inline">
-			Yêu cầu nhập của kho:&nbsp&nbsp
-			<span id="warehouseName" class="badge text-bg-info">{{.Account.Warehouse.Name}}</span>
-		</h3>
-
-		<a class="btn btn-dark ms-4" href="{{.Domain}}/add-purchase" target="_blank">
-			+
-		</a>
-	</div>
-
-	<table id="purchasesTable" class="display compact">
+	<h3 class="p-3">
+		Phiếu nhập của yêu cầu nhập ID:&nbsp&nbsp
+		<span id="purchaseID" class="badge text-bg-info">{{.Purchase.ID}}</span>
+	</h3>
+	<table id="receivesTable" class="display compact">
 		<thead>
 			<tr>
 				<th>ID</th>
+				<th>ID phiếu nhập</th>
 				<th>Kho</th>
 				<th>Nhà cung<br>cấp</th>
 				<th>Dự kiến nhập<br>(dd-mm-yyyy hh24:mi)</th>
-				<th>Trạng thái</th>
+				<th>Nhập lúc<br>(dd-mm-yyyy hh24:mi)</th>
 				<th>Tạo bởi</th>
 				<th>Tạo lúc<br>(dd-mm-yyyy hh24:mi)</th>
 				<th></th>
@@ -41,24 +35,29 @@ Yêu cầu nhập
 			{{$domain := .Domain}}
 			{{$endedStatus := .Ended}}
 			{{$declinedStatus := .Declined}}
-			{{range .Purchases}}
+			{{range .Receives}}
 			{{$ended := (ne $endedStatus .Status)}}
 			{{$declined := (ne $declinedStatus .Status)}}
 			<tr>
 				<td>{{.ID}}</td>
+				<td>{{.Purchase.ID}}</td>
 				<td>
-					<strong>ID: </strong>{{.Warehouse.ID}}<br>
-					<strong>Tên: </strong>{{.Warehouse.Name}}<br>
+					<strong>ID: </strong>{{.Purchase.Warehouse.ID}}<br>
+					<strong>Tên: </strong>{{.Purchase.Warehouse.Name}}<br>
 				</td>
 				<td>
-					<strong>ID: </strong>{{.Supplier.ID}}<br>
-					<strong>Tên: </strong>{{.Supplier.Name}}<br>
+					<strong>ID: </strong>{{.Purchase.Supplier.ID}}<br>
+					<strong>Tên: </strong>{{.Purchase.Supplier.Name}}<br>
 				</td>
 				<td>{{.ExpectedAt}}</td>
 				<td>
-					<span class="badge text-bg-{{badgeBg .Status}}">
-						{{.Status}}
+					{{if not (notProcessed .ActualAt)}}
+					{{.ActualAt}}
+					{{else}}
+					<span class="badge text-bg-dark">
+						CHƯA NHẬP
 					</span>
+					{{end}}
 				</td>
 				<td>
 					<strong>ID: </strong>{{.Account.ID}}<br>
@@ -67,20 +66,9 @@ Yêu cầu nhập
 				</td>
 				<td>{{.CreatedAt}}</td>
 				<td>
-					<a class="btn btn-sm btn-info" href="{{$domain}}/purchase/{{.ID}}"
+					<a class="btn btn-sm btn-info" href="{{$domain}}/receive/{{.ID}}"
 						target="_blank">
 						Xem
-					</a>
-					{{if (and $ended $declined)}}
-					<a class="btn btn-sm btn-dark ms-2"
-						href="{{$domain}}/add-receive?purchase={{.ID}}" target="_blank">
-						+ Phiếu nhập
-					</a>
-					{{end}}
-					<a class="btn btn-sm btn-success ms-2"
-						href="{{$domain}}/receives-by-purchase?purchase={{.ID}}"
-						target="_blank">
-						Các phiếu nhập
 					</a>
 				</td>
 			</tr>
@@ -101,7 +89,7 @@ Yêu cầu nhập
 		};
 	}
 	document.addEventListener('DOMContentLoaded', () => {
-		let table = new DataTable('#purchasesTable', {
+		let table = new DataTable('#receivesTable', {
 			columnDefs: [
 				{
 					targets: '_all',

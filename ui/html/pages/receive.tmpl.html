@@ -15,15 +15,15 @@ Phiếu nhập
 </style>
 
 <div class="container-fluid">
-	{{with .Receive.ID}}
+	{{with .Receive}}
 	<div class="row p-3">
 		<div class="col-3">
 			<h3 class="d-inline">
 				Phiếu nhập ID:&nbsp&nbsp
-				<span id="receiveID" class="badge text-bg-info">{{.}}</span>
+				<span id="receiveID" class="badge text-bg-info">{{.ID}}</span>
 			</h3>
 		</div>
-
+		{{if (notProcessed .ActualAt)}}
 		<div class="col-1">
 			<label class="form-check-label" for="setReceive">
 				<h4>Sửa</h4>
@@ -35,6 +35,7 @@ Phiếu nhập
 		<div class="col-1">
 			<button id="delReceiveBtn" class="btn btn-danger ms-5"><strong>Xóa</strong></button>
 		</div>
+		{{end}}
 	</div>
 	{{end}}
 
@@ -63,7 +64,7 @@ Phiếu nhập
 				</div>
 			</div>
 			<div class="col">
-				<label for="voucherID" class="form-label">Chứng từ gốc</label>
+				<label for="voucherID" class="form-label">Số chứng từ gốc</label>
 				<input name="voucherID" id="voucherID" class="form-control" value="{{.VoucherID}}"
 					disabled>
 			</div>
@@ -131,50 +132,29 @@ Phiếu nhập
 	</form>
 </div>
 <script type="module">
-	import { domain, Scanner } from "/static/js/util.js";
-
-	// let iqs = [];
-
-	// let pc;
-	// getPurchase();
-
-	// function getPurchase() {
-	// 	if (document.querySelector('#purchaseID') !== null) {
-	// 		const pID = document.querySelector('#purchaseID').innerText;
-	// 		let ok = false;
-
-	// 		fetch(domain + '/purchase/' + pID + '/json')
-	// 			.then(res => {
-	// 				ok = res.ok;
-	// 				if (res.ok) return res.json();
-	// 				else return res.text();
-	// 			})
-	// 			.then(data => {
-	// 				if (!ok) {
-	// 					console.log(data);
-	// 					return;
-	// 				}
-	// 				pc = data;
-	// 				console.log(pc);
-	// 			});
-	// 	}
-	// }
-
+	import { domain, IDCode, Scanner } from "/static/js/util.js";
 
 	// After getting items (above), begin others task from this point
 	document.addEventListener('DOMContentLoaded', function () {
-		// document.querySelector('#itemList').querySelectorAll('tr').forEach((tr, idx) => {
-		// 	console.log(tr.querySelector('.tdGTIN').innerText);
-		// 	let iq = {
-		// 		gtin: tr.querySelector('.tdGTIN').innerText,
-		// 		img: tr.querySelector('img').src,
-		// 		name: tr.querySelector('.tdName').innerText,
-		// 		quantity: tr.querySelector('input[type=number]').value,
-		// 	};
-		// 	iqs.push(iq);
-		// });
-		// console.log(iqs);
-		console.log('version', document.querySelector('#version').value);
+		document.querySelector('#delReceiveBtn').addEventListener('click', (e) => {
+			if (confirm('Bạn có chắc muốn xóa phiếu nhập')) {
+				let id = document.querySelector('#receiveID').innerText;
+				let ok = false;
+
+				fetch(domain + "/receive/" + id, {
+					method: 'DELETE'
+				})
+					.then(res => {
+						ok = res.ok;
+						if (res.redirected) window.location.replace(res.url);
+						else return res.text();
+					})
+					.then(data => {
+						// if (!ok) alert(data)
+						alert(data);
+					});
+			}
+		});
 
 		document.querySelector('#setReceive').addEventListener('change', (e) => {
 			if (e.target.checked) {
@@ -240,26 +220,6 @@ Phiếu nhập
 					document.querySelector('#itemList').appendChild(tr);
 
 					delOpt(o.value);
-
-					// iqs.forEach((iq, idx) => {
-					// 	if (iq.gtin === input) {
-					// 		let tr = document.createElement('tr');
-					// 		tr.innerHTML = `
-					// 			<td><img height="90" src="${iq.img}" alt="${iq.img}"></td>
-					// 			<td class>${iq.gtin}</td>
-					// 			<td>${iq.name}</td>
-					// 			<td>
-					// 				<input class="form-control was-validated" type="number" min="1" value="${iq.quantity}" required>
-					// 				<div class="invalid-feedback">Min 1 , Max ${iq.quantity}</div>
-					// 			</td>
-					// 			<td><button class="btn btn-danger btn-sm delete">X</button></td>
-					// 			`;
-
-					// 		document.querySelector('#itemList').appendChild(tr);
-
-					// 		delOpt(o.value);
-					// 	}
-					// });
 				}
 			});
 
@@ -301,8 +261,6 @@ Phiếu nhập
 
 		function receiveInput() {
 			let o = {
-				// warehouse: { id: document.querySelector('#warehouse').value.split(' / ')[0] },
-				// purchase: { id: document.querySelector('#purchaseID').innerText },
 				id: document.querySelector('#receiveID').innerText,
 				expectedAt: document.querySelector('#expectedAt').value,
 				voucherID: document.querySelector('#voucherID').value,

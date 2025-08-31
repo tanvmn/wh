@@ -235,7 +235,7 @@ func (ap *application) purchasePage() http.Handler {
 			}
 		}
 
-		if err := ap.render(w, http.StatusOK, "purchase_set", data); err != nil {
+		if err := ap.render(w, http.StatusOK, "purchase", data); err != nil {
 			ap.logger.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
@@ -494,7 +494,14 @@ func (ap *application) delPurchase() http.Handler {
 
 func (ap *application) purchasesPage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ps, err := ap.data.Purchases()
+		wID, ok := r.Context().Value(authenticatedCtxWarehouseID).(string)
+		if !ok {
+			ap.logger.Error(fmt.Sprintf("%v; %v", ErrConvertCtxVal, authenticatedCtxWarehouseID))
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		ps, err := ap.data.Purchases(wID)
 		if err != nil {
 			ap.logger.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)

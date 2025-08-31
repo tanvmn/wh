@@ -1,5 +1,5 @@
 {{define "title"}}
-Yêu cầu nhập
+{{with .Purchase.ID}}Yêu {{else}}Tạo yêu {{end}}cầu nhập
 {{end}}
 
 {{define "main"}}
@@ -48,6 +48,10 @@ Yêu cầu nhập
 				class="btn btn-dark ms-5"><strong>+ Phiếu nhập</strong></a>
 		</div>
 	</div>
+	{{else}}
+	<div class="row p-3">
+		<h3>Thêm yêu cầu nhập</h3>
+	</div>
 	{{end}}
 
 	<!-- Begin form warehouse, supplier, expectedAt -->
@@ -76,7 +80,8 @@ Yêu cầu nhập
 
 			<div class="col">
 				<label for="supplier" class="form-label">Nhà cung cấp</label>
-				<select name="supplier" id="supplier" class="form-select" required disabled>
+				<select name="supplier" id="supplier" class="form-select" required {{if
+					.Purchase.ID}}disabled{{end}}>
 					{{$psID := .Purchase.Supplier.ID}}
 					{{range .Suppliers}}
 					<option {{if eq .ID $psID}}selected{{end}}
@@ -93,14 +98,16 @@ Yêu cầu nhập
 			<div class="col">
 				<label for="expectedAt" class="form-label">Dự kiến nhập</label>
 				<input type="datetime-local" name="expectedAt" id="expectedAt"
-					value="{{.Purchase.ExpectedAt}}" min="{{.}}" class="form-control was-validated"
-					disabled>
+					value="{{.Purchase.ExpectedAt}}" {{with .Purchase.ExpectedAt}} min="{{.}}"
+					{{else}} min="{{.MinTimestamp}}" {{end}} class="form-control was-validated"
+					required {{with .Purchase.ID}}disabled{{end}}>
 				<div class="invalid-feedback">
 					Thời điểm phải từ hiện tại trở về sau
 				</div>
 			</div>
 		</div>
 
+		{{if .Purchase.ID}}
 		<div class="row my-4" id="setBtnDiv" style="display: none;">
 			<div class="col-4 mx-auto">
 				<button class="btn btn-primary" type="submit" id="setPurchaseBtn">
@@ -108,16 +115,28 @@ Yêu cầu nhập
 				</button>
 			</div>
 		</div>
+		{{else}}
+		<div class="row my-4" id="submitBtn">
+			<div class="col-4 mx-auto">
+				<button class="btn btn-primary" type="submit" id="addPurchaseBtn">
+					Tạo yêu cầu nhập
+				</button>
+			</div>
+		</div>
+
+		{{end}}
 
 		<!-- Begin items pick and datalist -->
 		<div class="row mt-3" id="itemInput" {{with .Purchase.ID}}style="display: none;" {{end}}>
 			<input onclick="this.value = ''" onblur="this.value = ''" list="itemOpts" id="itemPick"
 				placeholder="Tìm hàng...">
 			<datalist id="itemOpts">
+				{{if .Purchase.ID}}
 				{{range .Items}}
 				<option class="{{.ImgFSPath}}" value="{{.GTIN}}">
 					{{.GTIN}} - {{.Name}}
 				</option>
+				{{end}}
 				{{end}}
 			</datalist>
 		</div>
@@ -142,8 +161,10 @@ Yêu cầu nhập
 						<td class="tdGTIN">{{.Item.GTIN}}</td>
 						<td class="tdName">{{.Item.Name}}</td>
 						<td><input type="number" class="form-control was-validated tdQuantity"
-								min="1" required value="{{.Quantity}}" disabled></td>
-						<td><button class="btn btn-danger delete" disabled>X</button></td>
+								min="1" required value="{{.Quantity}}" {{if
+								.Quantity}}disabled{{end}}></td>
+						<td><button class="btn btn-danger delete" {{if
+								.Quantity}}disabled{{end}}>X</button></td>
 					</tr>
 					{{end}}
 				</tbody>
@@ -152,6 +173,11 @@ Yêu cầu nhập
 		<!-- End items pick table -->
 	</form>
 	<!-- End form warehouse, supplier, expectedAt -->
+
+	{{if .Purchase.ID}}
+	{{else}}
+	<div id="addPurchasePage" style="display: none;"></div>
+	{{end}}
 </div>
 
 <script type="module">
@@ -283,7 +309,12 @@ Yêu cầu nhập
 			}
 
 			if (confirm('Bạn đã chắc về thông tin của yêu cầu nhập?')) {
-				requestSetPurchase();
+				if (document.querySelector('#purchaseID') === null) {
+					requestAddPurchase();
+				}
+				else {
+					requestSetPurchase();
+				}
 			}
 		});
 
@@ -401,6 +432,30 @@ Yêu cầu nhập
 
 			console.log(JSON.stringify(o));
 			return o;
+		}
+
+		function requestAddPurchase() {
+			let o = purchaseInput();
+
+			let ok = false;
+			fetch(domain + '/purchase', {
+				method: 'POST',
+				body: JSON.stringify(o),
+				headers: {
+					'Content-Type': 'application/json'
+				}
+			})
+				.then(res => {
+					ok = res.ok;
+					if (res.redirected) {
+						window.location.replace(res.url);
+						return;
+					}
+					return res.text();
+				})
+				.then(data => {
+					if (!ok) alert(data);
+				});
 		}
 
 		function requestSetPurchase() {

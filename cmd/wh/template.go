@@ -49,6 +49,7 @@ type templData struct {
 	Warehouses       []data.Warehouse
 	Suppliers        []data.Supplier
 	Purchases        []data.Purchase
+	Receives         []data.Receive
 	data.Item
 	data.Purchase
 	data.Account
@@ -72,8 +73,13 @@ func badgeBg(status string) string {
 	}
 }
 
+func notProcessed(actualAt string) bool {
+	return actualAt != "1000-01-01 00:00:00"
+}
+
 var fns = template.FuncMap{
-	"badgeBg": badgeBg,
+	"badgeBg":      badgeBg,
+	"notProcessed": notProcessed,
 }
 
 func (ap *application) newTemplData(r *http.Request) (templData, error) {

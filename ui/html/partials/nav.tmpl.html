@@ -104,12 +104,20 @@
 		<i class="fa fa-caret-down"></i>
 	</button>
 	<div class="dropdown-container-w3">
-		<!-- <a id="items" href="{{.Domain}}/items">Xem</a> -->
-		<a id="add-items" href="{{.Domain}}/add-purchase">Thêm</a>
+		<a id="add-purchases" href="{{.Domain}}/add-purchase">Thêm</a>
 		<a id="purchases" href="{{.Domain}}/purchases">Xem</a>
 	</div>
 	{{end}}
 	<!-- End Yêu cầu nhập -->
+
+	<!-- Begin phiếu nhập -->
+	<button class="dropdown-btn-w3">Phiếu nhập
+		<i class="fa fa-caret-down"></i>
+	</button>
+	<div class="dropdown-container-w3">
+		<a id="receives" href="{{.Domain}}/receives">Xem</a>
+	</div>
+	<!-- End phiếu nhập -->
 
 	<a id="account" href="{{.Domain}}/account/{{.Account.ID}}">Tài khoản</a>
 

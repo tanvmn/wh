@@ -10,16 +10,16 @@ import (
 
 type Receive struct {
 	ID         string         `json:"id,omitempty,omitzero"`
-	Purchase   Purchase       `json:"purchase,omitempty,omitzero"`
-	Account    Account        `json:"account,omitempty,omitzero"`
 	ExpectedAt string         `json:"expectedAt,omitempty,omitzero"`
 	ActualAt   string         `json:"actualAt,omitempty,omitzero"`
 	CreatedAt  string         `json:"createdAt,omitempty,omitzero"`
 	VoucherID  string         `json:"voucherID,omitempty,omitzero"`
-	Transfer   Transfer       `json:"transfer,omitempty,omitzero"`
 	Version    int            `json:"version,omitempty,omitzero"`
 	Note       string         `json:"note,omitempty,omitzero"`
 	Items      []ItemQuantity `json:"items,omitempty,omitzero"`
+	Transfer   `json:"transfer,omitempty,omitzero"`
+	Purchase   `json:"purchase,omitempty,omitzero"`
+	Account    `json:"account,omitempty,omitzero"`
 }
 
 var (
@@ -415,9 +415,9 @@ func (db *Data) ReceivesByPurchase(purchaseID string) ([]Receive, error) {
 	'%v'||receive.id
 	,'%v'||purchase_id
 	,'%v'||account_id
-	,expected_at
-	,actual_at
-	,created_at
+	,to_char(receive.expected_at, 'DD-MM-YYYY HH24:MI')
+	,to_char(receive.actual_at, 'DD-MM-YYYY HH24:MI')
+	,to_char(receive.created_at, 'DD-MM-YYYY HH24:MI')
 	,'%v'||transfer_id
 	,receive.version
 	,note
@@ -527,7 +527,7 @@ func (db *Data) MaxReceiveQuantity(rc *Receive) error {
 	return nil
 }
 
-func delReceiveItems(tx *sql.Tx, receiveID64 int64) error {
+func delReceiveItems(tx *sql.Tx, id64 int64) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -537,7 +537,7 @@ func delReceiveItems(tx *sql.Tx, receiveID64 int64) error {
 	receive_id = $1
 	;`
 
-	_, err := tx.ExecContext(ctx, stmt, receiveID64)
+	_, err := tx.ExecContext(ctx, stmt, id64)
 	if err != nil {
 		return err
 	}
@@ -619,4 +619,157 @@ func (db *Data) SetReceive(rc *Receive) error {
 	}
 
 	return nil
+}
+
+func delReceive(tx *sql.Tx, id64 int64) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	stmt := `
+	delete from receive
+	where
+	id = $1`
+
+	_, err := tx.ExecContext(ctx, stmt, id64)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (db *Data) DelReceive(id string) error {
+	i, err := id64(id, ReceiveIDCode)
+	if err != nil {
+		return err
+	}
+
+	tx, err := db.DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	err = delReceiveItems(tx, i)
+	if err != nil {
+		return err
+	}
+
+	err = delReceive(tx, i)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (db *Data) Receives(warehouseID string) ([]Receive, error) {
+	wI, err := id64(warehouseID, WarehouseIDCode)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	stmt := fmt.Sprintf(`
+	select
+	'%v'||receive.id
+	,'%v'||purchase_id
+	,'%v'||receive.account_id
+	,to_char(receive.expected_at, 'DD-MM-YYYY HH24:MI')
+	,to_char(receive.actual_at, 'DD-MM-YYYY HH24:MI')
+	,to_char(receive.created_at, 'DD-MM-YYYY HH24:MI')
+	,'%v'||transfer_id
+	,receive.version
+	,receive.note
+	from receive
+	join account on account.id = receive.account_id
+	join purchase on purchase.id = receive.purchase_id
+	where purchase.warehouse_id = $1
+	;`,
+		ReceiveIDCode,
+		PurchaseIDCode,
+		AccountIDCode,
+		TransferIDCode,
+	)
+	var (
+		rs         []Receive
+		transferID sql.NullString
+	)
+
+	rows, err := db.DB.QueryContext(ctx, stmt, wI)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		err2 := rows.Close()
+		if err2 != nil {
+			panic(err2)
+		}
+	}()
+
+	for rows.Next() {
+		var rc Receive
+		err = rows.Scan(
+			&rc.ID,
+			&rc.Purchase.ID,
+			&rc.Account.ID,
+			&rc.ExpectedAt,
+			&rc.ActualAt,
+			&rc.CreatedAt,
+			&transferID,
+			&rc.Version,
+			&rc.Note,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		if transferID.Valid {
+			rc.Transfer.ID = transferID.String
+			tf, err := db.Transfer(rc.Transfer.ID)
+			if err != nil {
+				if !errors.Is(err, ErrNoTransfers) {
+					return nil, err
+				}
+			}
+			rc.Transfer = *tf
+		}
+
+		pc, err := db.Purchase(rc.Purchase.ID)
+		if err != nil {
+			return nil, err
+		}
+		rc.Purchase = *pc
+
+		ac, err := db.Account(rc.Account.ID)
+		if err != nil {
+			return nil, err
+		}
+		rc.Account = *ac
+
+		err = db.ReceiveItems(&rc)
+		if err != nil {
+			return nil, err
+		}
+
+		err = db.MaxReceiveQuantity(&rc)
+		if err != nil {
+			return nil, err
+		}
+
+		rs = append(rs, rc)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return rs, nil
 }

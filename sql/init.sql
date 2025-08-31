@@ -138,7 +138,7 @@ create table if not exists store (
 );
 
 drop type if exists status cascade;
-create type status as enum ('Chờ phản hồi', 'Chờ nhập', 'Đang nhập', 'Kết thúc', 'Từ chối');
+create type status as enum ('CHỜ PHẢN HỒI', 'CHỜ NHẬP', 'ĐANG NHẬP', 'KẾT THÚC', 'TỪ CHỐI');
 
 create table if not exists purchase (
 	id bigserial not null,
@@ -151,7 +151,7 @@ create table if not exists purchase (
 	note text default 'none',
 	-- receive_add_owner bigint default 0,
 	receive_add_owner bigint,
-	status status not null default 'Chờ phản hồi'
+	status status not null default 'CHỜ PHẢN HỒI'
 );
 
 create table if not exists purchase_item (
@@ -216,7 +216,7 @@ create table if not exists resupply (
 	note text default 'none',
 	-- export_add_owner bigint default 0,
 	export_add_owner bigint,
-	status status not null default 'Chờ phản hồi'
+	status status not null default 'CHỜ PHẢN HỒI'
 );
 
 create table if not exists resupply_item (

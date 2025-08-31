@@ -26,20 +26,20 @@ const (
 	ResupplyIDCode  = "RES-"
 	ExportIDCode    = "EXP-"
 	TransferIDCode  = "TRA-"
-	VoucherIDCode  = "VOU-"
+	VoucherIDCode   = "VOU-"
 )
 
 const (
-	AwaitingResponse = "Chờ phản hồi"
-	AwaitingReceive  = "Chờ nhập"
-	Receiving        = "Đang nhập"
-	Ended            = "Kết thúc"
-	Declined         = "Từ chối"
+	AwaitingResponse = "CHỜ PHẢN HỒI"
+	AwaitingReceive  = "CHỜ NHẬP"
+	Receiving        = "ĐANG NHẬP"
+	Ended            = "KẾT THÚC"
+	Declined         = "TỪ CHỐI"
 )
 
 var (
-	ErrInvalidID   = errors.New("data: invalid ID")
-	ErrSetConflict = errors.New("data: set conflict")
+	ErrInvalidID     = errors.New("data: invalid ID")
+	ErrSetConflict   = errors.New("data: set conflict")
 	ErrCorruptedData = errors.New("data: corrupted data")
 )
 

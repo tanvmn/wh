@@ -229,7 +229,12 @@ func (db *Data) Purchase(id string) (*Purchase, error) {
 	return &pc, nil
 }
 
-func (db *Data) Purchases() ([]Purchase, error) {
+func (db *Data) Purchases(warehouseID string) ([]Purchase, error) {
+	wI, err := id64(warehouseID, WarehouseIDCode)
+	if err != nil {
+		return nil, err
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -244,6 +249,7 @@ func (db *Data) Purchases() ([]Purchase, error) {
 	,purchase.version
 	,status
 	from purchase
+	where warehouse_id = $1
 	;
 	`,
 		PurchaseIDCode,
@@ -252,7 +258,7 @@ func (db *Data) Purchases() ([]Purchase, error) {
 		SupplierIDCode)
 	var ps []Purchase
 
-	rows, err := db.DB.QueryContext(ctx, stmt)
+	rows, err := db.DB.QueryContext(ctx, stmt, wI)
 	if err != nil {
 		return nil, err
 	}
@@ -820,7 +826,7 @@ func (db *Data) UnreceivedPurchaseItemsOpt(rc *Receive) ([]ItemQuantity, error) 
 	if err != nil {
 		return nil, err
 	}
-	
+
 	var iqs []ItemQuantity
 
 	for _, ui := range uis {

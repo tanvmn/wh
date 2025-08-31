@@ -22,7 +22,7 @@ func (ap *application) addReceivePage() http.Handler {
 			ap.logger.Error(err.Error())
 
 			if errors.Is(err, data.ErrNoPurchases) {
-				http.Error(w, fmt.Sprintf("Không tìm thấy yêu cầu nhập ID: %v", pc.ID), http.StatusBadRequest)
+				http.Error(w, fmt.Sprintf("Không tìm thấy yêu cầu nhập ID: %v", pID), http.StatusBadRequest)
 			} else {
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			}
@@ -304,5 +304,116 @@ func (ap *application) setReceive() http.Handler {
 		}
 
 		http.Redirect(w, r, "receive/"+rc.ID, http.StatusSeeOther)
+	})
+}
+
+func (ap *application) delReceive() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		id := r.PathValue("id")
+
+		rc, err := ap.data.Receive(id)
+		if err != nil {
+			ap.logger.Error(err.Error())
+
+			if errors.Is(err, data.ErrNoReceives) || errors.Is(err, data.ErrInvalidID) {
+				http.Error(w, fmt.Sprintf("Không tìm thấy phiếu nhập ID %v", id), http.StatusNotFound)
+			} else {
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			}
+			return
+		}
+
+		err = ap.data.DelReceive(rc.ID)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		rcs, err := ap.data.ReceivesByPurchase(rc.Purchase.ID)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		if len(rcs) == 0 {
+			err = ap.data.UpdatePurchaseStatus(rc.Purchase.ID, rc.Purchase.Status, data.AwaitingResponse)
+			if err != nil {
+				ap.logger.Error(err.Error())
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				return
+			}
+		}
+
+		http.Redirect(w, r, "/receives", http.StatusSeeOther)
+	})
+}
+
+func (ap *application) receivesPage() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		wID, ok := r.Context().Value(authenticatedCtxWarehouseID).(string)
+		if !ok {
+			ap.logger.Error(fmt.Sprintf("%v; %v", ErrConvertCtxVal, authenticatedCtxWarehouseID))
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		rs, err := ap.data.Receives(wID)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		tdata, err := ap.newTemplData(r)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		tdata.Receives = rs
+
+		err = ap.render(w, http.StatusOK, "receives", tdata)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+	})
+}
+
+func (ap *application) receivesByPurchasePage() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		purchaseID := r.URL.Query().Get("purchase")
+
+		pc, err := ap.data.Purchase(purchaseID)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		rs, err := ap.data.ReceivesByPurchase(purchaseID)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		tdata, err := ap.newTemplData(r)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		tdata.Receives = rs
+		tdata.Purchase = *pc
+
+		err = ap.render(w, http.StatusOK, "receives_by_purchase", tdata)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
 	})
 }
