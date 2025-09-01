@@ -34,7 +34,7 @@ func New(host string, port int, username, password, sender string) Mailer {
 
 // Send takes the recipient email address, the name of the file containing the templates,
 // the dynamic data for the templates
-func (m Mailer) Send(recipient, templateFile string, data any) error {
+func (m Mailer) Send(recipient, templateFile string, data any, filePaths ...string) error {
 	tmpl, err := template.New("email").ParseFS(templates, "templates/"+templateFile+".tmpl.html")
 	if err != nil {
 		return err
@@ -56,6 +56,9 @@ func (m Mailer) Send(recipient, templateFile string, data any) error {
 	// Initializes a new *mail.Message,
 	// set headers, body to plain text and an altenative to plain text body, to html
 	msg := mail.NewMessage()
+	for _, p := range filePaths {
+		msg.Attach(p)
+	}
 	msg.SetHeader("To", recipient)
 	msg.SetHeader("From", m.sender)
 	msg.SetHeader("Subject", subject.String())
