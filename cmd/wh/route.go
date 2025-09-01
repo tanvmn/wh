@@ -94,7 +94,7 @@ func (ap *application) routes() http.Handler {
 	mux.Handle("GET /add-receive", append(identify, ap.permit(data.Accountant)).then(ap.addReceivePage()))
 	mux.Handle("GET /receive/{id}", append(identify, ap.permit(data.Accountant)).then(ap.receivePage()))
 	mux.Handle("GET /receives", append(identify, ap.permit(data.Accountant)).then(ap.receivesPage()))
-	mux.Handle("GET /receives-by-purchase", append(identify, ap.permit(data.Accountant)).then(ap.receivesByPurchasePage()))
+	mux.Handle("GET /receives-by-purchase/{purchase}", append(identify, ap.permit(data.Accountant)).then(ap.receivesByPurchasePage()))
 	mux.Handle("POST /receive", append(identify, ap.permit(data.Accountant)).then(ap.addReceive()))
 	mux.Handle("PUT /receive", append(identify, ap.permit(data.Accountant)).then(ap.setReceive()))
 	mux.Handle("DELETE /receive/{id}", append(identify, ap.permit(data.Accountant)).then(ap.delReceive()))

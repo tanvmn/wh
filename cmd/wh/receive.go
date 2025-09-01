@@ -384,7 +384,7 @@ func (ap *application) receivesPage() http.Handler {
 
 func (ap *application) receivesByPurchasePage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		purchaseID := r.URL.Query().Get("purchase")
+		purchaseID := r.PathValue("purchase")
 
 		pc, err := ap.data.Purchase(purchaseID)
 		if err != nil {
