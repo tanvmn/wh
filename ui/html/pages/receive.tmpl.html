@@ -15,6 +15,9 @@ Phiếu nhập
 </style>
 
 <div class="container-fluid">
+	{{$account := .Account.Role}}
+	{{$manager := .Manager}}
+	{{$employee := .Employee}}
 	{{with .Receive}}
 	<div class="row p-3">
 		<div class="col-3">
@@ -23,7 +26,7 @@ Phiếu nhập
 				<span id="receiveID" class="badge text-bg-info">{{.ID}}</span>
 			</h3>
 		</div>
-		{{if (notProcessed .ActualAt)}}
+		{{if (and (notProcessed .ActualAt) (and (ne $account $manager) (ne $account $employee)))}}
 		<div class="col-1">
 			<label class="form-check-label" for="setReceive">
 				<h4>Sửa</h4>

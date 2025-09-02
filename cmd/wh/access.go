@@ -67,3 +67,20 @@ func (ap *application) login() http.Handler {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	})
 }
+
+func (ap *application) logout() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Renew the current session to change the session ID again
+		err := ap.sessionsManager.RenewToken(r.Context())
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		// Remove the authenticatedID from the session data so the user is 'logged out'
+		ap.sessionsManager.Remove(r.Context(), "authenticatedID")
+
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+	})
+}

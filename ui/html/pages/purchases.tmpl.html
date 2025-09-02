@@ -42,8 +42,8 @@ Yêu cầu nhập
 			{{$endedStatus := .Ended}}
 			{{$declinedStatus := .Declined}}
 			{{range .Purchases}}
-			{{$ended := (ne $endedStatus .Status)}}
-			{{$declined := (ne $declinedStatus .Status)}}
+			{{$notEnded := (ne $endedStatus .Status)}}
+			{{$notDeclined := (ne $declinedStatus .Status)}}
 			<tr>
 				<td>{{.ID}}</td>
 				<td>
@@ -71,7 +71,7 @@ Yêu cầu nhập
 						target="_blank">
 						Xem
 					</a>
-					{{if (and $ended $declined)}}
+					{{if (and (and $notEnded $notDeclined) (ne 0 (len .UnreceivedItems)))}}
 					<a class="btn btn-sm btn-dark ms-2"
 						href="{{$domain}}/add-receive?purchase={{.ID}}" target="_blank">
 						+ Phiếu nhập

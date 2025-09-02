@@ -417,3 +417,9 @@ func (ap *application) receivesByPurchasePage() http.Handler {
 		}
 	})
 }
+
+func (ap *application) processReceivePage() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "processReceivePage")
+	})
+}

@@ -35,6 +35,9 @@ Phiếu nhập
 			{{$domain := .Domain}}
 			{{$endedStatus := .Ended}}
 			{{$declinedStatus := .Declined}}
+			{{$account := .Account.Role}}
+			{{$manager := .Manager}}
+			{{$employee := .Employee}}
 			{{range .Receives}}
 			{{$ended := (ne $endedStatus .Status)}}
 			{{$declined := (ne $declinedStatus .Status)}}
@@ -70,6 +73,12 @@ Phiếu nhập
 						target="_blank">
 						Xem
 					</a>
+					{{if (or (eq $account $manager) (eq $account $employee))}}
+					<a class="btn btn-sm btn-secondary" href="{{$domain}}/receive/process"
+						target="_blank">
+						Xử lý
+					</a>
+					{{end}}
 				</td>
 			</tr>
 			{{end}}

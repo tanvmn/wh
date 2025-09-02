@@ -50,7 +50,7 @@ Tạo yêu cầu nhập
 			<div class="col">
 				<label for="supplier" class="form-label">Nhà cung cấp</label>
 				<select name="supplier" id="supplier" class="form-select" value="" required>
-					<option style="display: none;" disabled selected value=""></option>
+					<option style="display: none;" value=""></option>
 					{{range .Suppliers}}
 					<option value="{{.ID}} / Nhà cung cấp {{.Name}}">{{.ID}} / Nhà cung cấp
 						{{.Name}}

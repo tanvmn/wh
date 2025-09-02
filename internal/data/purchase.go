@@ -23,6 +23,7 @@ type Purchase struct {
 	Version         int            `json:"version,omitempty,omitzero"`
 	ReceiveAddOwner string         `json:"receiveAddOwner,omitempty,omitzero"`
 	Items           []ItemQuantity `json:"items,omitempty,omitzero"`
+	UnreceivedItems []ItemQuantity `json:"unreceivedItems,omitempty,omitzero"`
 	Account         `json:"account,omitempty,omitzero"`
 	Warehouse       `json:"warehouse,omitempty,omitzero"`
 	Supplier        `json:"supplier,omitempty,omitzero"`
@@ -205,6 +206,12 @@ func (db *Data) Purchase(id string) (*Purchase, error) {
 		return nil, err
 	}
 
+	// Add items which aren't in any receives
+	pc.UnreceivedItems, err = db.UnreceivedPurchaseItems(&pc)
+	if err != nil {
+		return nil, err
+	}
+
 	// Add warehouse
 	wh, err := db.Warehouse(pc.Warehouse.ID)
 	if err != nil {
@@ -302,6 +309,12 @@ func (db *Data) Purchases(warehouseID string) ([]Purchase, error) {
 	for i := range ps {
 		// Add purchase items
 		err = db.PurchaseItems(&ps[i])
+		if err != nil {
+			return nil, err
+		}
+
+		// Add items which aren't in any receives
+		ps[i].UnreceivedItems, err = db.UnreceivedPurchaseItems(&ps[i])
 		if err != nil {
 			return nil, err
 		}

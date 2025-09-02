@@ -64,6 +64,7 @@ func (ap *application) routes() http.Handler {
 
 	// Login, logout
 	mux.Handle("GET /login", identify.then(ap.loginPage()))
+	mux.Handle("GET /logout", identify.then(ap.logout()))
 	mux.Handle("POST /login", identify.then(ap.login()))
 
 	// Account
@@ -92,9 +93,10 @@ func (ap *application) routes() http.Handler {
 
 	// Receive
 	mux.Handle("GET /add-receive", append(identify, ap.permit(data.Accountant)).then(ap.addReceivePage()))
-	mux.Handle("GET /receive/{id}", append(identify, ap.permit(data.Accountant)).then(ap.receivePage()))
-	mux.Handle("GET /receives", append(identify, ap.permit(data.Accountant)).then(ap.receivesPage()))
-	mux.Handle("GET /receives-by-purchase/{purchase}", append(identify, ap.permit(data.Accountant)).then(ap.receivesByPurchasePage()))
+	mux.Handle("GET /receive/{id}", append(identify, ap.permit(data.Accountant, data.Manager, data.Employee)).then(ap.receivePage()))
+	mux.Handle("GET /receives", append(identify, ap.permit(data.Accountant, data.Manager, data.Employee)).then(ap.receivesPage()))
+	mux.Handle("GET /receives-by-purchase/{purchase}", append(identify, ap.permit(data.Accountant, data.Manager, data.Employee)).then(ap.receivesByPurchasePage()))
+	mux.Handle("GET /receive/process", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.processReceivePage()))
 	mux.Handle("POST /receive", append(identify, ap.permit(data.Accountant)).then(ap.addReceive()))
 	mux.Handle("PUT /receive", append(identify, ap.permit(data.Accountant)).then(ap.setReceive()))
 	mux.Handle("DELETE /receive/{id}", append(identify, ap.permit(data.Accountant)).then(ap.delReceive()))

@@ -119,7 +119,13 @@
 	</div>
 	<!-- End phiếu nhập -->
 
-	<a id="account" href="{{.Domain}}/account/{{.Account.ID}}">Tài khoản</a>
+	<button class="dropdown-btn-w3">Tài khoản
+		<i class="fa fa-caret-down"></i>
+	</button>
+	<div class="dropdown-container-w3">
+		<a id="account" href="{{.Domain}}/account/{{.Account.ID}}">Xem</a>
+		<a id="logout" href="{{.Domain}}/logout">Đăng xuất</a>
+	</div>
 
 </div>
 

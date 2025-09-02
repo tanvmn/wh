@@ -21,6 +21,7 @@ Yêu cầu nhập
 	{{$domain := .Domain}}
 	{{$awaitingResponse := (eq .AwaitingResponse .Purchase.Status)}}
 	{{$awaitingReceive := (eq .AwaitingReceive .Purchase.Status)}}
+	{{$unreceivedItems := .Purchase.UnreceivedItems}}
 	{{with .Purchase.ID}}
 	<div class="row p-3">
 		<div class="col-3">
@@ -43,10 +44,12 @@ Yêu cầu nhập
 			<button id="delPurchaseBtn" class="btn btn-danger ms-5"><strong>Xóa</strong></button>
 		</div>
 		{{end}}
+		{{if $unreceivedItems}}
 		<div class="col-7">
 			<a href="{{$domain}}/add-receive?purchase={{.}}" target="_blank" id="addReceiveBtn"
 				class="btn btn-dark ms-5"><strong>+ Phiếu nhập</strong></a>
 		</div>
+		{{end}}
 	</div>
 	{{end}}
 
@@ -58,6 +61,7 @@ Yêu cầu nhập
 				<select name="warehouse" id="warehouse" class="form-select" required {{$isAccountant
 					:=eq .Account.Role .Accountant}} {{if $isAccountant}} disabled {{end}}>
 					{{if not $isAccountant}}
+					<option value="" style="display: none;"></option>
 					{{range .Warehouses}}
 					<option value="{{.ID}} / Kho {{.Name}}">
 						{{.ID}} / Kho {{.Name}}</option>
@@ -205,13 +209,13 @@ Yêu cầu nhập
 
 	// After getting items (above), begin others task from this point
 	document.addEventListener('DOMContentLoaded', function () {
-		if (document.querySelector('#addPurchasePage') !== null) {
-			document.querySelector('#supplier').value = '';
+		// if (document.querySelector('#addPurchasePage') !== null) {
+		// 	document.querySelector('#supplier').value = '';
 
-			if (!document.querySelector('#warehouse').disabled) {
-				document.querySelector('#warehouse').value = '';
-			}
-		}
+		// 	if (!document.querySelector('#warehouse').disabled) {
+		// 		document.querySelector('#warehouse').value = '';
+		// 	}
+		// }
 
 		// enable/disable edit
 		let setCheck = document.querySelector('#setPurchase');
