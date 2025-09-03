@@ -418,8 +418,42 @@ func (ap *application) receivesByPurchasePage() http.Handler {
 	})
 }
 
-func (ap *application) processReceivePage() http.Handler {
+func (ap *application) receiveProcessPage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "processReceivePage")
+		id := r.PathValue("id")
+
+		rc, err := ap.data.Receive(id)
+		if err != nil {
+			ap.logger.Error(err.Error())
+
+			if errors.Is(err, data.ErrNoReceives) {
+				http.Error(w, fmt.Sprintf("Không tìm thấy phiếu nhập ID: %v", id), http.StatusNotFound)
+			} else {
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			}
+			return
+		}
+
+		td, err := ap.newTemplData(r)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		td.Receive = *rc
+
+		td.ItemQuantitys, err = ap.data.UnreceivedPurchaseItemsOpt(rc)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		err = ap.render(w, http.StatusOK, "receive_process", td)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
 	})
 }

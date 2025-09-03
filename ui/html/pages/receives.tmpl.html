@@ -74,7 +74,7 @@ Phiếu nhập
 						Xem
 					</a>
 					{{if (or (eq $account $manager) (eq $account $employee))}}
-					<a class="btn btn-sm btn-secondary" href="{{$domain}}/receive/process"
+					<a class="btn btn-sm btn-secondary" href="{{$domain}}/receive/process/{{.ID}}"
 						target="_blank">
 						Xử lý
 					</a>

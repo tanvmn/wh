@@ -45,6 +45,7 @@ func (ap *application) render(
 	}
 
 	// if there aren't any errors, write from temp buffer to ResponseWriter
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(status)
 	buf.WriteTo(w)
 
