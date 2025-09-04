@@ -287,14 +287,16 @@ create table if not exists export_item (
 
 create table if not exists serial (
 	nanoid text unique not null,
-	receive_tote bigint not null,
-	pick_tote bigint not null,
-	bin_id bigint not null,
+	receive_tote bigint,
+	pick_tote bigint,
+	bin_id bigint,
 	receive_id bigint not null,
 	purchase_id bigint not null,
 	gtin text not null,
 	version integer not null default 1,
-	export_id bigint not null
+	export_id bigint,
+	resupply_id bigint,
+	packed boolean not null default false
 );
 
 
@@ -328,7 +330,7 @@ insert into tote (warehouse_id, capacity) values
 (1, 37480),
 (1, 37480),
 (1, 37480),
-(2, 37480),
+(1, 37480),
 (2, 37480),
 (2, 37480),
 (2, 37480),
@@ -568,7 +570,7 @@ alter table serial add constraint fk_serial_receive_tote foreign key(receive_tot
 alter table serial add constraint fk_serial_pick_tote foreign key(pick_tote) references tote(id);
 alter table serial add constraint fk_serial_bin_id foreign key(bin_id) references bin(id);
 alter table serial add constraint fk_serial_receive_id_purchase_id_gtin foreign key(receive_id, purchase_id, gtin) references receive_item(purchase_id, receive_id, gtin);
-alter table serial add constraint fk_serial_export_id foreign key(export_id) references export(id);
+alter table serial add constraint fk_serial_export_id_resupply_id_gtin foreign key(export_id, resupply_id, gtin) references export_item(export_id, resupply_id, gtin);
 
 CREATE TABLE sessions (
 	token TEXT PRIMARY KEY,

@@ -33,22 +33,13 @@ type Item struct {
 }
 
 type ItemQuantity struct {
-	Quantity           int64 `json:"quantity,omitempty,omitzero"`
-	MaxReceiveQuantity int64 `json:"maxReceiveQuantity,omitempty,omitzero"`
+	Quantity           int64    `json:"quantity,omitempty,omitzero"`
+	MaxReceiveQuantity int64    `json:"maxReceiveQuantity,omitempty,omitzero"`
+	Note               string   `json:"note,omitempty,omitzero"`
+	Serials            []Serial `json:"serials,omitempty,omitzero"`
 	Item               `json:"item,omitempty,omitzero"`
 	Receive            `json:"receive,omitempty,omitzero"`
 	Export             `json:"export,omitempty,omitzero"`
-}
-
-type Serial struct {
-	NanoID      string   `json:"nanoID,omitempty,omitzero"`
-	ReceiveTote Tote     `json:"receiveTote,omitempty,omitzero"`
-	PickTote    Tote     `json:"pickTote,omitempty,omitzero"`
-	Bin         Bin      `json:"bin,omitempty,omitzero"`
-	Receive     Receive  `json:"receive,omitempty,omitzero"`
-	Purchase    Purchase `json:"purchase,omitempty,omitzero"`
-	GTIN        string   `json:"gtin,omitempty,omitzero"`
-	Export      Export   `json:"export,omitempty,omitzero"`
 }
 
 var (
@@ -211,90 +202,6 @@ func (db *Data) Stock(gtin string) (int64, error) {
 	}
 
 	return quantity, nil
-}
-
-// Serials returns the serials of a gtin
-func (db *Data) Serials(gtin string) ([]Serial, error) {
-	if len(gtin) < 5 {
-		return nil, fmt.Errorf("%w: %v", ErrNoItems, gtin)
-	}
-
-	stmt := fmt.Sprintf(
-		`select
-	'%v'||nanoid
-	,receive_tote
-	,pick_tote
-	,bin_id
-	,'%v'||bin.warehouse_id
-	,bin.shelf
-	,bin.row
-	,bin.col
-	,warehouse.name
-	,'%v'||serial.receive_id
-	,receive.actual_at
-	,'%v'||serial.purchase_id
-	,gtin
-	,'%v'||export_id
-	from
-	serial
-	join bin on serial.bin_id = bin.id
-	join warehouse on bin.warehouse_id = warehouse.id
-	join receive on serial.receive_id = receive.id
-	where
-	gtin = $1`,
-		SerialIDCode,
-		WarehouseIDCode,
-		ReceiveIDCode,
-		PurchaseIDCode,
-		ExportIDCode,
-	)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	rows, err := db.DB.QueryContext(ctx, stmt, gtin)
-	if err != nil {
-		return nil, err
-	}
-	defer func() {
-		err2 := rows.Close()
-		if err2 != nil {
-			panic(err2)
-		}
-	}()
-
-	ss := []Serial{}
-	for rows.Next() {
-		var s Serial
-
-		err = rows.Scan(
-			&s.NanoID,
-			&s.ReceiveTote.ID,
-			&s.PickTote.ID,
-			&s.Bin.ID,
-			&s.Bin.Warehouse.ID,
-			&s.Bin.Shelf,
-			&s.Bin.Row,
-			&s.Bin.Col,
-			&s.Bin.Warehouse.Name,
-			&s.Receive.ID,
-			&s.Receive.ActualAt,
-			&s.Purchase.ID,
-			&s.GTIN,
-			&s.Export.ID,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		ss = append(ss, s)
-	}
-
-	if err = rows.Err(); err != nil {
-		return nil, err
-	}
-
-	return ss, nil
 }
 
 func (db *Data) GTINsBySupplier(supplierID string) ([]string, error) {

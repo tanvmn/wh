@@ -60,7 +60,24 @@ Nhập hàng
 		</div>
 		<!-- End warehouse, supplier, expectedAt -->
 
-		<div class="row my-4 d-none" id="submitBtn">
+		<div class="row mt-3">
+			<div class="row mt-2 text-center">
+				<label for="latestGTIN" class="form-label bg-secondary-subtle">
+					<strong>GTIN gần nhất:&nbsp;&nbsp</strong>
+					<input class="w-50" type="text" name="latestGTIN" id="latestGTIN" readonly>
+				</label>
+
+			</div>
+			<div class="row mt-3 text-center">
+				<label for="latestSerial" class="form-label bg-info-subtle">
+					<strong>SERIAL gần nhất:&nbsp;&nbsp</strong>
+					<input class="w-50" type="text" name="latestSerial" id="latestSerial" readonly>
+				</label>
+
+			</div>
+		</div>
+
+		<div class="row my-4 text-center">
 			<div class="col-4 mx-auto">
 				<button class="btn btn-primary" type="submit" id="processReceiveBtn">
 					Nhập hàng
@@ -77,7 +94,7 @@ Nhập hàng
 					<th>Tên</th>
 					<th>Cần nhập (cái)</th>
 					<th>Thực nhập (cái)</th>
-					<!-- <th></th> -->
+					<th>Ghi chú</th>
 				</thead>
 				<tbody id="itemList">
 					{{range .Receive.Items}}
@@ -89,7 +106,7 @@ Nhập hàng
 						<td class="tdName">{{.Item.Name}}</td>
 						<td>
 							<input type="number"
-								class="form-control was-validated tdExpectedQuantity"
+								class="form-control was-validated expectedQuantity"
 								min="1" max="{{.MaxReceiveQuantity}}" required
 								value="{{.Quantity}}" disabled>
 							<div class="invalid-feedback">Min 1, Max {{.MaxReceiveQuantity}}
@@ -97,131 +114,201 @@ Nhập hàng
 						</td>
 						<td class="bg-success-subtle">
 							<input type="number"
-								class="form-control was-validated tdActualQuantity"
+								class="form-control was-validated actualQuantity"
 								min="0" required value="0" readonly>
-							</div>
+						</td>
+						<td>
+							<textarea class="w-100" name="itemNote"
+								id="itemNote"></textarea>
 						</td>
 					</tr>
 					{{end}}
 				</tbody>
 			</table>
 		</div>
-		<!-- End items pick table -->
-	</form>
 </div>
+<!-- End items pick table -->
+</form>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/3.0.0/jspdf.umd.min.js"></script>
 <script type="module">
+	import { nanoid } from 'https://cdn.jsdelivr.net/npm/nanoid/nanoid.js';
 	import { domain, IDCode, Scanner } from "/static/js/util.js";
 
-	// After getting items (above), begin others task from this point
-	document.addEventListener('DOMContentLoaded', function () {
-		// Initialize QR scanning
-		Scanner.init(addItem);
+	const { jsPDF } = window.jspdf;
 
-		function addItem(input) {
-			document.querySelector('#itemOpts').querySelectorAll('option').forEach((o, i) => {
-				if (o.value === input) {
-					let gtin = o.value.split('#')[0];
-					let maxQuantity = o.value.split('#')[1];
-					let img = o.value.split('#')[2];
-					let name = o.value.split('#')[3];
-					console.log(gtin, maxQuantity, img, name);
+	let totes;
+	unusedTotes();
 
-					let tr = document.createElement('tr');
-					tr.innerHTML = `
-								<td><img height="90" src="/rec/${img}" alt="/rec/${img}"></td>
-								<td class>${gtin}</td>
-								<td>${name}</td>
-								<td>
-									<input class="form-control was-validated" type="number" min="1" value="${maxQuantity}" max="${maxQuantity}" required>
-									<div class="invalid-feedback">Min 1 , Max ${maxQuantity}</div>
-								</td>
-								<td><button class="btn btn-danger delete">X</button></td>
-								`;
+	let o = {
+		id: document.querySelector('#receiveID').innerText,
+		version: parseInt(document.querySelector('#version').value),
+		items: [],
+	};
 
-					document.querySelector('#itemList').appendChild(tr);
-
-					delOpt(o.value);
-				}
-			});
-
-		}
-
-		function delOpt(value) {
-			document.querySelector('#itemOpts').querySelectorAll('option').forEach((o, i) => {
-				if (o.value === value) {
-					o.remove();
-				}
-			});
-		}
-
-		function delTR(e) {
-			if (e.target.classList.contains('delete')) {
-				let existed = false;
-
-				document.querySelector('#itemOpts').querySelectorAll('option').forEach((o, i) => {
-					if (o.value.split('#')[0] === e.target.parentElement.previousElementSibling.previousElementSibling.previousElementSibling.innerText) {
-						existed = true;
-					}
-				});
-
-				if (!existed) {
-					let op = document.createElement('option');
-					op.value = e.target.parentElement.previousElementSibling.previousElementSibling.previousElementSibling.innerText;
-					op.value += '#' + e.target.parentElement.previousElementSibling.querySelector('input[type=number]').max;
-					op.value += '#' + e.target.parentElement.previousElementSibling.previousElementSibling.previousElementSibling.previousElementSibling.querySelector('img').src.split('/rec/')[1];
-					op.value += '#' + e.target.parentElement.previousElementSibling.previousElementSibling.innerText;
-					op.innerText = `${e.target.parentElement.previousElementSibling.previousElementSibling.previousElementSibling.innerText} - ${e.target.parentElement.previousElementSibling.previousElementSibling.innerText}`;
-
-
-					document.querySelector('#itemOpts').appendChild(op);
-				}
-
-				e.target.parentElement.parentElement.remove();
-			}
-		}
-
-		function receiveInput() {
-			let o = {
-				id: document.querySelector('#receiveID').innerText,
-				expectedAt: document.querySelector('#expectedAt').value,
-				voucherID: document.querySelector('#voucherID').value,
-				version: parseInt(document.querySelector('#version').value),
-				items: [],
-			};
-
-			document.querySelector('#itemList').querySelectorAll('tr').forEach((tr, idx) => {
-				let it = {
-					item: { gtin: tr.firstElementChild.nextElementSibling.innerText },
-					quantity: parseInt(tr.querySelector('input[type=number]').value),
-				};
-				o.items.push(it);
-			});
-
-			console.log(JSON.stringify(o));
-			return o;
-		}
-
-		function requestSetReceive(obj) {
-			let ok = false;
-			fetch(domain + '/receive', {
-				method: 'PUT',
-				body: JSON.stringify(obj),
-				headers: {
-					'Content-Type': 'application/json'
-				}
+	function unusedTotes() {
+		let wID = document.querySelector('#warehouse').value.split(' - ')[0];
+		let ok = false;
+		fetch(domain + '/totes/' + wID + '/unused/json')
+			.then(res => {
+				ok = res.ok;
+				if (res.ok) return res.json();
+				return res.text();
 			})
-				.then(res => {
-					ok = res.ok;
-					if (res.redirected) {
-						window.location.replace(res.url);
-						return;
-					}
-					return res.text();
-				})
-				.then(data => {
-					if (!ok) alert(data);
+			.then(data => {
+				if (ok) {
+					totes = data;
+					console.log(totes);
+					return;
+				}
+				alert(data);
+				return;
+			});
+	}
+
+	function process(input) {
+		// If input is a GTIN of the receive
+		document.querySelectorAll('.tdGTIN').forEach((td, idx) => {
+			if (td.innerText === input) {
+				// Update latest GTIN and Serial
+				document.querySelector('#latestGTIN').value = input;
+				let ser = IDCode.SerialIDCode + nanoid();
+				document.querySelector('#latestSerial').value = ser;
+
+				// Generate ready-print qr pdf
+				const doc = new jsPDF({
+					unit: 'mm',
+					format: [28, 115],
+					orientation: 'landscape',
 				});
-		}
+				doc.setFontSize(11);
+				doc.addImage(`https://api.qrserver.com/v1/create-qr-code/?size=60x60&data=${ser}`, 'PNG', 6, 6);
+
+				let s = `GTIN:  ${input}`;
+				s += '\n\n' + `Serial:  ${ser}`;
+				let text = doc.splitTextToSize(s, 84);
+				doc.text(text, 31, 8);
+
+				doc.autoPrint({ variant: 'non-conform' });
+				doc.output('dataurlnewwindow');
+				// doc.save(td.innerText + '__' + ser + '.pdf');
+				// window.open(doc.output('bloburl'));
+			}
+			return;
+		});
+
+		// If input is an unused tote ID
+		totes.forEach((t, idx) => {
+			if (t.id == input) {
+				let latestGTIN = document.querySelector('#latestGTIN').value;
+				if (latestGTIN !== '') {
+					// Add serial to object
+					o.items.forEach((i, idx) => {
+						if (i.item.gtin === latestGTIN) {
+							let serial = {
+								nanoID: document.querySelector('#latestSerial').value,
+								receiveTote: { id: t.id },
+								gtin: latestGTIN,
+								receive: { id: document.querySelector('#receiveID').innerText }
+							};
+							i.serials.push(serial);
+
+							console.log(JSON.stringify(o));
+						}
+					});
+
+					// Increase acutual amount
+					document.querySelectorAll('.tdGTIN').forEach((td, idx) => {
+						if (td.innerText === latestGTIN) {
+							td.nextElementSibling.nextElementSibling.nextElementSibling.querySelector('input[type=number]').value++;
+						}
+					});
+
+					// Reset the latests
+					document.querySelector('#latestGTIN').value = '';
+					document.querySelector('#latestSerial').value = '';
+				} else {
+					alert('Cần quét mã hàng GTIN trước');
+				}
+			}
+			return;
+		});
+
+		// If input is a Serial
+		o.items.forEach((i, idx1) => {
+			i.serials.forEach((s, idx2) => {
+				if (s.nanoID === input) {
+					// Remove serial from obj
+					i.serials.splice(idx2, idx2 + 1);
+
+					// Reset the latests
+					document.querySelector('#latestGTIN').value = '';
+					document.querySelector('#latestSerial').value = '';
+
+					document.querySelectorAll('.tdGTIN').forEach((td, idx) => {
+						if (td.innerText === i.item.gtin) {
+							// Decrease acutual amount
+							td.nextElementSibling.nextElementSibling.nextElementSibling.querySelector('input[type=number]').value--;
+
+							console.log(JSON.stringify(o));
+						}
+					});
+				}
+			});
+			return;
+		});
+	}
+
+	function receiveProcessInput() {
+		o.items.forEach((i, idx1) => {
+			document.querySelector('#itemList').querySelectorAll('tr').forEach((tr, idx2) => {
+				if (i.item.gtin === tr.querySelector('.tdGTIN').innerText) {
+					i.note = tr.querySelector('textarea').value;
+				}
+			});
+		});
+		return o;
+	}
+
+	function requestProcessReceive(obj) {
+		let ok = false;
+		fetch(domain + '/receive/' + 'process', {
+			method: 'POST',
+			body: JSON.stringify(obj),
+			headers: {
+				'Content-Type': 'application/json'
+			}
+		})
+			.then(res => {
+				ok = res.ok;
+				if (res.redirected) {
+					window.location.replace(res.url);
+					return;
+				}
+				return res.text();
+			})
+			.then(data => {
+				// if (!ok) alert(data);
+				alert(data);
+			});
+	}
+
+
+	document.addEventListener('DOMContentLoaded', function () {
+		o.id = document.querySelector('#receiveID').innerText;
+		document.querySelector('#itemList').querySelectorAll('tr').forEach((tr, idx) => {
+			let it = {
+				item: { gtin: tr.firstElementChild.nextElementSibling.innerText },
+				quantity: parseInt(tr.querySelector('input[type=number]').value),
+				note: 'none',
+				serials: [],
+			};
+			o.items.push(it);
+		});
+		console.log(JSON.stringify(o));
+
+		// Initialize QR scanning
+		Scanner.init(process);
 
 		// Submit the purchase in JSON to server
 		document.querySelector('form').addEventListener('submit', (e) => {
@@ -231,8 +318,8 @@ Nhập hàng
 				return;
 			}
 
-			if (confirm('Bạn đã chắc về thông tin của phiếu nhập?')) {
-				requestSetReceive(receiveInput());
+			if (confirm('Bạn đã chắc về kết quả nhập?')) {
+				requestProcessReceive(receiveProcessInput());
 			}
 		});
 

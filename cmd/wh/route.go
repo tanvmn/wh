@@ -49,8 +49,6 @@ func (ap *application) routes() http.Handler {
 		// 	http.Error(w, err.Error(), http.StatusInternalServerError)
 		// 	return
 		// }
-
-		// fmt.Fprintf(w, "%v bytes written\n", n)
 	})
 
 	identify := middlewares{ap.sessionsManager.LoadAndSave, ap.identify}
@@ -73,8 +71,13 @@ func (ap *application) routes() http.Handler {
 	// Item
 	mux.Handle("GET /items", identify.then(ap.itemsPage()))
 	mux.Handle("GET /items/json", identify.then(ap.items()))
-	mux.Handle("GET /serials", identify.then(ap.serialsPage()))
 	mux.Handle("GET /items-by-supplier/json", identify.then(ap.itemsBySupplier()))
+
+	// Serial
+	mux.Handle("GET /serials", identify.then(ap.serialsPage()))
+
+	// Warehouse
+	mux.Handle("GET /totes/{warehouse}/unused/json", identify.then(ap.unusedTotes()))
 
 	// Supplier
 	mux.Handle("GET /suppliers/json", identify.then(ap.suppliers()))
@@ -94,11 +97,11 @@ func (ap *application) routes() http.Handler {
 	// Receive
 	mux.Handle("GET /add-receive", append(identify, ap.permit(data.Accountant)).then(ap.addReceivePage()))
 	mux.Handle("GET /receive/{id}", append(identify, ap.permit(data.Accountant, data.Manager, data.Employee)).then(ap.receivePage()))
-	// mux.Handle("GET /receive/process/{id}", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.receiveProcessPage()))
 	mux.Handle("GET /receive/{id}/process", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.receiveProcessPage()))
 	mux.Handle("GET /receives", append(identify, ap.permit(data.Accountant, data.Manager, data.Employee)).then(ap.receivesPage()))
 	mux.Handle("GET /receives-by-purchase/{purchase}", append(identify, ap.permit(data.Accountant, data.Manager, data.Employee)).then(ap.receivesByPurchasePage()))
 	mux.Handle("POST /receive", append(identify, ap.permit(data.Accountant)).then(ap.addReceive()))
+	mux.Handle("POST /receive/process", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.processReceive()))
 	mux.Handle("PUT /receive", append(identify, ap.permit(data.Accountant)).then(ap.setReceive()))
 	mux.Handle("DELETE /receive/{id}", append(identify, ap.permit(data.Accountant)).then(ap.delReceive()))
 

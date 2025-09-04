@@ -773,3 +773,117 @@ func (db *Data) Receives(warehouseID string) ([]Receive, error) {
 
 	return rs, nil
 }
+
+func setActualAt(tx *sql.Tx, rc *Receive) error {
+	rI, err := id64(rc.ID, ReceiveIDCode)
+	if err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	stmt := `
+	update receive
+	set
+	actual_at = localtimestamp
+	where id = $1
+	;`
+
+	_, err = tx.ExecContext(ctx, stmt, rI)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (db *Data) SetActualAt(rc *Receive) error {
+	tx, err := db.DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	err = setActualAt(tx, rc)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func setReceiveItemsNote(tx *sql.Tx, rc *Receive) error {
+	rI, err := id64(rc.ID, ReceiveIDCode)
+	if err != nil {
+		return err
+	}
+	pI, err := id64(rc.Purchase.ID, PurchaseIDCode)
+	if err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	stmt := `
+	update receive_item
+	set
+	note = $1
+	where receive_id = $2
+	and purchase_id = $3
+	and gtin = $4
+	;`
+
+	for _, i := range rc.Items {
+		if i.Note != "none" {
+			_, err = tx.ExecContext(ctx, stmt, i.Note, rI, pI, i.Item.GTIN)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (db *Data) SetReceiveItemsNote(rc *Receive) error {
+	tx, err := db.DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	err = setReceiveItemsNote(tx, rc)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (db *Data) UnprocessedReceivesByPurchase(purchaseID string) ([]Receive, error) {
+	temp, err := db.ReceivesByPurchase(purchaseID)
+	if err != nil {
+		return nil, err
+	}
+
+	var rs []Receive
+	for _, r := range temp {
+		if r.ActualAt[:16] == "1000-01-01 00:00" {
+			rs = append(rs, r)
+		}
+	}
+
+	return rs, nil
+}

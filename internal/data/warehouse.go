@@ -30,6 +30,7 @@ type Tote struct {
 	ID        string    `json:"id,omitempty,omitzero"`
 	Warehouse Warehouse `json:"warehouse,omitempty,omitzero"`
 	Capacity  float32   `json:"capacity,omitempty,omitzero"`
+	Version   int       `json:"version,omitempty,omitzero"`
 }
 
 type Store struct {
@@ -171,6 +172,9 @@ func (db *Data) Warehouses() ([]Warehouse, error) {
 			&w.Version,
 			&w.Email,
 		)
+		if err != nil {
+			return nil, err
+		}
 
 		ws = append(ws, w)
 	}
@@ -180,4 +184,60 @@ func (db *Data) Warehouses() ([]Warehouse, error) {
 	}
 
 	return ws, nil
+}
+
+func (db *Data) UnusedTotes(warehouseID string) ([]Tote, error) {
+	wI, err := id64(warehouseID, WarehouseIDCode)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	stmt := fmt.Sprintf(`
+	select
+	'%v'||tote.id
+	,capacity
+	,warehouse_id
+	,tote.version
+	from tote
+	left join serial on ((serial.receive_tote = tote.id and serial.pick_tote is null) or serial.pick_tote = tote.id) and serial.packed = false
+	where nanoid is null
+	and warehouse_id = $1
+	;`, ToteIDCode)
+
+	rows, err := db.DB.QueryContext(ctx, stmt, wI)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if err2 := rows.Close(); err2 != nil {
+			panic(err)
+		}
+	}()
+
+	var ts []Tote
+
+	for rows.Next() {
+		var t Tote
+
+		err = rows.Scan(
+			&t.ID,
+			&t.Capacity,
+			&t.Warehouse.ID,
+			&t.Version,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		ts = append(ts, t)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return ts, nil
 }

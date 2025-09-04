@@ -14,7 +14,7 @@
 			<th>Kệ</th>
 			<th>Hàng</th>
 			<th>Cột</th>
-			<th>Nhập lúc</th>
+			<th>Nhập lúc (dd-mm-yyyy hh24:mi)</th>
 			<th>ID Phiếu nhập</th>
 		</tr>
 	</thead>
@@ -22,11 +22,11 @@
 		{{range .Serials}}
 		<tr>
 			<td>{{.NanoID}}</td>
-			<td>{{.Warehouse.ID}}</td>
+			<td>{{.Purchase.Warehouse.ID}}</td>
 			<td>{{.Shelf}}</td>
 			<td>{{.Row}}</td>
 			<td>{{.Col}}</td>
-			<td>{{.Receive.AcutalAt}}</td>
+			<td>{{.Receive.ActualAt}}</td>
 			<td>{{.Receive.ID}}</td>
 		</tr>
 		{{end}}

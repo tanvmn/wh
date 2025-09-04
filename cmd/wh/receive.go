@@ -442,12 +442,137 @@ func (ap *application) receiveProcessPage() http.Handler {
 		}
 		td.Receive = *rc
 
-		td.ItemQuantitys, err = ap.data.UnreceivedPurchaseItemsOpt(rc)
+		// td.ItemQuantitys, err = ap.data.UnreceivedPurchaseItemsOpt(rc)
+		// if err != nil {
+		// 	ap.logger.Error(err.Error())
+		// 	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		// 	return
+		// }
+
+		err = ap.render(w, http.StatusOK, "receive_process", td)
 		if err != nil {
 			ap.logger.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
+	})
+}
+
+func (ap *application) processReceive() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var rc data.Receive
+
+		err := ap.decodeJSON(w, r, &rc)
+		if err != nil {
+			ap.logger.Error(err.Error())
+
+			var mr *util.MalformedRequest
+			if errors.As(err, &mr) {
+				http.Error(w, mr.Msg, http.StatusBadRequest)
+			} else {
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			}
+			return
+		}
+
+		// Get receive to get the receive's purchase ID
+		rcp, err := ap.data.Receive(rc.ID)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		// Transfer each receive item's note
+		for _, iq := range rc.Items {
+			for i := range rcp.Items {
+				if iq.GTIN == rcp.Items[i].GTIN {
+					rcp.Items[i].Note = iq.Note
+					println(rcp.Items[i].GTIN, rcp.Items[i].Note)
+					break
+				}
+			}
+		}
+
+		// Update corresponding purchase status
+		rs, err := ap.data.UnprocessedReceivesByPurchase(rcp.Purchase.ID)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		if len(rs) == 0 {
+			err = ap.data.UpdatePurchaseStatus(rcp.Purchase.ID, rcp.Purchase.Status, data.Ended)
+			if err != nil {
+				ap.logger.Error(err.Error())
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				return
+			}
+		} else {
+			err = ap.data.UpdatePurchaseStatus(rcp.Purchase.ID, rcp.Purchase.Status, data.Receiving)
+			if err != nil {
+				ap.logger.Error(err.Error())
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				return
+			}
+		}
+
+		// Set receive actual_at
+		err = ap.data.SetActualAt(rcp)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		// Set receive_item note
+		err = ap.data.SetReceiveItemsNote(rcp)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		// Add serial to db
+		for _, iq := range rc.Items {
+			for _, s := range iq.Serials {
+				s.Purchase.ID = rcp.Purchase.ID
+
+				err = ap.data.AddSerial(&s)
+				if err != nil {
+					ap.logger.Error(err.Error())
+					http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+					return
+				}
+			}
+		}
+
+		http.Redirect(w, r, "/items", http.StatusSeeOther)
+	})
+}
+
+func (ap *application) receiveProcessResultPage() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		id := r.PathValue("id")
+
+		rc, err := ap.data.Receive(id)
+		if err != nil {
+			ap.logger.Error(err.Error())
+
+			if errors.Is(err, data.ErrNoReceives) {
+				http.Error(w, fmt.Sprintf("Không tìm thấy phiếu nhập ID: %v", id), http.StatusNotFound)
+			} else {
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			}
+			return
+		}
+
+		td, err := ap.newTemplData(r)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		td.Receive = *rc
 
 		err = ap.render(w, http.StatusOK, "receive_process", td)
 		if err != nil {

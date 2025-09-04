@@ -73,7 +73,7 @@ Phiếu nhập
 						target="_blank">
 						Xem
 					</a>
-					{{if (or (eq $account $manager) (eq $account $employee))}}
+					{{if (and (or (eq $account $manager) (eq $account $employee)) (notProcessed .ActualAt))}}
 					<a class="btn btn-sm btn-secondary" href="{{$domain}}/receive/{{.ID}}/process"
 						target="_blank">
 						Xử lý

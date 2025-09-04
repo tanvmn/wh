@@ -74,11 +74,11 @@ func badgeBg(status string) string {
 }
 
 func notProcessed(actualAt string) bool {
-	return actualAt != "1000-01-01 00:00:00"
+	return actualAt == "1000-01-01 00:00:00" || actualAt == "01-01-1000 00:00"
 }
 
 var fns = template.FuncMap{
-	"badgeBg":      badgeBg,
+	"badgeBg":   badgeBg,
 	"notProcessed": notProcessed,
 }
 
