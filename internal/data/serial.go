@@ -158,6 +158,9 @@ func addSerial(tx *sql.Tx, s *Serial) error {
 	($1,$2,$3,$4,$5)
 	;`
 
+	println("rID", rID)
+	println("pID", pID)
+	println(s.GTIN)
 	_, err = tx.ExecContext(ctx, stmt, s.NanoID, s.GTIN, tID, rID, pID)
 	if err != nil {
 		return err

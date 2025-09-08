@@ -197,9 +197,36 @@ Nhập hàng
 			return;
 		});
 
+		// If input is a Serial
+		o.items.forEach((i, idx1) => {
+			i.serials.forEach((s, idx2) => {
+				if (s.nanoID === input) {
+					// Remove serial from obj
+					i.serials.splice(idx2, idx2 + 1);
+
+					// Reset the latests
+					document.querySelector('#latestGTIN').value = '';
+					document.querySelector('#latestSerial').value = '';
+
+					document.querySelectorAll('.tdGTIN').forEach((td, idx) => {
+						if (td.innerText === i.item.gtin) {
+							// Decrease acutual amount
+							td.nextElementSibling.nextElementSibling.nextElementSibling.querySelector('input[type=number]').value--;
+
+							console.log(JSON.stringify(o));
+						}
+					});
+				}
+			});
+			return;
+		});
+
 		// If input is an unused tote ID
-		totes.forEach((t, idx) => {
+		// totes.forEach((t, idx) => {
+		let contained = false;
+		for (let t of totes) {
 			if (t.id == input) {
+				contained = true;
 				let latestGTIN = document.querySelector('#latestGTIN').value;
 				if (latestGTIN !== '') {
 					// Add serial to object
@@ -231,32 +258,11 @@ Nhập hàng
 					alert('Cần quét mã hàng GTIN trước');
 				}
 			}
-			return;
-		});
-
-		// If input is a Serial
-		o.items.forEach((i, idx1) => {
-			i.serials.forEach((s, idx2) => {
-				if (s.nanoID === input) {
-					// Remove serial from obj
-					i.serials.splice(idx2, idx2 + 1);
-
-					// Reset the latests
-					document.querySelector('#latestGTIN').value = '';
-					document.querySelector('#latestSerial').value = '';
-
-					document.querySelectorAll('.tdGTIN').forEach((td, idx) => {
-						if (td.innerText === i.item.gtin) {
-							// Decrease acutual amount
-							td.nextElementSibling.nextElementSibling.nextElementSibling.querySelector('input[type=number]').value--;
-
-							console.log(JSON.stringify(o));
-						}
-					});
-				}
-			});
-			return;
-		});
+		};
+		if (!contained) {
+			alert(`Giỏ đựng ${input} đang được sử dụng ở nơi khác`)
+		}
+		// });
 	}
 
 	function receiveProcessInput() {

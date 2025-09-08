@@ -158,7 +158,7 @@ Tạo yêu cầu nhập
 		// Populate the table of chosen items based on the selection of item
 		document.querySelector('#itemPick').addEventListener('input', (e) => {
 			addItem(e.target.value);
-			e.target.value = '';
+			// setTimeout(() => { e.target.value = ''; }, 3000);
 		});
 
 		// Delete row in table of chosen items and repopulate the options of items
