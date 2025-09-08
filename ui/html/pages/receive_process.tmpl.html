@@ -222,7 +222,6 @@ Nhập hàng
 		});
 
 		// If input is an unused tote ID
-		// totes.forEach((t, idx) => {
 		let contained = false;
 		for (let t of totes) {
 			if (t.id == input) {
@@ -262,7 +261,6 @@ Nhập hàng
 		if (!contained) {
 			alert(`Giỏ đựng ${input} đang được sử dụng ở nơi khác`)
 		}
-		// });
 	}
 
 	function receiveProcessInput() {
