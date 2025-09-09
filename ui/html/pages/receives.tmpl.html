@@ -26,6 +26,7 @@ Phiếu nhập
 				<th>Nhà cung<br>cấp</th>
 				<th>Dự kiến nhập<br>(dd-mm-yyyy hh24:mi)</th>
 				<th>Nhập lúc<br>(dd-mm-yyyy hh24:mi)</th>
+				<th>Đã nhập</th>
 				<th>Tạo bởi</th>
 				<th>Tạo lúc<br>(dd-mm-yyyy hh24:mi)</th>
 				<th></th>
@@ -63,6 +64,11 @@ Phiếu nhập
 					{{end}}
 				</td>
 				<td>
+					<span class="badge text-bg-success">
+						{{.ReceivedQuantity}} / {{.ExpectedQuantity}}
+					</span>
+				</td>
+				<td>
 					<strong>ID: </strong>{{.Account.ID}}<br>
 					<strong>Tên: </strong>{{.Account.Name}}<br>
 					<strong>CVụ: </strong>{{.Account.Role}}<br>
@@ -73,7 +79,8 @@ Phiếu nhập
 						target="_blank">
 						Xem
 					</a>
-					{{if (and (or (eq $account $manager) (eq $account $employee)) (notProcessed .ActualAt))}}
+					{{if (and (or (eq $account $manager) (eq $account $employee)) (notProcessed
+					.ActualAt))}}
 					<a class="btn btn-sm btn-secondary" href="{{$domain}}/receive/{{.ID}}/process"
 						target="_blank">
 						Xử lý

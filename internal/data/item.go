@@ -170,33 +170,33 @@ func (db *Data) Items(gtins ...string) ([]Item, error) {
 		return nil, err
 	}
 
-	for i := range is {
-		is[i].Stock, err = db.Stock(is[i].GTIN)
-		if err != nil && !errors.Is(err, ErrNoItems) {
-			return nil, err
-		}
-	}
-
 	return is, nil
 }
 
 // Stock returns the currently stored and exported quantity of a gtin
-func (db *Data) Stock(gtin string) (int64, error) {
+func (db *Data) Stock(gtin string, warehouseID string) (int64, error) {
+	wI, err := id64(warehouseID, WarehouseIDCode)
+	if err != nil {
+		return 0, err
+	}
+
 	stmt := `select
-	count(gtin)
+	count(*)
 	from
 	serial
-	where
-	gtin=$1
-	and pick_tote=0
-	and export_id=0`
+	join purchase on purchase.id = serial.purchase_id
+	where gtin=$1
+	and receive_tote != 0
+	and export_id is null
+	and purchase.warehouse_id = $2
+	;`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	var quantity int64
 
-	err := db.DB.QueryRowContext(ctx, stmt, gtin).Scan(&quantity)
+	err = db.DB.QueryRowContext(ctx, stmt, gtin, wI).Scan(&quantity)
 	if err != nil {
 		return 0, err
 	}

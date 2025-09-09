@@ -9,17 +9,19 @@ import (
 )
 
 type Receive struct {
-	ID         string         `json:"id,omitempty,omitzero"`
-	ExpectedAt string         `json:"expectedAt,omitempty,omitzero"`
-	ActualAt   string         `json:"actualAt,omitempty,omitzero"`
-	CreatedAt  string         `json:"createdAt,omitempty,omitzero"`
-	VoucherID  string         `json:"voucherID,omitempty,omitzero"`
-	Version    int            `json:"version,omitempty,omitzero"`
-	Note       string         `json:"note,omitempty,omitzero"`
-	Items      []ItemQuantity `json:"items,omitempty,omitzero"`
-	Transfer   `json:"transfer,omitempty,omitzero"`
-	Purchase   `json:"purchase,omitempty,omitzero"`
-	Account    `json:"account,omitempty,omitzero"`
+	ID               string         `json:"id,omitempty,omitzero"`
+	ExpectedAt       string         `json:"expectedAt,omitempty,omitzero"`
+	ActualAt         string         `json:"actualAt,omitempty,omitzero"`
+	CreatedAt        string         `json:"createdAt,omitempty,omitzero"`
+	VoucherID        string         `json:"voucherID,omitempty,omitzero"`
+	Version          int            `json:"version,omitempty,omitzero"`
+	Note             string         `json:"note,omitempty,omitzero"`
+	ExpectedQuantity int64          `json:"expectedQuantity,omitempty,omitzero"`
+	ReceivedQuantity int64          `json:"receivedQuantity,omitempty,omitzero"`
+	Items            []ItemQuantity `json:"items,omitempty,omitzero"`
+	Transfer         `json:"transfer,omitempty,omitzero"`
+	Purchase         `json:"purchase,omitempty,omitzero"`
+	Account          `json:"account,omitempty,omitzero"`
 }
 
 var (
@@ -176,6 +178,22 @@ func addReceiveItems(tx *sql.Tx, rc *Receive) error {
 	return nil
 }
 
+func setReceiveVoucherID(tx *sql.Tx, receiveID int64) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	stmt := `
+	update receive set voucher_id='VOU-00'||$1 where id=$1
+	;`
+
+	_, err := tx.ExecContext(ctx, stmt, receiveID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func addReceive(tx *sql.Tx, rc *Receive) error {
 	aI, err := id64(rc.Account.ID, AccountIDCode)
 	if err != nil {
@@ -196,6 +214,16 @@ func addReceive(tx *sql.Tx, rc *Receive) error {
 	;`, ReceiveIDCode)
 
 	err = tx.QueryRowContext(ctx, stmt, pI, aI, rc.ExpectedAt, rc.VoucherID).Scan(&rc.ID, &rc.Version)
+	if err != nil {
+		return err
+	}
+
+	// set receive's voucher_id with format VOU-<receive_id>
+	rI, err := id64(rc.ID, ReceiveIDCode)
+	if err != nil {
+		return err
+	}
+	err = setReceiveVoucherID(tx, rI)
 	if err != nil {
 		return err
 	}
@@ -307,6 +335,8 @@ func (db *Data) ReceiveItems(rc *Receive) error {
 		return err
 	}
 
+	// db.Serial
+
 	return nil
 }
 
@@ -397,6 +427,13 @@ func (db *Data) Receive(id string) (*Receive, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	err = db.SerialsByReceive(&rc)
+	if err != nil {
+		return nil, err
+	}
+
+	db.UpdateReceiveQuantity(&rc)
 
 	return &rc, nil
 }
@@ -764,6 +801,13 @@ func (db *Data) Receives(warehouseID string) ([]Receive, error) {
 			return nil, err
 		}
 
+		err = db.SerialsByReceive(&rc)
+		if err != nil {
+			return nil, err
+		}
+
+		db.UpdateReceiveQuantity(&rc)
+
 		rs = append(rs, rc)
 	}
 
@@ -886,4 +930,11 @@ func (db *Data) UnprocessedReceivesByPurchase(purchaseID string) ([]Receive, err
 	}
 
 	return rs, nil
+}
+
+func (db *Data) UpdateReceiveQuantity(rc *Receive) {
+	for _, iq := range rc.Items {
+		rc.ExpectedQuantity += iq.Quantity
+		rc.ReceivedQuantity += int64(len(iq.Serials))
+	}
 }

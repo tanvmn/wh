@@ -112,9 +112,9 @@ Nhập hàng
 							<div class="invalid-feedback">Min 1, Max {{.MaxReceiveQuantity}}
 							</div>
 						</td>
-						<td class="bg-success-subtle">
+						<td>
 							<input type="number"
-								class="form-control was-validated actualQuantity"
+								class="form-control was-validated actualQuantity bg-success-subtle"
 								min="0" required value="0" readonly>
 						</td>
 						<td>
@@ -168,7 +168,9 @@ Nhập hàng
 
 	function process(input) {
 		// If input is a GTIN of the receive
-		document.querySelectorAll('.tdGTIN').forEach((td, idx) => {
+		// document.querySelectorAll('.tdGTIN').forEach((td, idx) => {
+		let tds = document.querySelectorAll('.tdGTIN');
+		for (let td of tds) {
 			if (td.innerText === input) {
 				// Update latest GTIN and Serial
 				document.querySelector('#latestGTIN').value = input;
@@ -193,9 +195,11 @@ Nhập hàng
 				doc.output('dataurlnewwindow');
 				// doc.save(td.innerText + '__' + ser + '.pdf');
 				// window.open(doc.output('bloburl'));
+
+				return;
 			}
-			return;
-		});
+		}
+		// });
 
 		// If input is a Serial
 		o.items.forEach((i, idx1) => {
@@ -258,8 +262,8 @@ Nhập hàng
 				}
 			}
 		};
-		if (!contained) {
-			alert(`Giỏ đựng ${input} đang được sử dụng ở nơi khác`)
+		if (!contained && input.includes(IDCode.ToteIDCode)) {
+			alert(`Giỏ đựng ${input} đang được sử dụng ở nơi khác`);
 		}
 	}
 
@@ -292,7 +296,6 @@ Nhập hàng
 				return res.text();
 			})
 			.then(data => {
-				// if (!ok) alert(data);
 				alert(data);
 			});
 	}

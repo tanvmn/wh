@@ -48,14 +48,14 @@ Tạo phiếu nhập
 					Thời điểm phải từ hiện tại trở về sau
 				</div>
 			</div>
-			<div class="col">
+			<!-- <div class="col">
 				<label for="voucherID" class="form-label">Số chứng từ gốc</label>
 				<input type="text" name="voucherID" id="voucherID" class="form-control was-validated"
 					required>
 				<div class="invalid-feedback">
 					Không thể rỗng
 				</div>
-			</div>
+			</div> -->
 		</div>
 		<!-- End warehouse, supplier, expectedAt -->
 
@@ -205,7 +205,7 @@ Tạo phiếu nhập
 
 		function receiveInput() {
 			let o = {
-				voucherID: document.querySelector('#voucherID').value,
+				// voucherID: document.querySelector('#voucherID').value,
 				purchase: { id: document.querySelector('#purchaseID').innerText },
 				expectedAt: document.querySelector('#expectedAt').value,
 				items: [],
@@ -224,8 +224,6 @@ Tạo phiếu nhập
 		}
 
 		function requestAddReceive(obj) {
-			// let o = receiveInput();
-
 			let ok = false;
 			fetch(domain + '/receive', {
 				method: 'POST',

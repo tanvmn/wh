@@ -71,6 +71,14 @@ Phiếu nhập
 				<input name="voucherID" id="voucherID" class="form-control" value="{{.VoucherID}}"
 					disabled>
 			</div>
+			{{if not (notProcessed .ActualAt)}}
+			<div class="col">
+				<label for="actualAt" class="form-label">Nhập lúc (mm/dd/yyyy)</label>
+				<input type="datetime-local" name="actualAt" id="actualAt"
+					value="{{slice .ActualAt 0 16}}" class="form-control was-validated" required
+					disabled>
+			</div>
+			{{end}}
 			<input type="text" name="" id="version" value="{{.Version}}" style="display: none;">
 			{{end}}
 		</div>
@@ -105,9 +113,14 @@ Phiếu nhập
 					<th>GTIN</th>
 					<th>Tên</th>
 					<th>Số lượng (cái)</th>
+					{{if not (notProcessed .Receive.ActualAt)}}
+					<th>Đã nhập (cái)</th>
+					<th>Lệch (cái)</th>
+					{{end}}
 					<th></th>
 				</thead>
 				<tbody id="itemList">
+					{{$processed := (not (notProcessed .Receive.ActualAt))}}
 					{{range .Receive.Items}}
 					<tr>
 						<td><img height="100" src="/rec/{{.Item.ImgFSPath}}"
@@ -123,9 +136,24 @@ Phiếu nhập
 							<div class="invalid-feedback">Min 1, Max {{.MaxReceiveQuantity}}
 							</div>
 						</td>
+						{{if $processed}}
+						<td>
+
+							<input type="number"
+								class="form-control bg-success-subtle tdReceivedQuantity"
+								value="{{len .Serials}}" readonly>
+						</td>
+						<td>
+							<input type="number"
+								class="form-control bg-warning-subtle tdDelta"
+								value="-1" readonly>
+						</td>
+						{{end}}
+						{{if not $processed}}
 						<td>
 							<button class="btn btn-danger delete" disabled>X</button>
 						</td>
+						{{end}}
 					</tr>
 					{{end}}
 				</tbody>
@@ -139,6 +167,11 @@ Phiếu nhập
 
 	// After getting items (above), begin others task from this point
 	document.addEventListener('DOMContentLoaded', function () {
+		// If the receive is processed, then set the delta in quantities
+		if (document.querySelector('#actualAt') !== null) {
+			delta();
+		}
+
 		document.querySelector('#delReceiveBtn').addEventListener('click', (e) => {
 			if (confirm('Bạn có chắc muốn xóa phiếu nhập')) {
 				let id = document.querySelector('#receiveID').innerText;
@@ -198,6 +231,16 @@ Phiếu nhập
 		document.querySelector('#itemTable').addEventListener('click', (e) => {
 			delTR(e);
 		});
+
+		function delta() {
+			document.querySelector('#itemList').querySelectorAll('tr').forEach((tr, idx) => {
+				let delta = tr.querySelector('.tdDelta');
+				let receivedQuant = tr.querySelector('.tdReceivedQuantity');
+				let expectedQuant = tr.querySelector('.tdQuantity');
+
+				delta.value = receivedQuant.value - expectedQuant.value;
+			});
+		}
 
 		function addItem(input) {
 			document.querySelector('#itemOpts').querySelectorAll('option').forEach((o, i) => {

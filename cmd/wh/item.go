@@ -14,6 +14,11 @@ func (ap *application) name(i data.Item) string {
 
 func (ap *application) itemsPage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		wID, ok := r.Context().Value(authenticatedCtxWarehouseID).(string)
+		if !ok {
+			ap.logger.Error(fmt.Sprintf("%v, authenticatedCtxWarehouseID: %v", ErrConvertCtxVal, wID))
+		}
+
 		td, err := ap.newTemplData(r)
 		if err != nil {
 			ap.logger.Error(err.Error())
@@ -26,6 +31,14 @@ func (ap *application) itemsPage() http.Handler {
 			ap.logger.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
+		}
+		for i := range is {
+			is[i].Stock, err = ap.data.Stock(is[i].GTIN, wID)
+			if err != nil {
+				ap.logger.Error(err.Error())
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				return
+			}
 		}
 		if is != nil {
 			td.Items = is
@@ -42,6 +55,11 @@ func (ap *application) itemsPage() http.Handler {
 
 func (ap *application) items() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		wID, ok := r.Context().Value(authenticatedCtxWarehouseID).(string)
+		if !ok {
+			ap.logger.Error(fmt.Sprintf("%v, authenticatedCtxWarehouseID: %v", ErrConvertCtxVal, wID))
+		}
+
 		is, err := ap.data.Items()
 		if err != nil {
 			ap.logger.Error(err.Error())

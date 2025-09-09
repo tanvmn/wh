@@ -10,17 +10,17 @@ import (
 type Serial struct {
 	NanoID      string `json:"nanoID,omitempty,omitzero"`
 	GTIN        string `json:"gtin,omitempty,omitzero"`
-	Packed      bool   `json:"packed,omitempty,omitzero"`
 	ReceiveTote Tote   `json:"receiveTote,omitempty,omitzero"`
 	PickTote    Tote   `json:"pickTote,omitempty,omitzero"`
 	Bin         `json:"bin,omitempty,omitzero"`
-	Receive     `json:"receive,omitempty,omitzero"`
 	Purchase    `json:"purchase,omitempty,omitzero"`
+	Receive     `json:"receive,omitempty,omitzero"`
 	Export      `json:"export,omitempty,omitzero"`
+	Resupply    `json:"resupply,omitempty,omitzero"`
 }
 
 // Serials returns the serials of a gtin
-func (db *Data) SerialsByWarehouse(gtin string, warehouseID string) ([]Serial, error) {
+func (db *Data) SerialsByGTINAndWarehouse(gtin string, warehouseID string) ([]Serial, error) {
 	if len(gtin) < 5 {
 		return nil, fmt.Errorf("%w: %v", ErrNoItems, gtin)
 	}
@@ -44,14 +44,17 @@ func (db *Data) SerialsByWarehouse(gtin string, warehouseID string) ([]Serial, e
 	,'%v'||purchase.warehouse_id
 	,warehouse.name
 	,gtin
-	,'%v'||export_id
+	--,'%v'||export_id
+	--,to_char(export.packed_at, 'DD-MM-YYYY HH24:MI')
 	from
 	serial
 	join receive on serial.receive_id = receive.id
 	join purchase on serial.purchase_id = purchase.id
 	join warehouse on purchase.warehouse_id = warehouse.id
+	left join export on export.id = serial.export_id
 	left join bin on serial.bin_id = bin.id
 	where gtin = $1
+	and export.picked_at = '1000-01-01 00:00'
 	and warehouse.id = $2
 	;`,
 		ToteIDCode,
@@ -82,7 +85,8 @@ func (db *Data) SerialsByWarehouse(gtin string, warehouseID string) ([]Serial, e
 		var (
 			s                           Serial
 			binRow, binCol, binShelf    sql.NullInt64
-			pickToteID, binID, exportID sql.NullString
+			// pickToteID, binID, exportID sql.NullString
+			pickToteID, binID sql.NullString
 		)
 
 		err = rows.Scan(
@@ -99,7 +103,7 @@ func (db *Data) SerialsByWarehouse(gtin string, warehouseID string) ([]Serial, e
 			&s.Purchase.Warehouse.ID,
 			&s.Purchase.Warehouse.Name,
 			&s.GTIN,
-			&exportID,
+			// &exportID,
 		)
 		if err != nil {
 			return nil, err
@@ -122,9 +126,9 @@ func (db *Data) SerialsByWarehouse(gtin string, warehouseID string) ([]Serial, e
 			s.Bin.Col = binCol.Int64
 		}
 
-		if exportID.Valid {
-			s.Export.ID = exportID.String
-		}
+		// if exportID.Valid {
+		// 	s.Export.ID = exportID.String
+		// }
 
 		ss = append(ss, s)
 	}
@@ -158,9 +162,10 @@ func addSerial(tx *sql.Tx, s *Serial) error {
 	($1,$2,$3,$4,$5)
 	;`
 
-	println("rID", rID)
-	println("pID", pID)
-	println(s.GTIN)
+	// println("rID", rID)
+	// println("pID", pID)
+	// println("tID", tID)
+	// println(s.GTIN)
 	_, err = tx.ExecContext(ctx, stmt, s.NanoID, s.GTIN, tID, rID, pID)
 	if err != nil {
 		return err
@@ -206,6 +211,117 @@ func (db *Data) AddSerials(ss []Serial) error {
 	err = tx.Commit()
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (db *Data) SerialsByReceive(rc *Receive) error {
+	rI, err := id64(rc.ID, ReceiveIDCode)
+	if err != nil {
+		return err
+	}
+	wI, err := id64(rc.Purchase.Warehouse.ID, WarehouseIDCode)
+	if err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	stmt := fmt.Sprintf(`
+	select
+	nanoid
+	,serial.gtin
+	,shelf
+	,row
+	,col
+	,'%v'||receive_tote
+	,'%v'||pick_tote
+	,'%v'||serial.purchase_id
+	,'%v'||serial.receive_id
+	,'%v'||serial.export_id
+	from serial
+	join receive on receive.id = serial.receive_id
+	join purchase on purchase.id = receive.purchase_id
+	left join bin on bin.id = serial.bin_id
+	where serial.receive_id = $1
+	and purchase.warehouse_id = $2
+	;`,
+		ToteIDCode,
+		ToteIDCode,
+		PurchaseIDCode,
+		ReceiveIDCode,
+		ExportIDCode,
+	)
+
+	rows, err := db.DB.QueryContext(ctx, stmt, rI, wI)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		err2 := rows.Close()
+		if err2 != nil {
+			panic(err2)
+		}
+	}()
+
+	var (
+		ss                 []Serial
+		pickTote, exportID sql.NullString
+		shelf, row, col    sql.NullInt64
+	)
+
+	for rows.Next() {
+		var s Serial
+		err = rows.Scan(
+			&s.NanoID,
+			&s.GTIN,
+			&shelf,
+			&row,
+			&col,
+			&s.ReceiveTote.ID,
+			&pickTote,
+			&s.Purchase.ID,
+			&s.Receive.ID,
+			&exportID,
+		)
+		if err != nil {
+			return err
+		}
+
+		if shelf.Valid {
+			s.Bin.Shelf = shelf.Int64
+		}
+		if row.Valid {
+			s.Bin.Row = row.Int64
+		}
+		if col.Valid {
+			s.Bin.Col = col.Int64
+		}
+
+		if pickTote.Valid {
+			s.PickTote.ID = pickTote.String
+		}
+
+		if exportID.Valid {
+			s.Export.ID = exportID.String
+		}
+
+		ss = append(ss, s)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return err
+	}
+
+	for i := range rc.Items {
+		for _, s := range ss {
+			if rc.Items[i].GTIN == s.GTIN {
+				rc.Items[i].Serials = append(rc.Items[i].Serials, s)
+			}
+		}
 	}
 
 	return nil

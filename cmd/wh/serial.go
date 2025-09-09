@@ -21,14 +21,13 @@ func (ap *application) serialsPage() http.Handler {
 			return
 		}
 
-		ss, err := ap.data.SerialsByWarehouse(gtin, wID)
+		ss, err := ap.data.SerialsByGTINAndWarehouse(gtin, wID)
 		if err != nil {
 			ap.logger.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		td.Serials = ss
-		printIndenJSON(ss)
 
 		it, err := ap.data.Item(gtin)
 		if err != nil {

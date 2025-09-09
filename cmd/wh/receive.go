@@ -487,7 +487,7 @@ func (ap *application) processReceive() http.Handler {
 			for i := range rcp.Items {
 				if iq.GTIN == rcp.Items[i].GTIN {
 					rcp.Items[i].Note = iq.Note
-					println(rcp.Items[i].GTIN, rcp.Items[i].Note)
+					// println(rcp.Items[i].GTIN, rcp.Items[i].Note)
 					break
 				}
 			}
@@ -546,7 +546,7 @@ func (ap *application) processReceive() http.Handler {
 			}
 		}
 
-		http.Redirect(w, r, "/items", http.StatusSeeOther)
+		http.Redirect(w, r, "/receives", http.StatusSeeOther)
 	})
 }
 
