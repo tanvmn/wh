@@ -116,6 +116,9 @@
 	</button>
 	<div class="dropdown-container-w3">
 		<a id="receives" href="{{.Domain}}/receives">Xem</a>
+		{{if (or (eq .Account.Role .Manager) (eq .Account.Role .Employee))}}
+		<a id="putaway" href="{{.Domain}}/putaway-prompt">Cất hàng</a>
+		{{end}}
 	</div>
 	<!-- End phiếu nhập -->
 

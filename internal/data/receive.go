@@ -288,6 +288,7 @@ func (db *Data) ReceiveItems(rc *Receive) error {
 	,type||', '||brand||', màu '||color||', cỡ '||size||', '||material
 	,img_fspath
 	,quantity
+	,ri.note
 	from receive_item as ri
 	join item on item.gtin = ri.gtin
 	join receive on receive.id = ri.receive_id
@@ -325,6 +326,7 @@ func (db *Data) ReceiveItems(rc *Receive) error {
 			&iq.Item.Name,
 			&iq.ImgFSPath,
 			&iq.Quantity,
+			&iq.Note,
 		)
 		if err != nil {
 			return err
@@ -335,8 +337,6 @@ func (db *Data) ReceiveItems(rc *Receive) error {
 	if err = rows.Err(); err != nil {
 		return err
 	}
-
-	// db.Serial
 
 	return nil
 }

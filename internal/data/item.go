@@ -33,10 +33,11 @@ type Item struct {
 }
 
 type ItemQuantity struct {
-	Quantity           int64    `json:"quantity,omitempty,omitzero"`
-	MaxReceiveQuantity int64    `json:"maxReceiveQuantity,omitempty,omitzero"`
-	Note               string   `json:"note,omitempty,omitzero"`
-	Serials            []Serial `json:"serials,omitempty,omitzero"`
+	Quantity           int64                     `json:"quantity,omitempty,omitzero"`
+	MaxReceiveQuantity int64                     `json:"maxReceiveQuantity,omitempty,omitzero"`
+	Note               string                    `json:"note,omitempty,omitzero"`
+	Serials            []Serial                  `json:"serials,omitempty,omitzero"`
+	Putaway            map[string][]ItemQuantity `json:"putaway,omitempty,omitzero"`
 	Item               `json:"item,omitempty,omitzero"`
 	Receive            `json:"receive,omitempty,omitzero"`
 	Export             `json:"export,omitempty,omitzero"`

@@ -27,7 +27,8 @@ func (mr *MalformedRequest) HasErr() bool {
 	return mr.Msg != ""
 }
 
-// Set returns a slice of unique T values
+// Set returns a slice of unique T values.
+// If there aren't any values passed in, set returns nil
 func Set[T comparable](vs ...T) []T {
 	if len(vs) == 0 {
 		return nil
@@ -66,7 +67,7 @@ func ValidateDateTime(datetime string) error {
 	return err
 }
 
-// AnySlice return an slice of any that contains the vs passed in
+// AnySlice return an slice of interface{} that contains the values passed in
 func AnySlice[T comparable](vs ...T) []any {
 	var as []any
 	for _, v := range vs {

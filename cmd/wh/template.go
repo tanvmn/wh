@@ -74,7 +74,7 @@ func badgeBg(status string) string {
 }
 
 func notProcessed(actualAt string) bool {
-	return strings.Contains(actualAt,"1000-01-01") || strings.Contains(actualAt,"01-01-1000")
+	return strings.Contains(actualAt, "1000-01-01") || strings.Contains(actualAt, "01-01-1000")
 }
 
 var fns = template.FuncMap{

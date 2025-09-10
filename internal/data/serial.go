@@ -15,8 +15,8 @@ type Serial struct {
 	Bin         `json:"bin,omitempty,omitzero"`
 	Purchase    `json:"purchase,omitempty,omitzero"`
 	Receive     `json:"receive,omitempty,omitzero"`
-	Export      `json:"export,omitempty,omitzero"`
 	Resupply    `json:"resupply,omitempty,omitzero"`
+	Export      `json:"export,omitempty,omitzero"`
 }
 
 // Serials returns the serials of a gtin
@@ -30,33 +30,33 @@ func (db *Data) SerialsByGTINAndWarehouse(gtin string, warehouseID string) ([]Se
 	}
 
 	stmt := fmt.Sprintf(
-	`select
-	nanoid
-	,'%v'||receive_tote
-	,'%v'||pick_tote
-	,'%v'||bin_id
-	,bin.shelf
-	,bin.row
-	,bin.col
-	,'%v'||serial.receive_id
-	,to_char(receive.actual_at, 'DD-MM-YYYY HH24:MI')
-	,'%v'||serial.purchase_id
-	,'%v'||purchase.warehouse_id
-	,warehouse.name
-	,gtin
-	--,'%v'||export_id
-	--,to_char(export.packed_at, 'DD-MM-YYYY HH24:MI')
-	from
-	serial
-	join receive on serial.receive_id = receive.id
-	join purchase on serial.purchase_id = purchase.id
-	join warehouse on purchase.warehouse_id = warehouse.id
-	left join export on export.id = serial.export_id
-	left join bin on serial.bin_id = bin.id
-	where gtin = $1
-	and export.picked_at = '1000-01-01 00:00'
-	and warehouse.id = $2
-	;`,
+		`select
+		nanoid
+		,'%v'||receive_tote
+		,'%v'||pick_tote
+		,'%v'||bin_id
+		,bin.shelf
+		,bin.row
+		,bin.col
+		,'%v'||serial.receive_id
+		,to_char(receive.actual_at, 'DD-MM-YYYY HH24:MI')
+		,'%v'||serial.purchase_id
+		,'%v'||purchase.warehouse_id
+		,warehouse.name
+		,gtin
+		--,'%v'||export_id
+		--,to_char(export.packed_at, 'DD-MM-YYYY HH24:MI')
+		from
+		serial
+		join receive on serial.receive_id = receive.id
+		join purchase on serial.purchase_id = purchase.id
+		join warehouse on purchase.warehouse_id = warehouse.id
+		left join export on export.id = serial.export_id
+		left join bin on serial.bin_id = bin.id
+		where gtin = $1
+		and export.picked_at = '1000-01-01 00:00'
+		and warehouse.id = $2
+		;`,
 		ToteIDCode,
 		ToteIDCode,
 		BinIDCode,
@@ -83,8 +83,8 @@ func (db *Data) SerialsByGTINAndWarehouse(gtin string, warehouseID string) ([]Se
 	ss := []Serial{}
 	for rows.Next() {
 		var (
-			s                           Serial
-			binRow, binCol, binShelf    sql.NullInt64
+			s                        Serial
+			binRow, binCol, binShelf sql.NullInt64
 			// pickToteID, binID, exportID sql.NullString
 			pickToteID, binID sql.NullString
 		)
