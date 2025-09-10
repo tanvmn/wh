@@ -13,6 +13,7 @@ type Receive struct {
 	ExpectedAt       string         `json:"expectedAt,omitempty,omitzero"`
 	ActualAt         string         `json:"actualAt,omitempty,omitzero"`
 	CreatedAt        string         `json:"createdAt,omitempty,omitzero"`
+	PutawayAt        string         `json:"putawayAt,omitempty,omitzero"`
 	VoucherID        string         `json:"voucherID,omitempty,omitzero"`
 	Version          int            `json:"version,omitempty,omitzero"`
 	Note             string         `json:"note,omitempty,omitzero"`
@@ -532,6 +533,13 @@ func (db *Data) ReceivesByPurchase(purchaseID string) ([]Receive, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		err = db.SerialsByReceive(&rc)
+		if err != nil {
+			return nil, err
+		}
+
+		db.UpdateReceiveQuantity(&rc)
 
 		rs = append(rs, rc)
 	}

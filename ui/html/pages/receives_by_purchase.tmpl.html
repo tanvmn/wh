@@ -26,6 +26,7 @@ Phiếu nhập
 				<th>Nhà cung<br>cấp</th>
 				<th>Dự kiến nhập<br>(dd-mm-yyyy hh24:mi)</th>
 				<th>Nhập lúc<br>(dd-mm-yyyy hh24:mi)</th>
+				<th>Đã nhập</th>
 				<th>Tạo bởi</th>
 				<th>Tạo lúc<br>(dd-mm-yyyy hh24:mi)</th>
 				<th></th>
@@ -58,6 +59,11 @@ Phiếu nhập
 						CHƯA NHẬP
 					</span>
 					{{end}}
+				</td>
+				<td>
+					<span class="badge text-bg-success">
+						{{.ReceivedQuantity}} / {{.ExpectedQuantity}}
+					</span>
 				</td>
 				<td>
 					<strong>ID: </strong>{{.Account.ID}}<br>
