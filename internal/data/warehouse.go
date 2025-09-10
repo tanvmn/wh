@@ -202,7 +202,7 @@ func (db *Data) UnusedTotes(warehouseID string) ([]Tote, error) {
 	,warehouse_id
 	,tote.version
 	from tote
-	left join serial on (serial.receive_tote = tote.id and serial.pick_tote is null) or serial.pick_tote = tote.id
+	left join serial on (serial.receive_tote = tote.id and serial.bin_id is null) or serial.pick_tote = tote.id
 	left join receive on receive.id = serial.receive_id and receive.putaway_at = '1000-01-01'
 	left join export on export.id = serial.export_id and export.picked_at = '1000-01-01'
 	where tote.warehouse_id = $1
