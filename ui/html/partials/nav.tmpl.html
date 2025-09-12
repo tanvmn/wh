@@ -86,6 +86,7 @@
 <link rel="stylesheet" href="/static/css/style.css">
 
 <div class="sidenav-w3">
+	{{if .Account.Warehouse.ID}}
 	<a href="/">Home</a>
 
 	<!-- Begin Hàng -->
@@ -129,7 +130,7 @@
 		<a id="account" href="{{.Domain}}/account/{{.Account.ID}}">Xem</a>
 		<a id="logout" href="{{.Domain}}/logout">Đăng xuất</a>
 	</div>
-
+	{{end}}
 </div>
 
 <script>

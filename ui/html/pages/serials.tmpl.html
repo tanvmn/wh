@@ -1,5 +1,15 @@
 {{define "main"}}
 <link rel="stylesheet" href="https://cdn.datatables.net/2.3.2/css/dataTables.dataTables.css" />
+<style>
+	ul {
+		list-style-type: none;
+		/* Remove bullets */
+		padding: 0;
+		/* Remove padding */
+		margin: 0;
+		/* Remove margins */
+	}
+</style>
 
 <h2>
 	GTIN &nbsp <i><strong>{{.Item.GTIN}}</strong></i>
@@ -22,7 +32,13 @@
 		{{range .Serials}}
 		<tr>
 			<td>{{.NanoID}}</td>
-			<td>{{.Purchase.Warehouse.ID}}</td>
+			<!-- <td>{{.Purchase.Warehouse.ID}}</td> -->
+			<td>
+				<ul>
+					<li><strong>ID: </strong>{{.Purchase.Warehouse.ID}}</li>
+					<li><strong>Tên: </strong>{{.Purchase.Warehouse.Name}}</li>
+				</ul>
+			</td>
 			<td>{{.Shelf}}</td>
 			<td>{{.Row}}</td>
 			<td>{{.Col}}</td>

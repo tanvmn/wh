@@ -278,7 +278,7 @@ Cất hàng
 	}
 
 	function process(input) {
-		// If input is a valid Serial of a valid GTIN
+		// If input is a valid unscanned Serial of a valid GTIN
 		if (isUnscannedSerial(input)) {
 			latestGTIN.value = input.split(';')[0];
 			latestSerial.value = input.split(';')[1];
@@ -388,15 +388,6 @@ Cất hàng
 				return;
 			}
 			addItemNotes();
-
-			// for (let iq of rc.items) {
-			// 	console.log(iq.putawayNote)
-			// 	for (let s of iq.serials) {
-			// 		console.log(s.gtin)
-			// 		console.log(s.nanoID)
-			// 		console.log(s.bin.id)
-			// 	}
-			// }
 
 			if (confirm('Bạn đã chắc về kết quả nhập?')) {
 				requestPutaway(rc);

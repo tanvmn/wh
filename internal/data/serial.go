@@ -44,8 +44,6 @@ func (db *Data) SerialsByGTINAndWarehouse(gtin string, warehouseID string) ([]Se
 		,'%v'||purchase.warehouse_id
 		,warehouse.name
 		,gtin
-		--,'%v'||export_id
-		--,to_char(export.packed_at, 'DD-MM-YYYY HH24:MI')
 		from
 		serial
 		join receive on serial.receive_id = receive.id
@@ -54,7 +52,7 @@ func (db *Data) SerialsByGTINAndWarehouse(gtin string, warehouseID string) ([]Se
 		left join export on export.id = serial.export_id
 		left join bin on serial.bin_id = bin.id
 		where gtin = $1
-		and export.picked_at = '1000-01-01 00:00'
+		and (export.picked_at = '1000-01-01 00:00' or export.picked_at is null)
 		and warehouse.id = $2
 		;`,
 		ToteIDCode,
@@ -63,7 +61,6 @@ func (db *Data) SerialsByGTINAndWarehouse(gtin string, warehouseID string) ([]Se
 		ReceiveIDCode,
 		PurchaseIDCode,
 		WarehouseIDCode,
-		ExportIDCode,
 	)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
