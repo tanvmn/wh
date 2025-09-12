@@ -115,6 +115,7 @@ func (ap *application) routes() http.Handler {
 	mux.Handle("GET /putaway-prompt", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.putawayPromptPage()))
 	mux.Handle("GET /putaway", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.putawayPageBySerial()))
 	mux.Handle("GET /putaway/{receive}", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.putawayPage()))
+	mux.Handle("POST /putaway", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.putaway()))
 
 	pre := middlewares{ap.recoverPanic, ap.logRequest, ap.addHeaders}
 

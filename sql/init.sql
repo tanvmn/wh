@@ -255,6 +255,7 @@ create table if not exists receive (
 	putaway_at timestamp not null default '1000-01-01 00:00:00',
 	version integer not null default 1,
 	note text default 'none',
+	putaway_note text default 'none',
 	voucher_id text not null default 'empty',
 	transfer_id bigint
 );
@@ -276,6 +277,8 @@ create table if not exists export (
 	picked_at timestamp not null default '1000-01-01 00:00:00',
 	packed_at timestamp not null default '1000-01-01 00:00:00',
 	note text default 'none',
+	pack_note text default 'none',
+	pick_note text default 'none',
 	voucher_id text not null default 'empty',
 	resupply_id bigint not null,
 	transfer_id bigint,

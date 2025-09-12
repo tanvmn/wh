@@ -152,8 +152,7 @@ Cất hàng
 								min="0" value="0" max="{{.Quantity}}" required readonly>
 						</td>
 						<td>
-							<textarea class="w-100" name="itemNote"
-								id="itemNote"></textarea>
+							<textarea class="w-100 itemNote" name="itemNote"></textarea>
 						</td>
 					</tr>
 					{{end}}
@@ -302,25 +301,43 @@ Cất hàng
 		}
 	}
 
+	function missingRequiredNotes() {
+		for (let tr of Array.from(document.querySelector('#itemList').querySelectorAll('tr'))) {
+			let expectedQuant = tr.querySelector('.expectedQuantity').value;
+			let actualQuant = tr.querySelector('.actualQuantity').value;
+			let note = tr.querySelector('.itemNote').value;
+			let gtin = tr.querySelector('.liGTIN').innerText;
+			let name = tr.querySelector('.liName').innerText;
 
-	function receiveProcessInput() {
-		o.items.forEach((i, idx1) => {
-			document.querySelector('#itemList').querySelectorAll('tr').forEach((tr, idx2) => {
-				if (i.item.gtin === tr.querySelector('.tdGTIN').innerText) {
-					i.note = tr.querySelector('textarea').value;
-				}
-			});
-		});
-		return o;
+			if (expectedQuant !== actualQuant && note === '') {
+				alert(`${gtin} - ${name}` + "\nCẦN THÊM GHI CHÚ");
+				return true;
+			}
+		}
+		return false;
 	}
 
-	function requestProcessReceive(obj) {
+	function addItemNotes() {
+		for (let tr of Array.from(document.querySelector('#itemList').querySelectorAll('tr'))) {
+			let note = tr.querySelector('.itemNote').value;
+			let gtin = tr.querySelector('.liGTIN').innerText;
+
+			for (let iq of rc.items) {
+				if (iq.item.gtin === gtin) {
+					iq.putawayNote = note;
+					console.log(iq.putawayNote);
+				}
+			}
+		}
+	}
+
+	function requestPutaway(obj) {
 		let ok = false;
-		fetch(domain + '/receive/' + 'process', {
+		fetch(domain + '/putaway', {
 			method: 'POST',
 			body: JSON.stringify(obj),
 			headers: {
-				'Content-Type': 'application/json'
+				'Content-Type': 'application/json',
 			}
 		})
 			.then(res => {
@@ -335,7 +352,6 @@ Cất hàng
 				alert(data);
 			});
 	}
-
 
 	document.addEventListener('DOMContentLoaded', function () {
 		for (let tr of Array.from(document.querySelector('#itemList').querySelectorAll('tr'))) {
@@ -360,18 +376,32 @@ Cất hàng
 		// Initialize QR scanning
 		Scanner.init(process);
 
-		// // Submit the purchase in JSON to server
-		// document.querySelector('form').addEventListener('submit', (e) => {
-		// 	e.preventDefault();
+		// Submit the purchase in JSON to server
+		document.querySelector('form').addEventListener('submit', (e) => {
+			e.preventDefault();
 
-		// 	if (!e.target.checkValidity()) {
-		// 		return;
-		// 	}
+			if (!e.target.checkValidity()) {
+				return;
+			}
 
-		// 	if (confirm('Bạn đã chắc về kết quả nhập?')) {
-		// 		requestProcessReceive(receiveProcessInput());
-		// 	}
-		// });
+			if (missingRequiredNotes()) {
+				return;
+			}
+			addItemNotes();
+
+			// for (let iq of rc.items) {
+			// 	console.log(iq.putawayNote)
+			// 	for (let s of iq.serials) {
+			// 		console.log(s.gtin)
+			// 		console.log(s.nanoID)
+			// 		console.log(s.bin.id)
+			// 	}
+			// }
+
+			if (confirm('Bạn đã chắc về kết quả nhập?')) {
+				requestPutaway(rc);
+			}
+		});
 	});
 </script>
 {{end}}

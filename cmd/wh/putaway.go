@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/tanNguyen2220022/wh/internal/data"
+	"github.com/tanNguyen2220022/wh/internal/util"
 )
 
 func (ap *application) putawayPromptPage() http.Handler {
@@ -83,5 +84,38 @@ func (ap *application) putawayPage() http.Handler {
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
+	})
+}
+
+func (ap *application) putaway() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var rc data.Receive
+
+		err := ap.decodeJSON(w, r, &rc)
+		if err != nil {
+			ap.logger.Error(err.Error())
+
+			var mr *util.MalformedRequest
+			if errors.As(err, &mr) {
+				http.Error(w, mr.Msg, mr.Status)
+			} else {
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			}
+			return
+		}
+
+		for _, iq := range rc.Items {
+			if (iq.PutawayNote != "") {
+				println(iq.PutawayNote)
+			}
+
+			for _, s := range iq.Serials {
+				println(s.GTIN)
+				println(s.NanoID)
+				println("binID -> |", s.Bin.ID)
+			}
+		}
+
+		http.Error(w, "success", http.StatusBadRequest)
 	})
 }
