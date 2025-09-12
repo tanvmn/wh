@@ -50,10 +50,17 @@ type templData struct {
 	Suppliers        []data.Supplier
 	Purchases        []data.Purchase
 	Receives         []data.Receive
+	PutawayBins      []data.PutAwayBin
+	Page             any
 	data.Item
 	data.Purchase
 	data.Account
 	data.Receive
+}
+
+type PutawayPage struct {
+	PutawayBins []data.PutAwayBin
+	*data.Receive
 }
 
 func badgeBg(status string) string {

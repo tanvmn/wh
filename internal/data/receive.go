@@ -434,6 +434,7 @@ func (db *Data) Receive(id string) (*Receive, error) {
 		return nil, err
 	}
 
+	db.AcutalReceiveQuantity(&rc)
 	db.UpdateReceiveQuantity(&rc)
 
 	return &rc, nil
@@ -944,5 +945,45 @@ func (db *Data) UpdateReceiveQuantity(rc *Receive) {
 	for _, iq := range rc.Items {
 		rc.ExpectedQuantity += iq.Quantity
 		rc.ReceivedQuantity += int64(len(iq.Serials))
+	}
+}
+
+func (db *Data) ReceiveBySerial(nanoid string) (*Receive, error) {
+	stmt := fmt.Sprintf(`
+	select
+	'%v'||id
+	from serial
+	join receive on receive.id = serial.receive_id and receive.putaway_at = '1000-01-01'
+	and serial.nanoid = $1
+	;`,
+		ReceiveIDCode,
+	)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var id string
+	err := db.DB.QueryRowContext(ctx, stmt, nanoid).Scan(
+		&id,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrNoReceives
+		}
+		return nil, err
+	}
+
+	r, err := db.Receive(id)
+	if err != nil {
+		return nil, err
+	}
+
+	return r, nil
+}
+
+func (db *Data) AcutalReceiveQuantity(rc *Receive) {
+	for i := range rc.Items {
+		iq := &rc.Items[i]
+		iq.ActualQuantity = int64(len(iq.Serials))
 	}
 }

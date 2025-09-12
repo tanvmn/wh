@@ -20,16 +20,17 @@ type Warehouse struct {
 type Bin struct {
 	ID        string    `json:"id,omitempty,omitzero"`
 	Warehouse Warehouse `json:"warehouse,omitempty,omitzero"`
-	Capacity  float32   `json:"capacity,omitempty,omitzero"`
+	Capacity  float64   `json:"capacity,omitempty,omitzero"`
 	Shelf     int64     `json:"shelf,omitempty,omitzero"`
 	Row       int64     `json:"row,omitempty,omitzero"`
 	Col       int64     `json:"col,omitempty,omitzero"`
+	Version   int       `json:"version,omitempty,omitzero"`
 }
 
 type Tote struct {
 	ID        string    `json:"id,omitempty,omitzero"`
 	Warehouse Warehouse `json:"warehouse,omitempty,omitzero"`
-	Capacity  float32   `json:"capacity,omitempty,omitzero"`
+	Capacity  float64   `json:"capacity,omitempty,omitzero"`
 	Version   int       `json:"version,omitempty,omitzero"`
 }
 
@@ -40,6 +41,7 @@ type Store struct {
 	Phone     string    `json:"phone,omitempty,omitzero"`
 	Email     string    `json:"email,omitempty,omitzero"`
 	Warehouse Warehouse `json:"warehouse,omitempty,omitzero"`
+	Version   int       `json:"version,omitempty,omitzero"`
 }
 
 var (
@@ -203,8 +205,7 @@ func (db *Data) UnusedTotes(warehouseID string) ([]Tote, error) {
 	,tote.version
 	from tote
 	left join serial on (serial.receive_tote = tote.id and serial.bin_id is null) or serial.pick_tote = tote.id
-	left join receive on receive.id = serial.receive_id and receive.putaway_at = '1000-01-01'
-	left join export on export.id = serial.export_id and export.picked_at = '1000-01-01'
+	left join export on export.id = serial.export_id and export.packed_at = '1000-01-01'
 	where tote.warehouse_id = $1
 	and serial.nanoid is null
 	;`,
@@ -244,4 +245,118 @@ func (db *Data) UnusedTotes(warehouseID string) ([]Tote, error) {
 	}
 
 	return ts, nil
+}
+
+func (db *Data) CurrentBinsCapaciy(warehouseID string) ([]Bin, error) {
+	wI, err := id64(warehouseID, WarehouseIDCode)
+	if err != nil {
+		return nil, err
+	}
+
+	stmt := fmt.Sprintf(`
+	select
+	'%v'||bin.id
+	,bin.capacity - case
+	when sum(item.volume) is null then 0
+	else sum(item.volume)
+	end
+	from bin
+	left join serial on serial.bin_id = bin.id and serial.pick_tote is null
+	left join item on item.gtin = serial.gtin
+	where bin.warehouse_id = $1
+	group by bin.id
+	order by bin.id
+	;`,
+		BinIDCode,
+	)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	rows, err := db.DB.QueryContext(ctx, stmt, wI)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		err2 := rows.Close()
+		if err2 != nil {
+			panic(err2)
+		}
+	}()
+
+	var (
+		bs  []Bin
+		cap sql.NullFloat64
+	)
+	for rows.Next() {
+		var b Bin
+		err = rows.Scan(
+			&b.ID,
+			&cap,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		if cap.Valid {
+			b.Capacity = cap.Float64
+		}
+
+		bs = append(bs, b)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+
+	return bs, nil
+}
+
+func (db *Data) Bin(id string) (*Bin, error) {
+	i, err := id64(id, BinIDCode)
+	if err != nil {
+		return nil, err
+	}
+
+	stmt := fmt.Sprintf(`
+	select
+	'%v'||id
+	,'%v'||warehouse_id
+	,shelf
+	,row
+	,col
+	,version
+	,capacity
+	from bin
+	where id = $1
+	;`,
+		BinIDCode,
+		WarehouseIDCode,
+	)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var b Bin
+	err = db.DB.QueryRowContext(ctx, stmt, i).Scan(
+		&b.ID,
+		&b.Warehouse.ID,
+		&b.Shelf,
+		&b.Row,
+		&b.Col,
+		&b.Version,
+		&b.Capacity,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	w, err := db.Warehouse(b.Warehouse.ID)
+	if err != nil {
+		return nil, err
+	}
+	b.Warehouse = *w
+
+	return &b, nil
 }

@@ -126,9 +126,8 @@ Nhập hàng
 				</tbody>
 			</table>
 		</div>
-</div>
-<!-- End items pick table -->
-</form>
+	</form>
+	<!-- End items pick table -->
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/3.0.0/jspdf.umd.min.js"></script>
 <script type="module">
@@ -184,7 +183,7 @@ Nhập hàng
 					orientation: 'landscape',
 				});
 				doc.setFontSize(11);
-				doc.addImage(`https://api.qrserver.com/v1/create-qr-code/?size=60x60&data=${ser}`, 'PNG', 6, 6);
+				doc.addImage(`https://api.qrserver.com/v1/create-qr-code/?size=60x60&data=${td.innerText};${ser}`, 'PNG', 6, 6);
 
 				let s = `GTIN:  ${input}`;
 				s += '\n\n' + `Serial:  ${ser}`;

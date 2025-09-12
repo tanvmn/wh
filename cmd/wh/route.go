@@ -49,6 +49,11 @@ func (ap *application) routes() http.Handler {
 		// 	http.Error(w, err.Error(), http.StatusInternalServerError)
 		// 	return
 		// }
+
+		_, err := ap.data.PutawayBins("REC-1")
+		if err != nil {
+			panic(err)
+		}
 	})
 
 	identify := middlewares{ap.sessionsManager.LoadAndSave, ap.identify}
@@ -97,14 +102,19 @@ func (ap *application) routes() http.Handler {
 	// Receive
 	mux.Handle("GET /add-receive", append(identify, ap.permit(data.Accountant)).then(ap.addReceivePage()))
 	mux.Handle("GET /receive/{id}", append(identify, ap.permit(data.Accountant, data.Manager, data.Employee)).then(ap.receivePage()))
+	mux.Handle("GET /receive/{id}/json", append(identify, ap.permit(data.Accountant, data.Manager, data.Employee)).then(ap.receive()))
 	mux.Handle("GET /receive/{id}/process", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.receiveProcessPage()))
 	mux.Handle("GET /receives", append(identify, ap.permit(data.Accountant, data.Manager, data.Employee)).then(ap.receivesPage()))
 	mux.Handle("GET /receives-by-purchase/{purchase}", append(identify, ap.permit(data.Accountant, data.Manager, data.Employee)).then(ap.receivesByPurchasePage()))
-	mux.Handle("GET /putaway-prompt", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.putawayPromptPage()))
 	mux.Handle("POST /receive", append(identify, ap.permit(data.Accountant)).then(ap.addReceive()))
 	mux.Handle("POST /receive/process", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.processReceive()))
 	mux.Handle("PUT /receive", append(identify, ap.permit(data.Accountant)).then(ap.setReceive()))
 	mux.Handle("DELETE /receive/{id}", append(identify, ap.permit(data.Accountant)).then(ap.delReceive()))
+
+	// Putaway
+	mux.Handle("GET /putaway-prompt", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.putawayPromptPage()))
+	mux.Handle("GET /putaway", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.putawayPageBySerial()))
+	mux.Handle("GET /putaway/{receive}", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.putawayPage()))
 
 	pre := middlewares{ap.recoverPanic, ap.logRequest, ap.addHeaders}
 

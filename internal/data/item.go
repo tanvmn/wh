@@ -34,6 +34,7 @@ type Item struct {
 
 type ItemQuantity struct {
 	Quantity           int64                     `json:"quantity,omitempty,omitzero"`
+	ActualQuantity     int64                     `json:"actualQuantity,omitempty,omitzero"`
 	MaxReceiveQuantity int64                     `json:"maxReceiveQuantity,omitempty,omitzero"`
 	Note               string                    `json:"note,omitempty,omitzero"`
 	Serials            []Serial                  `json:"serials,omitempty,omitzero"`
