@@ -21,6 +21,7 @@
 		<tr>
 			<th>Serial</th>
 			<th>Kho</th>
+			<th>ID Giỏ</th>
 			<th>Kệ</th>
 			<th>Hàng</th>
 			<th>Cột</th>
@@ -39,6 +40,7 @@
 					<li><strong>Tên: </strong>{{.Purchase.Warehouse.Name}}</li>
 				</ul>
 			</td>
+			<td>{{.Bin.ID}}</td>
 			<td>{{.Shelf}}</td>
 			<td>{{.Row}}</td>
 			<td>{{.Col}}</td>
@@ -60,6 +62,7 @@
 			table.draw();
 		};
 	}
+
 	document.addEventListener('DOMContentLoaded', () => {
 		let table = new DataTable('#serialsTable', {
 			columnDefs: [

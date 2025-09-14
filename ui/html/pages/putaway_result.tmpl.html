@@ -1,0 +1,161 @@
+{{define "title"}}
+Cất hàng
+{{end}}
+
+{{define "main"}}
+<style>
+	table,
+	thead,
+	tbody,
+	th,
+	td {
+		padding: 0;
+		text-align: center;
+	}
+
+	ul {
+		list-style-type: none;
+		/* Remove bullets */
+		padding: 0;
+		/* Remove padding */
+		margin: 0;
+		/* Remove margins */
+	}
+</style>
+
+<div class="container-fluid">
+	{{with .Page.Receive}}
+	<div class="row p-3">
+		<div class="col">
+			<h3 class="d-inline">
+				Cất hàng phiếu nhập ID:&nbsp&nbsp
+				<span id="receiveID" class="badge text-bg-info">{{.ID}}</span>
+			</h3>
+		</div>
+	</div>
+	{{end}}
+
+	<form class="was-validated" novalidate>
+		<!-- Begin warehouse, supplier, expectedAt -->
+		<div class="row">
+			{{$minTStamp := .MinTimestamp}}
+			{{with .Page.Receive}}
+			<div class="col">
+				<label for="warehouse" class="form-label">Kho</label>
+				<input name="warehouse" id="warehouse" class="form-control"
+					value="{{.Purchase.Warehouse.ID}} - {{.Purchase.Warehouse.Name}}" disabled>
+			</div>
+
+			<div class="col">
+				<label for="supplier" class="form-label">Nhà cung cấp</label>
+				<input name="supplier" id="supplier" class="form-control"
+					value="{{.Purchase.Supplier.ID}} - {{.Purchase.Supplier.Name}}" disabled>
+			</div>
+			<div class="col">
+				<label for="actualAt" class="form-label">Nhập lúc (mm/dd/yyyy)</label>
+				<input type="datetime-local" name="actualAt" id="actualAt"
+					value="{{slice .ActualAt 0 16}}" class="form-control was-validated" required
+					disabled>
+			</div>
+			<div class="col">
+				<label for="actualAt" class="form-label">Cất lúc (mm/dd/yyyy)</label>
+				<input type="datetime-local" name="putawayAt" id="putawayAt"
+					value="{{slice .ActualAt 0 16}}" class="form-control was-validated" required
+					disabled>
+			</div>
+			<div class="col">
+				<label for="voucherID" class="form-label">Số chứng từ gốc</label>
+				<input name="voucherID" id="voucherID" class="form-control" value="{{.VoucherID}}"
+					disabled>
+			</div>
+			<input type="text" name="" id="version" value="{{.Version}}" style="display: none;">
+			{{end}}
+		</div>
+		<!-- End warehouse, supplier, expectedAt -->
+
+		<!-- Begin items putaway table -->
+		<div class="row mt-1">
+			<table id="itemTable" class="table table-striped align-middle">
+				<thead>
+					<th>ID Giỏ</th>
+					<th>Kệ</th>
+					<th>Hàng</th>
+					<th>Cột</th>
+					<th></th>
+					<th>Mặt hàng</th>
+					<th>Cần cất (cái)</th>
+					<th>Đã cất (cái)</th>
+					<th>Lệch (cái)</th>
+					<th>Ghi chú</th>
+				</thead>
+				<tbody id="itemList">
+					{{$rc := .Page.Receive}}
+					{{range .Page.Receive.Items}}
+					{{$iq := .}}
+					{{$i := .Item}}
+					{{$ss := .Serials}}
+					{{range .Serials}}
+					<tr>
+						<td class="binID">{{.Bin.ID}}</td>
+						<td>{{.Bin.Shelf}}</td>
+						<td>{{.Bin.Row}}</td>
+						<td>{{.Bin.Col}}</td>
+						<td><img height="100" src="/rec/{{$i.ImgFSPath}}"
+								alt="/rec/{{$i.ImgFSPath}}">
+						</td>
+						<td class="tdItem">
+							<ul>
+								<li>
+									<strong>GTIN:&nbsp;</strong>
+									<span class="liGTIN">{{$i.GTIN}}</span>
+								</li>
+								<li>
+									<span class="liName">{{$i.Name}}</span>
+								</li>
+							</ul>
+						</td>
+						<td>
+							<input type="number"
+								class="form-control was-validated expectedQuantity"
+								required value="{{len $ss}}" readonly>
+						</td>
+						<td>
+							<input type="number"
+								class="form-control was-validated actualQuantity bg-success-subtle"
+								value="{{actualPutawayQuantity $rc $i.GTIN}}" required
+								readonly>
+						</td>
+						<td>
+							<input type="number"
+								class="form-control was-validated diffQuantity" required
+								value="" readonly>
+						</td>
+						<td>
+							<textarea class="w-100 itemNote" name="itemNote"
+								readonly>{{$iq.PutawayNote}}</textarea>
+						</td>
+					</tr>
+					{{end}}
+					{{end}}
+				</tbody>
+			</table>
+		</div>
+	</form>
+	<!-- End items pick table -->
+
+	<div class="d-none" id="serials">
+		{{range .Page.Receive.Items}}
+		{{range .Serials}}
+		<input type="text" id="{{.GTIN}};{{.NanoID}}" value="{{.GTIN}};{{.NanoID}}">
+		{{end}}
+		{{end}}
+	</div>
+</div>
+<script>
+	document.addEventListener('DOMContentLoaded', () => {
+		document.querySelector('#itemList').querySelectorAll('tr').forEach((tr, idx) => {
+			tr.querySelector('.diffQuantity').value = tr.querySelector('.actualQuantity').value - tr.querySelector('.expectedQuantity').value;
+		});
+	})
+</script>
+{{end}}

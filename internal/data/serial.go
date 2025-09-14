@@ -230,6 +230,7 @@ func (db *Data) SerialsByReceive(rc *Receive) error {
 	select
 	nanoid
 	,serial.gtin
+	,'%v'||serial.bin_id
 	,shelf
 	,row
 	,col
@@ -245,6 +246,7 @@ func (db *Data) SerialsByReceive(rc *Receive) error {
 	where serial.receive_id = $1
 	and purchase.warehouse_id = $2
 	;`,
+		BinIDCode,
 		ToteIDCode,
 		ToteIDCode,
 		PurchaseIDCode,
@@ -264,9 +266,9 @@ func (db *Data) SerialsByReceive(rc *Receive) error {
 	}()
 
 	var (
-		ss                 []Serial
-		pickTote, exportID sql.NullString
-		shelf, row, col    sql.NullInt64
+		ss                        []Serial
+		binID, pickTote, exportID sql.NullString
+		shelf, row, col           sql.NullInt64
 	)
 
 	for rows.Next() {
@@ -274,6 +276,7 @@ func (db *Data) SerialsByReceive(rc *Receive) error {
 		err = rows.Scan(
 			&s.NanoID,
 			&s.GTIN,
+			&binID,
 			&shelf,
 			&row,
 			&col,
@@ -295,6 +298,10 @@ func (db *Data) SerialsByReceive(rc *Receive) error {
 		}
 		if col.Valid {
 			s.Bin.Col = col.Int64
+		}
+
+		if binID.Valid {
+			s.Bin.ID = binID.String
 		}
 
 		if pickTote.Valid {
@@ -319,6 +326,62 @@ func (db *Data) SerialsByReceive(rc *Receive) error {
 				rc.Items[i].Serials = append(rc.Items[i].Serials, s)
 			}
 		}
+	}
+
+	return nil
+}
+
+func delUnputawaySerials(tx *sql.Tx, rc *Receive) error {
+	stmt := `
+	delete from serial where nanoid = $1
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	for _, iq := range rc.Items {
+		for _, s := range iq.Serials {
+			if len(s.Bin.ID) == 0 && len(iq.PutawayNote) != 0 {
+				_, err := tx.ExecContext(ctx, stmt, s.NanoID)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func (db *Data) DelUnputawaySerials(rc *Receive) error {
+	tx, err := db.DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	err = delUnputawaySerials(tx, rc)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ExpectedPutawaySerialsByPutawayReceive adds the expected serials to putaway by receiveID
+func (db *Data) AddDifferenceSerialsByGTINOfPutawayReceive(rc *Receive) error {
+	for i := range rc.Items {
+		ss, err := db.DifferenceSerialsByGTINOfPutawayReceive(rc.Purchase.Warehouse.ID, rc.ID, rc.Items[i].GTIN)
+		if err != nil {
+			return err
+		}
+
+		rc.Items[i].Serials = append(rc.Items[i].Serials, ss...)
 	}
 
 	return nil

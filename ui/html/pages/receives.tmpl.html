@@ -1,5 +1,5 @@
 {{define "title"}}
-Phiếu nhập
+Các Phiếu nhập
 {{end}}
 
 {{define "main"}}
@@ -39,6 +39,7 @@ Phiếu nhập
 			{{$account := .Account.Role}}
 			{{$manager := .Manager}}
 			{{$employee := .Employee}}
+			{{$accountant := .Accountant}}
 			{{range .Receives}}
 			{{$ended := (ne $endedStatus .Status)}}
 			{{$declined := (ne $declinedStatus .Status)}}
@@ -84,6 +85,13 @@ Phiếu nhập
 					<a class="btn btn-sm btn-secondary" href="{{$domain}}/receive/{{.ID}}/process"
 						target="_blank">
 						Xử lý
+					</a>
+					{{end}}
+					{{$isManagerOrEmployeeOrAccountant := (or (or (eq $account $manager) (eq $account $employee)) (eq $account $accountant))}}
+					{{if (and (and $isManagerOrEmployeeOrAccountant (not01011000 .PutawayAt)) (not (notProcessed .ActualAt)))}}
+					<a class="btn btn-sm btn-dark" href="{{$domain}}/putaway/{{.ID}}/result"
+						target="_blank">
+						Kết quả cất
 					</a>
 					{{end}}
 				</td>

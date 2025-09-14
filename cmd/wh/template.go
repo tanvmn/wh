@@ -63,6 +63,43 @@ type PutawayPage struct {
 	*data.Receive
 }
 
+type PutawayResultPage struct {
+	*data.Receive
+}
+
+type DifferenceActivitiesPage struct {
+	DifferenceActivities []any
+}
+
+type ReceiveProcessResultPage struct {
+	*data.Receive
+}
+
+func differenceActivityURL(id string) string {
+	code := id[:4]
+	switch code {
+	case data.ReceiveIDCode:
+		return fmt.Sprintf("%v/receive/%v", domain, id)
+	default:
+		return domain + "/health"
+	}
+}
+
+func actualPutawayQuantity(rc *data.Receive, gtin string) int {
+	n := 0
+	for _, iq := range rc.Items {
+		if iq.Item.GTIN == gtin {
+			for _, s := range iq.Serials {
+				if len(s.Bin.ID) != 0 {
+					n++
+				}
+			}
+			break
+		}
+	}
+	return n
+}
+
 func badgeBg(status string) string {
 	switch status {
 	case data.AwaitingResponse:
@@ -84,9 +121,16 @@ func notProcessed(actualAt string) bool {
 	return strings.Contains(actualAt, "1000-01-01") || strings.Contains(actualAt, "01-01-1000")
 }
 
+func not01011000(time string) bool {
+	return !notProcessed(time)
+}
+
 var fns = template.FuncMap{
-	"badgeBg":      badgeBg,
-	"notProcessed": notProcessed,
+	"badgeBg":               badgeBg,
+	"notProcessed":          notProcessed,
+	"differenceActivityURL": differenceActivityURL,
+	"not01011000":           not01011000,
+	"actualPutawayQuantity": actualPutawayQuantity,
 }
 
 func (ap *application) newTemplData(r *http.Request) (templData, error) {

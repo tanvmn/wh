@@ -82,7 +82,7 @@ Cất hàng
 			</div>
 			<div class="row mt-2 text-center">
 				<label for="latestSerial" class="form-label bg-success-subtle">
-					<strong>Serial vừa quét:&nbsp;&nbsp</strong>
+					<strong>SERIAL vừa quét:&nbsp;&nbsp</strong>
 					<input class="w-50" type="text" name="latestSerial" id="latestSerial" readonly>
 				</label>
 
@@ -122,6 +122,7 @@ Cất hàng
 					{{range .Page.PutawayBins}}
 					{{$b := .Bin}}
 					{{range .Items}}
+					{{if .Quantity}}
 					<tr>
 						<td class="binID">{{$b.ID}}</td>
 						<td>{{$b.Shelf}}</td>
@@ -155,6 +156,7 @@ Cất hàng
 							<textarea class="w-100 itemNote" name="itemNote"></textarea>
 						</td>
 					</tr>
+					{{end}}
 					{{end}}
 					{{end}}
 				</tbody>
@@ -202,6 +204,9 @@ Cất hàng
 					return;
 				}
 				alert(data);
+			})
+			.catch(err => {
+				alert(err);
 			});
 	}
 
@@ -350,6 +355,9 @@ Cất hàng
 			})
 			.then(data => {
 				alert(data);
+			})
+			.catch(err => {
+				alert(err);
 			});
 	}
 

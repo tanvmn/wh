@@ -31,18 +31,23 @@ func (ap *application) putawayPageBySerial() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sr := r.URL.Query().Get("serial")
 
-		rc, err := ap.data.ReceiveBySerial(sr)
+		rc, err := ap.data.UnputawayReceiveBySerial(sr)
 		if err != nil {
 			ap.logger.Error(err.Error())
 
 			if errors.Is(err, data.ErrNoReceives) {
-				http.Error(w, fmt.Sprintf("Không tìm thấy phiếu nhập với serial %v", sr), http.StatusNotFound)
+				http.Error(w, fmt.Sprintf("Không tìm thấy phiếu nhập chưa cất với serial %v", sr), http.StatusNotFound)
 			} else {
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			}
 			return
 		}
 
+		if notProcessed(rc.ActualAt) || not01011000(rc.PutawayAt) {
+			ap.logger.Error(fmt.Sprintf("Receive %v is NOT processed or ALREADY PUTAWAY but somehow there is an serial %v from it", rc.ID, sr))
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
 		http.Redirect(w, r, "/putaway/"+rc.ID, http.StatusSeeOther)
 	})
 }
@@ -54,6 +59,11 @@ func (ap *application) putawayPage() http.Handler {
 		rc, err := ap.data.Receive(rID)
 		if err != nil {
 			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		if notProcessed(rc.ActualAt) || not01011000(rc.PutawayAt) {
+			ap.logger.Error(fmt.Sprintf("Receive %v is NOT PROCESSED or ALREADY PUTAWAY but somehow reached this page is reached", rc.ID))
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -104,18 +114,74 @@ func (ap *application) putaway() http.Handler {
 			return
 		}
 
-		for _, iq := range rc.Items {
-			if (iq.PutawayNote != "") {
-				println(iq.PutawayNote)
-			}
+		aID, ok := r.Context().Value(authenticatedCtxID).(string)
+		if !ok {
+			ap.logger.Error(fmt.Sprintf("%v;%v", ErrConvertCtxVal, aID))
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		rc.PutawayAccount.ID = aID
 
-			for _, s := range iq.Serials {
-				println(s.GTIN)
-				println(s.NanoID)
-				println("binID -> |", s.Bin.ID)
-			}
+		err = ap.data.Putaway(&rc) // rc was used to catch JSON, NOT was queried from db
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
 		}
 
-		http.Error(w, "success", http.StatusBadRequest)
+		err = ap.data.AddDifferenceSerials(&rc)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		err = ap.data.DelUnputawaySerials(&rc)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		http.Redirect(w, r, fmt.Sprintf("%v/putaway/%v/result", domain, rc.ID), http.StatusSeeOther)
+	})
+}
+
+func (ap *application) putawayResultPage() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		id := r.PathValue("receive")
+
+		rc, err := ap.data.Receive(id)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		err = ap.data.AddDifferenceSerialsByGTINOfPutawayReceive(rc)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		p := PutawayResultPage{
+			Receive: rc,
+		}
+
+		td, err := ap.newTemplData(r)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		td.Page = p
+
+		err = ap.render(w, http.StatusOK, "putaway_result", td)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
 	})
 }

@@ -56,7 +56,9 @@ drop table if exists export cascade;
 drop table if exists export_item cascade;
 drop table if exists resupply_item cascade;
 drop table if exists serial cascade;
+drop table if exists difference cascade;
 drop table if exists sessions cascade;
+drop table if exists difference_serial cascade;
 
 
 create table if not exists warehouse (
@@ -249,6 +251,8 @@ create table if not exists receive (
 	id bigserial not null,
 	purchase_id bigint not null,
 	account_id bigint not null,
+	processed_by bigint,
+	putaway_by bigint,
 	created_at timestamp not null default now(),
 	expected_at timestamp not null,
 	actual_at timestamp not null default '1000-01-01 00:00:00',
@@ -266,19 +270,22 @@ create table if not exists receive_item (
 	receive_id bigint not null,
 	version integer not null default 1,
 	note text default 'none',
+	putaway_note text default 'none',
 	quantity bigint not null
 );
 
 create table if not exists export (
 	id bigserial not null,
+	account_id bigint not null,
+	picked_by bigint,
+	packed_by bigint,
 	created_at timestamp not null default now(),
 	expected_at timestamp not null,
-	-- actual_at timestamp not null default '1000-01-01 00:00:00',
 	picked_at timestamp not null default '1000-01-01 00:00:00',
 	packed_at timestamp not null default '1000-01-01 00:00:00',
 	note text default 'none',
-	pack_note text default 'none',
 	pick_note text default 'none',
+	pack_note text default 'none',
 	voucher_id text not null default 'empty',
 	resupply_id bigint not null,
 	transfer_id bigint,
@@ -309,6 +316,18 @@ create table if not exists serial (
 	version integer not null default 1
 	-- packed boolean not null default false
 	-- resupply_id bigint,
+);
+
+create table if not exists difference_serial (
+	nanoid text unique not null,
+	receive_tote bigint not null,
+	pick_tote bigint,
+	bin_id bigint,
+	receive_id bigint not null,
+	purchase_id bigint not null,
+	gtin text not null,
+	export_id bigint,
+	resupply_id bigint
 );
 
 
@@ -529,6 +548,7 @@ alter table export add constraint pk_export primary key(id);
 alter table export_item add constraint pk_export_item primary key(export_id, resupply_id, receive_id, purchase_id, gtin);
 alter table resupply_item add constraint pk_resupply_item primary key(resupply_id, receive_id, purchase_id, gtin);
 alter table serial add constraint pk_serial primary key(nanoid);
+alter table difference_serial add constraint pk_difference_serial primary key(nanoid);
 
 alter table bin add constraint unq_bin_warehouse_id_shelf_row_col unique(warehouse_id, shelf, row, col);
 
@@ -568,9 +588,13 @@ alter table receive_item add constraint fk_receive_item_purchase_id_gtin foreign
 alter table receive add constraint fk_receive_purchase_id foreign key(purchase_id) references purchase(id);
 alter table receive add constraint fk_receive_account_id foreign key(account_id) references account(id);
 alter table receive add constraint fk_receive_transfer_id foreign key(transfer_id) references transfer(id);
+alter table receive add constraint fk_receive_processed_by foreign key(processed_by) references account(id);
+alter table receive add constraint fk_receive_putaway_by foreign key(putaway_by) references account(id);
 
 alter table export add constraint fk_export_resupply_id foreign key(resupply_id) references resupply(id);
 alter table export add constraint fk_export_transfer_id foreign key(transfer_id) references transfer(id);
+alter table export add constraint fk_receive_picked_by foreign key(picked_by) references account(id);
+alter table export add constraint fk_receive_packed_by foreign key(packed_by) references account(id);
 
 alter table export_item add constraint fk_export_item_export_id foreign key(export_id) references export(id);
 alter table export_item add constraint fk_export_item_resupply_id_receive_id_purchase_id_gtin foreign key(resupply_id, receive_id, purchase_id, gtin) references resupply_item(resupply_id, receive_id, purchase_id, gtin);
@@ -585,6 +609,12 @@ alter table serial add constraint fk_serial_pick_tote foreign key(pick_tote) ref
 alter table serial add constraint fk_serial_bin_id foreign key(bin_id) references bin(id);
 alter table serial add constraint fk_serial_receive_id_purchase_id_gtin foreign key(receive_id, purchase_id, gtin) references receive_item(receive_id, purchase_id, gtin);
 alter table serial add constraint fk_serial_export_id_resupply_id_receive_id_purchase_id_gtin foreign key(export_id, resupply_id, purchase_id, receive_id, gtin) references export_item(export_id, resupply_id, purchase_id, receive_id, gtin);
+
+alter table difference_serial add constraint fk_difference_serial_receive_tote foreign key(receive_tote) references tote(id);
+alter table difference_serial add constraint fk_difference_serial_pick_tote foreign key(pick_tote) references tote(id);
+alter table difference_serial add constraint fk_difference_serial_bin_id foreign key(bin_id) references bin(id);
+alter table difference_serial add constraint fk_difference_serial_receive_id_purchase_id_gtin foreign key(receive_id, purchase_id, gtin) references receive_item(receive_id, purchase_id, gtin);
+alter table difference_serial add constraint fk_diff_ser_export_id_resupply_id_receive_id_purchase_id_gtin foreign key(export_id, resupply_id, purchase_id, receive_id, gtin) references export_item(export_id, resupply_id, purchase_id, receive_id, gtin);
 
 CREATE TABLE sessions (
 	token TEXT PRIMARY KEY,

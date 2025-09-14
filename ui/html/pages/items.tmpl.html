@@ -4,6 +4,7 @@
 	img {
 		margin: 0;
 		padding: 0;
+		border: 0;
 	}
 </style>
 
@@ -21,7 +22,7 @@
 				<th>Chất liệu</th>
 				<th>Đặc điểm</th>
 				<th>Còn<br>(Cái)</th>
-				<th>Giá<br>(VND)</th>
+				<th>Giá</th>
 				<th>Hạn trữ<br>(tháng)</th>
 				<th></th>
 			</tr>
@@ -38,8 +39,10 @@
 				<td>{{.Size}}</td>
 				<td>{{.Material}}</td>
 				<td>{{.Characteristic}}</td>
-				<td>{{.Stock}}</td>
-				<td>{{.Price}}</td>
+				<td>
+					<h3><span class="badge text-bg-success">{{.Stock}}</span></h3>
+				</td>
+				<td class="price">{{.Price}}</td>
 				<td>{{.ShelfLife}}</td>
 				<td><a class="btn btn-sm btn-info" href="{{$domain}}/serials?gtin={{.GTIN}}"
 						target="_blank">Serials</a></td>
@@ -60,6 +63,13 @@
 			table.draw();
 		};
 	}
+
+	function formatVND() {
+		document.querySelectorAll('.price').forEach((p, idx) => {
+			p.innerText = new Intl.NumberFormat("de-DE", { style: "currency", currency: "VND" }).format(parseInt(p.innerText));
+		});
+	}
+
 	document.addEventListener('DOMContentLoaded', () => {
 		let table = new DataTable('#itemsTable', {
 			columnDefs: [
@@ -71,6 +81,8 @@
 			pageLength: 5,
 			lengthMenu: [5, 10, 25, 50, 75, 100],
 		});
+
+		formatVND();
 
 		Scanner.init(filterItem(table));
 	});

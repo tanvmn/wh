@@ -19,6 +19,8 @@ type Receive struct {
 	Note             string         `json:"note,omitempty,omitzero"`
 	ExpectedQuantity int64          `json:"expectedQuantity,omitempty,omitzero"`
 	ReceivedQuantity int64          `json:"receivedQuantity,omitempty,omitzero"`
+	ProcessedAccount Account        `json:"processedAccount,omitempty,omitzero"`
+	PutawayAccount   Account        `json:"putawayAccount,omitempty,omitzero"`
 	Items            []ItemQuantity `json:"items,omitempty,omitzero"`
 	Transfer         `json:"transfer,omitempty,omitzero"`
 	Purchase         `json:"purchase,omitempty,omitzero"`
@@ -289,6 +291,7 @@ func (db *Data) ReceiveItems(rc *Receive) error {
 	,img_fspath
 	,quantity
 	,ri.note
+	,ri.putaway_note
 	from receive_item as ri
 	join item on item.gtin = ri.gtin
 	join receive on receive.id = ri.receive_id
@@ -327,6 +330,7 @@ func (db *Data) ReceiveItems(rc *Receive) error {
 			&iq.ImgFSPath,
 			&iq.Quantity,
 			&iq.Note,
+			&iq.PutawayNote,
 		)
 		if err != nil {
 			return err
@@ -355,9 +359,11 @@ func (db *Data) Receive(id string) (*Receive, error) {
 	'%v'||receive.id
 	,'%v'||purchase_id
 	,'%v'||account_id
+	,'%v'||processed_by
 	,expected_at
 	,actual_at
 	,created_at
+	,putaway_at
 	,'%v'||transfer_id
 	,receive.version
 	,note
@@ -368,20 +374,23 @@ func (db *Data) Receive(id string) (*Receive, error) {
 		ReceiveIDCode,
 		PurchaseIDCode,
 		AccountIDCode,
+		AccountIDCode,
 		TransferIDCode,
 	)
 	var (
-		rc         Receive
-		transferID sql.NullString
+		rc                               Receive
+		transferID, processBy, putawayAt sql.NullString
 	)
 
 	err = db.DB.QueryRowContext(ctx, stmt, i).Scan(
 		&rc.ID,
 		&rc.Purchase.ID,
 		&rc.Account.ID,
+		&processBy,
 		&rc.ExpectedAt,
 		&rc.ActualAt,
 		&rc.CreatedAt,
+		&putawayAt,
 		&transferID,
 		&rc.Version,
 		&rc.Note,
@@ -392,6 +401,10 @@ func (db *Data) Receive(id string) (*Receive, error) {
 			return nil, fmt.Errorf("%w: %v", ErrNoReceives, id)
 		}
 		return nil, err
+	}
+
+	if putawayAt.Valid {
+		rc.PutawayAt = putawayAt.String
 	}
 
 	rc.ExpectedAt = rc.ExpectedAt[:16]
@@ -413,6 +426,15 @@ func (db *Data) Receive(id string) (*Receive, error) {
 		return nil, err
 	}
 	rc.Account = *ac
+
+	if processBy.Valid {
+		rc.ProcessedAccount.ID = processBy.String
+		pa, err := db.Account(rc.ProcessedAccount.ID)
+		if err != nil {
+			return nil, err
+		}
+		rc.ProcessedAccount = *pa
+	}
 
 	if transferID.Valid {
 		tf, err := db.Transfer(rc.Transfer.ID)
@@ -728,6 +750,7 @@ func (db *Data) Receives(warehouseID string) ([]Receive, error) {
 	'%v'||receive.id
 	,'%v'||purchase_id
 	,'%v'||receive.account_id
+	,'%v'||receive.processed_by
 	,to_char(receive.expected_at, 'DD-MM-YYYY HH24:MI')
 	,to_char(receive.actual_at, 'DD-MM-YYYY HH24:MI')
 	,to_char(receive.created_at, 'DD-MM-YYYY HH24:MI')
@@ -742,11 +765,12 @@ func (db *Data) Receives(warehouseID string) ([]Receive, error) {
 		ReceiveIDCode,
 		PurchaseIDCode,
 		AccountIDCode,
+		AccountIDCode,
 		TransferIDCode,
 	)
 	var (
-		rs         []Receive
-		transferID sql.NullString
+		rs                      []Receive
+		transferID, processedBy sql.NullString
 	)
 
 	rows, err := db.DB.QueryContext(ctx, stmt, wI)
@@ -766,6 +790,7 @@ func (db *Data) Receives(warehouseID string) ([]Receive, error) {
 			&rc.ID,
 			&rc.Purchase.ID,
 			&rc.Account.ID,
+			&processedBy,
 			&rc.ExpectedAt,
 			&rc.ActualAt,
 			&rc.CreatedAt,
@@ -800,6 +825,15 @@ func (db *Data) Receives(warehouseID string) ([]Receive, error) {
 		}
 		rc.Account = *ac
 
+		if processedBy.Valid {
+			rc.ProcessedAccount.ID = processedBy.String
+			pa, err := db.Account(rc.ProcessedAccount.ID)
+			if err != nil {
+				return nil, err
+			}
+			rc.ProcessedAccount = *pa
+		}
+
 		err = db.ReceiveItems(&rc)
 		if err != nil {
 			return nil, err
@@ -815,6 +849,7 @@ func (db *Data) Receives(warehouseID string) ([]Receive, error) {
 			return nil, err
 		}
 
+		db.AcutalReceiveQuantity(&rc)
 		db.UpdateReceiveQuantity(&rc)
 
 		rs = append(rs, rc)
@@ -894,7 +929,7 @@ func setReceiveItemsNote(tx *sql.Tx, rc *Receive) error {
 	;`
 
 	for _, i := range rc.Items {
-		if i.Note != "none" {
+		if i.Note != "none" && len(i.Note) != 0 {
 			_, err = tx.ExecContext(ctx, stmt, i.Note, rI, pI, i.Item.GTIN)
 			if err != nil {
 				return err
@@ -948,7 +983,7 @@ func (db *Data) UpdateReceiveQuantity(rc *Receive) {
 	}
 }
 
-func (db *Data) ReceiveBySerial(nanoid string) (*Receive, error) {
+func (db *Data) UnputawayReceiveBySerial(nanoid string) (*Receive, error) {
 	stmt := fmt.Sprintf(`
 	select
 	'%v'||id
@@ -986,4 +1021,40 @@ func (db *Data) AcutalReceiveQuantity(rc *Receive) {
 		iq := &rc.Items[i]
 		iq.ActualQuantity = int64(len(iq.Serials))
 	}
+}
+
+func setReceiveProcessedBy(tx *sql.Tx, rc *Receive) error {
+	stmt := `
+	update receive set processed_by = substring($1 from 5 for 1)::bigint where id = substring($2 from 5 for 1)::bigint
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err := tx.ExecContext(ctx, stmt, rc.ProcessedAccount.ID, rc.ID)
+	if err != nil {
+		return err
+	}
+
+	return err
+}
+
+func (db *Data) SetReceiveProcessedBy(rc *Receive) error {
+	tx, err := db.DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	err = setReceiveProcessedBy(tx, rc)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

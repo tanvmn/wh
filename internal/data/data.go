@@ -27,6 +27,9 @@ const (
 	ExportIDCode    = "EXP-"
 	TransferIDCode  = "TRA-"
 	VoucherIDCode   = "VOU-"
+	PutawayIDCode   = "PUT-"
+	PickIDCode      = "PIC-"
+	PackIDCode      = "PAC-"
 )
 
 const (

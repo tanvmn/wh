@@ -434,6 +434,12 @@ func (ap *application) receiveProcessPage() http.Handler {
 			return
 		}
 
+		if not01011000(rc.ActualAt) {
+			ap.logger.Error(fmt.Sprintf("Receive %v already processed yet this req is made", rc.ID))
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
 		td, err := ap.newTemplData(r)
 		if err != nil {
 			ap.logger.Error(err.Error())
@@ -482,12 +488,11 @@ func (ap *application) processReceive() http.Handler {
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
-		// Transfer each receive item's note
+		// Transfer each receive item's notes
 		for _, iq := range rc.Items {
 			for i := range rcp.Items {
 				if iq.GTIN == rcp.Items[i].GTIN {
 					rcp.Items[i].Note = iq.Note
-					// println(rcp.Items[i].GTIN, rcp.Items[i].Note)
 					break
 				}
 			}
@@ -524,6 +529,21 @@ func (ap *application) processReceive() http.Handler {
 			return
 		}
 
+		// Set receive processed_by
+		aID, ok := r.Context().Value(authenticatedCtxID).(string)
+		if !ok {
+			ap.logger.Error(fmt.Sprintf("%v; %v", ErrConvertCtxVal.Error(), aID))
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		rcp.ProcessedAccount.ID = aID
+		err = ap.data.SetReceiveProcessedBy(rcp)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
 		// Set receive_item note
 		err = ap.data.SetReceiveItemsNote(rcp)
 		if err != nil {
@@ -546,7 +566,8 @@ func (ap *application) processReceive() http.Handler {
 			}
 		}
 
-		http.Redirect(w, r, "/receives", http.StatusSeeOther)
+		// http.Redirect(w, r, "/receives", http.StatusSeeOther)
+		http.Redirect(w, r, fmt.Sprintf("%v/receive/%v/process/result", domain, rc.ID), http.StatusSeeOther)
 	})
 }
 
@@ -556,14 +577,24 @@ func (ap *application) receiveProcessResultPage() http.Handler {
 
 		rc, err := ap.data.Receive(id)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			ap.logger.Error(err.Error(), ";", id)
 
 			if errors.Is(err, data.ErrNoReceives) {
-				http.Error(w, fmt.Sprintf("Không tìm thấy phiếu nhập ID: %v", id), http.StatusNotFound)
+				http.Error(w, fmt.Sprintf("Không tìm thấy yêu cầu nhập %v", id), http.StatusNotFound)
 			} else {
-				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				return
 			}
+		}
+
+		err = ap.data.AddDifferenceSerialsByGTINOfPutawayReceive(rc)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
+		}
+
+		p := ReceiveProcessResultPage{
+			Receive: rc,
 		}
 
 		td, err := ap.newTemplData(r)
@@ -572,9 +603,9 @@ func (ap *application) receiveProcessResultPage() http.Handler {
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
-		td.Receive = *rc
+		td.Page = p
 
-		err = ap.render(w, http.StatusOK, "receive_process", td)
+		err = ap.render(w, http.StatusOK, "receive_process_result", td)
 		if err != nil {
 			ap.logger.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)

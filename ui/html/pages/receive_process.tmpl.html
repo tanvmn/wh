@@ -116,10 +116,9 @@ Nhập hàng
 							<input type="number"
 								class="form-control was-validated actualQuantity bg-success-subtle"
 								min="0" required value="0" readonly>
-						</td>
+
 						<td>
-							<textarea class="w-100" name="itemNote"
-								id="itemNote"></textarea>
+							<textarea class="w-100 itemNote" name="itemNote"></textarea>
 						</td>
 					</tr>
 					{{end}}
@@ -299,6 +298,18 @@ Nhập hàng
 			});
 	}
 
+	function missingNotes() {
+		document.querySelector('#itemList').querySelectorAll('tr').forEach((tr, idx) => {
+			if (tr.querySelector('.expectedQuantity').value !== tr.querySelector('.actualQuantity').value && tr.querySelector('.itemNote').value === '') {
+				gtin = tr.querySelector('.tdGTIN').innerText;
+				name = tr.querySelector('.tdName').innerText;
+				alert(`${gtin} - ${name} phải có ghi chú`);
+				return true;
+			}
+		});
+
+		return false;
+	}
 
 	document.addEventListener('DOMContentLoaded', function () {
 		o.id = document.querySelector('#receiveID').innerText;
@@ -321,6 +332,11 @@ Nhập hàng
 			e.preventDefault();
 
 			if (!e.target.checkValidity()) {
+				return;
+			}
+
+			if (missingNotes()) {
+				// alert('Tất cả hàng có lượng thực nhập != lượng cần nhập phải có ghi chú');
 				return;
 			}
 

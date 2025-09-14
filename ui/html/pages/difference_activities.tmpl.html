@@ -1,0 +1,84 @@
+{{define "title"}}
+Chênh lệch
+{{end}}
+
+{{define "main"}}
+<link rel="stylesheet" href="https://cdn.datatables.net/2.3.2/css/dataTables.dataTables.css" />
+<style>
+	ul {
+		list-style-type: none;
+		margin: 0;
+		padding: 0;
+	}
+</style>
+
+<div class="container-fluid">
+	<h3 class="p-3">
+		<span class="badge text-bg-warning">Các Hoạt Động Có Lượng Chênh Lệch</span>
+	</h3>
+	<table id="differencesTable" class="display compact">
+		<thead>
+			<tr>
+				<th>Hoạt động</th>
+				<th>ID</th>
+				<th>Thực Hiện</th>
+				<th>Lúc<br>(dd-mm-yyyy hh24:mi)</th>
+				<th>Kết quả</th>
+				<th></th>
+			</tr>
+		</thead>
+		<tbody id="tbody">
+			{{range .Page.DifferenceActivities}}
+			<tr>
+				<td>{{.Name}}
+				<td>{{.ID}}</td>
+				<td>
+					<ul>
+						<li><b>ID: </b>{{.Account.ID}}</li>
+						<li><b>Tên: </b>{{.Account.Name}}</li>
+					</ul>
+				</td>
+				<td>{{.At}}</td>
+				<td>
+					<span class="badge text-bg-warning" data-bs-toggle="tooltip"
+						data-bs-placement="top"
+						data-bs-title="Có thể có chênh lệch ở từng mặt hàng">{{.Result}}
+					</span>
+				</td>
+				<td><a class="btn btn-dark" href="{{differenceActivityURL .ID}}">Xem</a></td>
+			</tr>
+			{{end}}
+		</tbody>
+	</table>
+</div>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script src="https://cdn.datatables.net/2.3.2/js/dataTables.js"></script>
+<script type="module">
+	import { Scanner } from "../static/js/util.js";
+
+	function filterRow(table) {
+		return function (code) {
+			table.search(code);
+			table.draw();
+		};
+	}
+	document.addEventListener('DOMContentLoaded', () => {
+		let table = new DataTable('#differencesTable', {
+			columnDefs: [
+				{
+					targets: '_all',
+					className: 'dt-center'
+				},
+			],
+			pageLength: 5,
+			lengthMenu: [5, 10, 25, 50, 75, 100],
+		});
+
+		const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+		const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+
+		Scanner.init(filterRow(table));
+	});
+</script>
+{{end}}
