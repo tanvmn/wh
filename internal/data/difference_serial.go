@@ -7,6 +7,8 @@ import (
 	"time"
 )
 
+// AddDiffrenceSerials takes a *Receive that WAS USED TO CATCH JSON from the putaway result
+// and add the difference serials if exist
 func (db *Data) AddDifferenceSerials(rc *Receive) error {
 	for _, iq := range rc.Items {
 		for _, s := range iq.Serials {
@@ -61,7 +63,6 @@ func (db *Data) DifferenceSerialsByWarehouse(warehouseID string) ([]Serial, erro
 	,'%v'||resupply_id
 	from difference_serial
 	join purchase on purchase.id = difference_serial.purchase_id
-	--where purchase.warehouse_id = substring($1 from 5 for 1)::bigint
 	where purchase.warehouse_id = $1
 	;`,
 		ToteIDCode,
@@ -154,6 +155,8 @@ func (db *Data) DifferenceSerialsByPutawayReceive(warehouseID, receiveID string)
 	return ss, nil
 }
 
+// DifferenceSerialsByGTINOfPutawayReceive take the result of DifferenceSerialsByPutawayReceive(warehouseID, receiveID string)
+// and filter the serials by the gtin parameter
 func (db *Data) DifferenceSerialsByGTINOfPutawayReceive(warehouseID, receiveID, gtin string) ([]Serial, error) {
 	ds, err := db.DifferenceSerialsByPutawayReceive(warehouseID, receiveID)
 	if err != nil {

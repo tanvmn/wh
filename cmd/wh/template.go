@@ -68,7 +68,7 @@ type PutawayResultPage struct {
 }
 
 type DifferenceActivitiesPage struct {
-	DifferenceActivities []any
+	DifferenceActivities []data.DifferenceActivity
 }
 
 type ReceiveProcessResultPage struct {
@@ -79,7 +79,9 @@ func differenceActivityURL(id string) string {
 	code := id[:4]
 	switch code {
 	case data.ReceiveIDCode:
-		return fmt.Sprintf("%v/receive/%v", domain, id)
+		return fmt.Sprintf("%v/receive/%v/process/result", domain, id)
+	case data.PutawayIDCode:
+		return fmt.Sprintf("%v/putaway/%v/result", domain, data.ReceiveIDCode+id[4:])
 	default:
 		return domain + "/health"
 	}

@@ -360,6 +360,7 @@ func (db *Data) Receive(id string) (*Receive, error) {
 	,'%v'||purchase_id
 	,'%v'||account_id
 	,'%v'||processed_by
+	,'%v'||putaway_by
 	,expected_at
 	,actual_at
 	,created_at
@@ -375,11 +376,12 @@ func (db *Data) Receive(id string) (*Receive, error) {
 		PurchaseIDCode,
 		AccountIDCode,
 		AccountIDCode,
+		AccountIDCode,
 		TransferIDCode,
 	)
 	var (
-		rc                               Receive
-		transferID, processBy, putawayAt sql.NullString
+		rc                                          Receive
+		transferID, processBy, putawayBy, putawayAt sql.NullString
 	)
 
 	err = db.DB.QueryRowContext(ctx, stmt, i).Scan(
@@ -387,6 +389,7 @@ func (db *Data) Receive(id string) (*Receive, error) {
 		&rc.Purchase.ID,
 		&rc.Account.ID,
 		&processBy,
+		&putawayBy,
 		&rc.ExpectedAt,
 		&rc.ActualAt,
 		&rc.CreatedAt,
@@ -429,11 +432,19 @@ func (db *Data) Receive(id string) (*Receive, error) {
 
 	if processBy.Valid {
 		rc.ProcessedAccount.ID = processBy.String
-		pa, err := db.Account(rc.ProcessedAccount.ID)
+		pca, err := db.Account(rc.ProcessedAccount.ID)
 		if err != nil {
 			return nil, err
 		}
-		rc.ProcessedAccount = *pa
+		rc.ProcessedAccount = *pca
+	}
+	if putawayBy.Valid {
+		rc.PutawayAccount.ID = putawayBy.String
+		pta, err := db.Account(rc.PutawayAccount.ID)
+		if err != nil {
+			return nil, err
+		}
+		rc.PutawayAccount = *pta
 	}
 
 	if transferID.Valid {
@@ -751,9 +762,11 @@ func (db *Data) Receives(warehouseID string) ([]Receive, error) {
 	,'%v'||purchase_id
 	,'%v'||receive.account_id
 	,'%v'||receive.processed_by
+	,'%v'||receive.putaway_by
 	,to_char(receive.expected_at, 'DD-MM-YYYY HH24:MI')
 	,to_char(receive.actual_at, 'DD-MM-YYYY HH24:MI')
 	,to_char(receive.created_at, 'DD-MM-YYYY HH24:MI')
+	,to_char(receive.putaway_at, 'DD-MM-YYYY HH24:MI')
 	,'%v'||transfer_id
 	,receive.version
 	,receive.note
@@ -766,11 +779,12 @@ func (db *Data) Receives(warehouseID string) ([]Receive, error) {
 		PurchaseIDCode,
 		AccountIDCode,
 		AccountIDCode,
+		AccountIDCode,
 		TransferIDCode,
 	)
 	var (
-		rs                      []Receive
-		transferID, processedBy sql.NullString
+		rs                                                         []Receive
+		transferID, processedBy, putawayAt, putawayBy sql.NullString
 	)
 
 	rows, err := db.DB.QueryContext(ctx, stmt, wI)
@@ -791,9 +805,11 @@ func (db *Data) Receives(warehouseID string) ([]Receive, error) {
 			&rc.Purchase.ID,
 			&rc.Account.ID,
 			&processedBy,
+			&putawayBy,
 			&rc.ExpectedAt,
 			&rc.ActualAt,
 			&rc.CreatedAt,
+			&putawayAt,
 			&transferID,
 			&rc.Version,
 			&rc.Note,
@@ -825,6 +841,10 @@ func (db *Data) Receives(warehouseID string) ([]Receive, error) {
 		}
 		rc.Account = *ac
 
+		if putawayAt.Valid {
+			rc.PutawayAt = putawayAt.String
+		}
+
 		if processedBy.Valid {
 			rc.ProcessedAccount.ID = processedBy.String
 			pa, err := db.Account(rc.ProcessedAccount.ID)
@@ -832,6 +852,14 @@ func (db *Data) Receives(warehouseID string) ([]Receive, error) {
 				return nil, err
 			}
 			rc.ProcessedAccount = *pa
+		}
+		if putawayBy.Valid {
+			rc.PutawayAccount.ID = putawayBy.String
+			pta, err := db.Account(rc.PutawayAccount.ID)
+			if err != nil {
+				return nil, err
+			}
+			rc.PutawayAccount = *pta
 		}
 
 		err = db.ReceiveItems(&rc)

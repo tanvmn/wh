@@ -71,14 +71,14 @@ Phiếu nhập
 				<input name="voucherID" id="voucherID" class="form-control" value="{{.VoucherID}}"
 					disabled>
 			</div>
-			{{if not (notProcessed .ActualAt)}}
+			<!-- {{if not (notProcessed .ActualAt)}}
 			<div class="col">
 				<label for="actualAt" class="form-label">Nhập lúc (mm/dd/yyyy)</label>
 				<input type="datetime-local" name="actualAt" id="actualAt"
 					value="{{slice .ActualAt 0 16}}" class="form-control was-validated" required
 					disabled>
 			</div>
-			{{end}}
+			{{end}} -->
 			<input type="text" name="" id="version" value="{{.Version}}" style="display: none;">
 			{{end}}
 		</div>
@@ -113,10 +113,10 @@ Phiếu nhập
 					<th>GTIN</th>
 					<th>Tên</th>
 					<th>Số lượng (cái)</th>
-					{{if not (notProcessed .Receive.ActualAt)}}
+					<!-- {{if not (notProcessed .Receive.ActualAt)}}
 					<th>Đã nhập (cái)</th>
 					<th>Lệch (cái)</th>
-					{{end}}
+					{{end}} -->
 					<th></th>
 				</thead>
 				<tbody id="itemList">
@@ -136,7 +136,7 @@ Phiếu nhập
 							<div class="invalid-feedback">Min 1, Max {{.MaxReceiveQuantity}}
 							</div>
 						</td>
-						{{if $processed}}
+						<!-- {{if $processed}}
 						<td>
 
 							<input type="number"
@@ -151,12 +151,10 @@ Phiếu nhập
 						<td>
 							<textarea name="note">{{.Note}}</textarea>
 						</td>
-						{{end}}
-						{{if not $processed}}
+						{{end}} -->
 						<td>
 							<button class="btn btn-danger delete" disabled>X</button>
 						</td>
-						{{end}}
 					</tr>
 					{{end}}
 				</tbody>

@@ -566,7 +566,6 @@ func (ap *application) processReceive() http.Handler {
 			}
 		}
 
-		// http.Redirect(w, r, "/receives", http.StatusSeeOther)
 		http.Redirect(w, r, fmt.Sprintf("%v/receive/%v/process/result", domain, rc.ID), http.StatusSeeOther)
 	})
 }
