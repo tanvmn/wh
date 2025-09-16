@@ -83,59 +83,40 @@ Cất hàng
 					<th>Cột</th>
 					<th></th>
 					<th>Mặt hàng</th>
-					<th>Cần cất (cái)</th>
-					<th>Đã cất (cái)</th>
-					<th>Lệch (cái)</th>
+					<th>Lượng (cái)</th>
 					<th>Ghi chú</th>
 				</thead>
 				<tbody id="itemList">
-					{{$rc := .Page.Receive}}
-					{{range .Page.Receive.Items}}
-					{{$iq := .}}
-					{{$i := .Item}}
-					{{$ss := .Serials}}
-					{{range .Serials}}
+					{{range .Page.TRs}}
 					<tr>
 						<td class="binID">{{.Bin.ID}}</td>
 						<td>{{.Bin.Shelf}}</td>
 						<td>{{.Bin.Row}}</td>
 						<td>{{.Bin.Col}}</td>
-						<td><img height="100" src="/rec/{{$i.ImgFSPath}}"
-								alt="/rec/{{$i.ImgFSPath}}">
+						<td><img height="100" src="/rec/{{.Item.ImgFSPath}}"
+								alt="/rec/{{.Item.ImgFSPath}}">
 						</td>
 						<td class="tdItem">
 							<ul>
 								<li>
 									<strong>GTIN:&nbsp;</strong>
-									<span class="liGTIN">{{$i.GTIN}}</span>
+									<span class="liGTIN">{{.Item.GTIN}}</span>
 								</li>
 								<li>
-									<span class="liName">{{$i.Name}}</span>
+									<span class="liName">{{.Item.Name}}</span>
 								</li>
 							</ul>
 						</td>
 						<td>
 							<input type="number"
-								class="form-control was-validated expectedQuantity"
-								required value="{{len $ss}}" readonly>
+								class="form-control was-validated actualQuantity"
+								value="{{.Quantity}}" required readonly>
 						</td>
 						<td>
-							<input type="number"
-								class="form-control was-validated actualQuantity bg-success-subtle"
-								value="{{actualPutawayQuantity $rc $i.GTIN}}" required
-								readonly>
-						</td>
-						<td>
-							<input type="number"
-								class="form-control was-validated diffQuantity bg-warning-subtle" required
-								value="" readonly>
-						</td>
-						<td>
-							<textarea class="w-100 itemNote" name="itemNote"
-								readonly>{{$iq.PutawayNote}}</textarea>
+							<textarea value=""
+								readonly>{{if (eq .Bin.ID "")}} {{.Note}} {{end}}</textarea>
 						</td>
 					</tr>
-					{{end}}
 					{{end}}
 				</tbody>
 			</table>

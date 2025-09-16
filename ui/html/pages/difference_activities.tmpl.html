@@ -10,28 +10,47 @@ Chênh lệch
 		margin: 0;
 		padding: 0;
 	}
+
+	h4 {
+		padding: 0;
+		margin: 0;
+		border: 0;
+	}
 </style>
 
 <div class="container-fluid">
 	<h3 class="p-3">
-		<span class="badge text-bg-warning">Các Hoạt Động Có Lượng Chênh Lệch</span>
+		<span class="badge text-bg-info">Các Hoạt Động Có Lượng Chênh Lệch</span>
 	</h3>
 	<table id="differencesTable" class="display compact">
 		<thead>
 			<tr>
-				<th>Hoạt động</th>
 				<th>ID</th>
+				<th>Hoạt động</th>
+				<th>Kết quả</th>
 				<th>Thực Hiện</th>
 				<th>Lúc<br>(dd-mm-yyyy hh24:mi)</th>
-				<th>Kết quả</th>
 				<th></th>
 			</tr>
 		</thead>
 		<tbody id="tbody">
 			{{range .Page.DifferenceActivities}}
 			<tr>
-				<td>{{.Name}}
 				<td>{{.ID}}</td>
+				<td>
+					<h4>
+						<span class="badge text-bg-{{differenceActivityBadgeBg .ID}}">
+							{{.Name}}
+						</span>
+					</h4>
+				</td>
+				<td>
+					<span class="badge text-bg-{{differenceActivityBadgeBg .ID}}" data-bs-toggle="tooltip"
+						data-bs-placement="top"
+						data-bs-title="Có thể có chênh lệch ở từng mặt hàng">
+						{{.Result}}
+					</span>
+				</td>
 				<td>
 					<ul>
 						<li><b>ID: </b>{{.Account.ID}}</li>
@@ -39,12 +58,6 @@ Chênh lệch
 					</ul>
 				</td>
 				<td>{{.At}}</td>
-				<td>
-					<span class="badge text-bg-warning" data-bs-toggle="tooltip"
-						data-bs-placement="top"
-						data-bs-title="Có thể có chênh lệch ở từng mặt hàng">{{.Result}}
-					</span>
-				</td>
 				<td><a class="btn btn-dark" href="{{differenceActivityURL .ID}}">Xem</a></td>
 			</tr>
 			{{end}}

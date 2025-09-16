@@ -50,9 +50,18 @@ func (ap *application) routes() http.Handler {
 		// 	return
 		// }
 
-		_, err := ap.data.PutawayBins("REC-1")
+		rc, err := ap.data.Receive("REC-3")
 		if err != nil {
 			panic(err)
+		}
+
+		p, err := ap.newPutawayResultPageByReceive(rc)
+		if err != nil {
+			panic(err)
+		}
+
+		for _, tr := range p.TRs {
+			println(tr.Bin.ID, tr.Bin.Shelf, tr.Bin.Row, tr.Bin.Col, "quant", tr.Quantity)
 		}
 	})
 
@@ -104,7 +113,7 @@ func (ap *application) routes() http.Handler {
 	mux.Handle("GET /receive/{id}", append(identify, ap.permit(data.Accountant, data.Manager, data.Employee)).then(ap.receivePage()))
 	mux.Handle("GET /receive/{id}/json", append(identify, ap.permit(data.Accountant, data.Manager, data.Employee)).then(ap.receive()))
 	mux.Handle("GET /receive/{id}/process", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.receiveProcessPage()))
-	mux.Handle("GET /receive/{id}/process/result", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.receiveProcessResultPage()))
+	mux.Handle("GET /receive/{id}/process/result", append(identify, ap.permit(data.Manager, data.Employee, data.Accountant)).then(ap.receiveProcessResultPage()))
 	mux.Handle("GET /receives", append(identify, ap.permit(data.Accountant, data.Manager, data.Employee)).then(ap.receivesPage()))
 	mux.Handle("GET /receives-by-purchase/{purchase}", append(identify, ap.permit(data.Accountant, data.Manager, data.Employee)).then(ap.receivesByPurchasePage()))
 	mux.Handle("POST /receive", append(identify, ap.permit(data.Accountant)).then(ap.addReceive()))
@@ -120,7 +129,7 @@ func (ap *application) routes() http.Handler {
 	mux.Handle("POST /putaway", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.putaway()))
 
 	// Difference Activities
-	mux.Handle("GET /difference-activities", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.differenceActivitiesPage()))
+	mux.Handle("GET /difference-activities", append(identify, ap.permit(data.Manager, data.Employee, data.Accountant)).then(ap.differenceActivitiesPage()))
 
 	pre := middlewares{ap.recoverPanic, ap.logRequest, ap.addHeaders}
 

@@ -158,15 +158,11 @@ func (ap *application) putawayResultPage() http.Handler {
 			return
 		}
 
-		err = ap.data.AddDifferenceSerialsByGTINOfPutawayReceive(rc)
+		p, err := ap.newPutawayResultPageByReceive(rc)
 		if err != nil {
 			ap.logger.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
-		}
-
-		p := PutawayResultPage{
-			Receive: rc,
 		}
 
 		td, err := ap.newTemplData(r)

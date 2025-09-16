@@ -8,10 +8,12 @@ import (
 	"log/slog"
 	"net/http"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/tanNguyen2220022/wh/internal/data"
+	"github.com/tanNguyen2220022/wh/internal/util"
 	"github.com/tanNguyen2220022/wh/ui"
 )
 
@@ -63,16 +65,95 @@ type PutawayPage struct {
 	*data.Receive
 }
 
-type PutawayResultPage struct {
-	*data.Receive
-}
-
 type DifferenceActivitiesPage struct {
 	DifferenceActivities []data.DifferenceActivity
 }
 
 type ReceiveProcessResultPage struct {
 	*data.Receive
+}
+
+type PutawayResultPageTR struct {
+	Quantity int
+	Note     string
+	*data.Bin
+	*data.Item
+}
+type PutawayResultPage struct {
+	*data.Receive
+	TRs []*PutawayResultPageTR
+}
+
+func (ap *application) newPutawayResultPageByReceive(rc *data.Receive) (*PutawayResultPage, error) {
+	if rc == nil {
+		return nil, fmt.Errorf("parameter *Receive cannot be nil")
+	}
+
+	p := &PutawayResultPage{
+		Receive: rc,
+	}
+	for _, iq := range p.Receive.Items {
+		// add difference serials of the putaway by gtin
+		ss, err := ap.data.DifferenceSerialsByGTINOfPutawayReceive(p.Receive.Purchase.Warehouse.ID, p.Receive.ID, iq.Item.GTIN)
+		if err != nil {
+			return nil, err
+		}
+		iq.Serials = append(iq.Serials, ss...)
+
+		// accumilate the bin infos from all putaway serials (including the unsuccessful putaway ones)
+		temp := make([]string, 0)
+		for _, s := range iq.Serials {
+			temp = append(temp, fmt.Sprintf("%v;%v;%v;%v", s.Bin.ID, s.Bin.Shelf, s.Bin.Row, s.Bin.Col))
+		}
+		bins := util.Set(temp...)
+
+		// add a tr for each distinct bin (including an empty bin)
+		for _, b := range bins {
+			tr := &PutawayResultPageTR{
+				Bin:  new(data.Bin),
+				Item: &iq.Item,
+				Note: iq.PutawayNote,
+			}
+
+			for _, s := range iq.Serials {
+				if fmt.Sprintf("%v;%v;%v;%v", s.Bin.ID, s.Bin.Shelf, s.Bin.Row, s.Bin.Col) == b {
+					tr.Quantity++
+				}
+			}
+
+			if len(b) >= len("BIN-1;1;1;1") {
+				split := strings.Split(b, ";")
+
+				// add bin id
+				tr.Bin.ID = split[0]
+
+				// add bin shelf
+				sh, err := strconv.ParseInt(split[1], 10, 64)
+				if err != nil {
+					return nil, err
+				}
+				tr.Bin.Shelf = sh
+
+				// add bin row
+				r, err := strconv.ParseInt(split[2], 10, 64)
+				if err != nil {
+					return nil, err
+				}
+				tr.Bin.Row = r
+
+				// add bin col
+				c, err := strconv.ParseInt(split[3], 10, 64)
+				if err != nil {
+					return nil, err
+				}
+				tr.Bin.Col = c
+			}
+
+			p.TRs = append(p.TRs, tr)
+		}
+	}
+
+	return p, nil
 }
 
 func differenceActivityURL(id string) string {
@@ -102,6 +183,21 @@ func actualPutawayQuantity(rc *data.Receive, gtin string) int {
 	return n
 }
 
+func differenceActivityBadgeBg(idCode string) string {
+	switch idCode[:4] {
+	case data.ReceiveIDCode:
+		return "warning"
+	case data.PutawayIDCode:
+		return "secondary"
+	case data.PickIDCode:
+		return "dark"
+	case data.PackIDCode:
+		return "danger"
+	default:
+		return "primary"
+	}
+}
+
 func badgeBg(status string) string {
 	switch status {
 	case data.AwaitingResponse:
@@ -128,11 +224,12 @@ func not01011000(time string) bool {
 }
 
 var fns = template.FuncMap{
-	"badgeBg":               badgeBg,
-	"notProcessed":          notProcessed,
-	"differenceActivityURL": differenceActivityURL,
-	"not01011000":           not01011000,
-	"actualPutawayQuantity": actualPutawayQuantity,
+	"badgeBg":                   badgeBg,
+	"notProcessed":              notProcessed,
+	"differenceActivityURL":     differenceActivityURL,
+	"not01011000":               not01011000,
+	"actualPutawayQuantity":     actualPutawayQuantity,
+	"differenceActivityBadgeBg": differenceActivityBadgeBg,
 }
 
 func (ap *application) newTemplData(r *http.Request) (templData, error) {
