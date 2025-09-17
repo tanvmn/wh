@@ -282,6 +282,18 @@ Cất hàng
 		}
 	}
 
+	function binIDFromItemListObjByInput(input) {
+		for (let i of itemList) {
+			for (let s of i.serials) {
+				if (s === input.split(';')[0]) {
+					return i.binID;
+				}
+			}
+		}
+
+		return "";
+	}
+
 	function process(input) {
 		// If input is a valid unscanned Serial of a valid GTIN
 		if (isUnscannedSerial(input)) {
@@ -295,7 +307,12 @@ Cất hàng
 				latestBin.value = input;
 			}
 		} else {
-			alert(`MÃ: ${input}` + "\nCÓ THỂ ĐÃ QUÉT HOẶC KHÔNG HỢP LỆ");
+			let binID = binIDFromItemListObjByInput(input);
+			if (binID !== "") {
+				alert(`MÃ: ${input}` + '\n' + `CÓ THỂ ĐÃ CẤT Ở ${binID} HOẶC KHÔNG HỢP LỆ`);
+			} else {
+				alert(`MÃ: ${input}` + "\nKHÔNG HỢP LỆ");
+			}
 			return;
 		}
 

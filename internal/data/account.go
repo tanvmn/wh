@@ -11,14 +11,14 @@ import (
 )
 
 type Account struct {
-	ID           string    `json:"id,omitempty,omitzero"`
-	BDate        string    `json:"bdate,omitempty,omitzero"`
-	Name         string    `json:"name,omitempty,omitzero"`
-	Role         string    `json:"role,omitempty,omitzero"`
-	Phone        string    `json:"phone,omitempty,omitzero"`
-	PasswordHash []byte    `json:"-"`
-	Warehouse    Warehouse `json:"warehouse,omitempty,omitzero"`
-	Store        Store     `json:"store,omitempty,omitzero"`
+	ID           string `json:"id,omitempty,omitzero"`
+	BDate        string `json:"bdate,omitempty,omitzero"`
+	Name         string `json:"name,omitempty,omitzero"`
+	Role         string `json:"role,omitempty,omitzero"`
+	Phone        string `json:"phone,omitempty,omitzero"`
+	PasswordHash []byte `json:"-"`
+	Warehouse    `json:"warehouse,omitempty,omitzero"`
+	Store        `json:"store,omitempty,omitzero"`
 }
 
 const (

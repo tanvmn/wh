@@ -108,8 +108,10 @@ Cất hàng
 							</ul>
 						</td>
 						<td>
+							{{$bg := ""}}
+							{{if (eq .Bin.Shelf 0)}} {{$bg = "warning"}} {{else}} {{$bg = "success"}} {{end}}
 							<input type="number"
-								class="form-control was-validated actualQuantity"
+								class="form-control was-validated bg-{{$bg}}-subtle actualQuantity"
 								value="{{.Quantity}}" required readonly>
 						</td>
 						<td>

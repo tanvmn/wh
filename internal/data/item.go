@@ -312,3 +312,56 @@ func (db *Data) ItemsBySupplier(supplierID string) ([]Item, error) {
 
 	return s, nil
 }
+
+func (db *Data) StocksByWarehouse(warehouseID string) (iqs []ItemQuantity, err error) {
+	wI, err := id64(warehouseID, WarehouseIDCode)
+	if err != nil {
+		return nil, err
+	}
+
+	stmt := `
+	select
+	gtin
+	,count(*) as quantity
+	from serial
+	join purchase on purchase.id = serial.purchase_id
+	where bin_id is not null and pick_tote is null
+	and purchase.warehouse_id = $1
+	group by gtin
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	rows, err := db.DB.QueryContext(ctx, stmt, wI)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		err2 := rows.Close()
+		if err2 != nil {
+			panic(err2)
+		}
+	}()
+
+	for rows.Next() {
+		var iq ItemQuantity
+
+		err = rows.Scan(
+			&iq.Item.GTIN,
+			&iq.Quantity,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		iqs = append(iqs, iq)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+
+	return iqs, nil
+}

@@ -36,6 +36,8 @@ const (
 	AwaitingResponse = "CHỜ PHẢN HỒI"
 	AwaitingReceive  = "CHỜ NHẬP"
 	Receiving        = "ĐANG NHẬP"
+	AwaitingExport   = "CHỜ XUẤT"
+	Exporting        = "ĐANG XUẤT"
 	Ended            = "KẾT THÚC"
 	Declined         = "TỪ CHỐI"
 )

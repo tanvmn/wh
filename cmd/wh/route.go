@@ -50,18 +50,13 @@ func (ap *application) routes() http.Handler {
 		// 	return
 		// }
 
-		rc, err := ap.data.Receive("REC-3")
+		iqs, err := ap.data.StocksByWarehouse("WAR-1")
 		if err != nil {
 			panic(err)
 		}
 
-		p, err := ap.newPutawayResultPageByReceive(rc)
-		if err != nil {
-			panic(err)
-		}
-
-		for _, tr := range p.TRs {
-			println(tr.Bin.ID, tr.Bin.Shelf, tr.Bin.Row, tr.Bin.Col, "quant", tr.Quantity)
+		for _, iq := range iqs {
+			println(iq.Item.GTIN, iq.Quantity)
 		}
 	})
 

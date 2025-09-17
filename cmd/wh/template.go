@@ -73,6 +73,7 @@ type ReceiveProcessResultPage struct {
 	*data.Receive
 }
 
+// PutawayResultPageTR
 type PutawayResultPageTR struct {
 	Quantity int
 	Note     string
@@ -154,6 +155,12 @@ func (ap *application) newPutawayResultPageByReceive(rc *data.Receive) (*Putaway
 	}
 
 	return p, nil
+}
+
+// Resupply Add page
+type ResupplyAddPage struct {
+	*data.Warehouse
+	Stocks []data.ItemQuantity
 }
 
 func differenceActivityURL(id string) string {

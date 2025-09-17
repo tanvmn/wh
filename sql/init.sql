@@ -142,7 +142,7 @@ create table if not exists store (
 );
 
 drop type if exists status cascade;
-create type status as enum ('CHỜ PHẢN HỒI', 'CHỜ NHẬP', 'ĐANG NHẬP', 'KẾT THÚC', 'TỪ CHỐI');
+create type status as enum ('CHỜ PHẢN HỒI', 'CHỜ NHẬP', 'ĐANG NHẬP', 'CHỜ XUẤT', 'ĐANG XUẤT', 'KẾT THÚC', 'TỪ CHỐI');
 
 create table if not exists purchase (
 	id bigserial not null,
@@ -217,7 +217,7 @@ create table if not exists resupply (
 	status status not null default 'CHỜ PHẢN HỒI',
 	note text default 'none',
 	account_id int not null,
-	store_id int not null,
+	-- store_id int not null,
 	export_add_owner bigint,
 	version integer not null default 1
 );
@@ -524,7 +524,12 @@ insert into account (role, bdate, name, phone, password_hash, warehouse_id) valu
 ('Kế toán trưởng', date 'now()' - interval '19 years', 'ktt', '0000000002', '$2a$12$sPDZCZEc01jKDxKNDhZgquKZH.4R0TtMn/9sCdnE0OJnrMMcnXPJy', null),
 ('Thủ kho', date 'now()' - interval '19 years', 'tk', '0000000003', '$2a$12$sPDZCZEc01jKDxKNDhZgquKZH.4R0TtMn/9sCdnE0OJnrMMcnXPJy', 1),
 ('Kế toán', date 'now()' - interval '19 years', 'kt', '0000000004', '$2a$12$sPDZCZEc01jKDxKNDhZgquKZH.4R0TtMn/9sCdnE0OJnrMMcnXPJy', 1),
-('Nhân viên', date 'now()' - interval '19 years', 'nv', '0000000005', '$2a$12$sPDZCZEc01jKDxKNDhZgquKZH.4R0TtMn/9sCdnE0OJnrMMcnXPJy', 1)
+('Nhân viên', date 'now()' - interval '19 years', 'nv', '0000000005', '$2a$12$sPDZCZEc01jKDxKNDhZgquKZH.4R0TtMn/9sCdnE0OJnrMMcnXPJy', 1),
+('Nhân viên', date 'now()' - interval '19 years', 'nv', '0000000007', '$2a$12$sPDZCZEc01jKDxKNDhZgquKZH.4R0TtMn/9sCdnE0OJnrMMcnXPJy', 1)
+;
+
+insert into account (role, bdate, name, phone, password_hash, store_id) values
+('Nhân viên', date 'now()' - interval '19 years', 'nv kho', '0000000006', '$2a$12$sPDZCZEc01jKDxKNDhZgquKZH.4R0TtMn/9sCdnE0OJnrMMcnXPJy', 1)
 ;
 
 
@@ -577,7 +582,7 @@ alter table purchase_item add constraint fk_purchase_item_gtin foreign key(gtin)
 
 alter table resupply add constraint fk_resupply_account_id foreign key(account_id) references account(id);
 alter table resupply add constraint fk_resupply_export_add_owner foreign key(export_add_owner) references account(id);
-alter table resupply add constraint fk_resupply_store_id foreign key(store_id) references store(id);
+-- alter table resupply add constraint fk_resupply_store_id foreign key(store_id) references store(id);
 
 alter table supplier_item add constraint fk_supplier_gtin foreign key(gtin) references item(gtin);
 alter table supplier_item add constraint fk_supplier_supplier_id foreign key(supplier_id) references supplier(id);
