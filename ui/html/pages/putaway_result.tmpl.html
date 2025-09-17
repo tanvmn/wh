@@ -109,13 +109,14 @@ Cất hàng
 						</td>
 						<td>
 							{{$bg := ""}}
-							{{if (eq .Bin.Shelf 0)}} {{$bg = "warning"}} {{else}} {{$bg = "success"}} {{end}}
+							{{if (eq .Bin.Shelf 0)}} {{$bg = "warning"}} {{else}} {{$bg =
+							"success"}} {{end}}
 							<input type="number"
 								class="form-control was-validated bg-{{$bg}}-subtle actualQuantity"
 								value="{{.Quantity}}" required readonly>
 						</td>
 						<td>
-							<textarea value=""
+							<textarea
 								readonly>{{if (eq .Bin.ID "")}} {{.Note}} {{end}}</textarea>
 						</td>
 					</tr>

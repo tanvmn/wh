@@ -325,7 +325,7 @@ func (db *Data) StocksByWarehouse(warehouseID string) (iqs []ItemQuantity, err e
 	,count(*) as quantity
 	from serial
 	join purchase on purchase.id = serial.purchase_id
-	where bin_id is not null and pick_tote is null
+	where bin_id is not null and (pick_tote is null and export_id is null)
 	and purchase.warehouse_id = $1
 	group by gtin
 	;`

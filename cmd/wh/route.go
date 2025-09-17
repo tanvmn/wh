@@ -50,10 +50,12 @@ func (ap *application) routes() http.Handler {
 		// 	return
 		// }
 
-		iqs, err := ap.data.StocksByWarehouse("WAR-1")
+		iqs, err := ap.data.ResupplyItemsQuantityByWarehouse("WAR-1")
 		if err != nil {
 			panic(err)
 		}
+
+		println("no resupply items", len(iqs) == 0)
 
 		for _, iq := range iqs {
 			println(iq.Item.GTIN, iq.Quantity)
