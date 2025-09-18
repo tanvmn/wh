@@ -21,9 +21,9 @@ Các Phiếu nhập
 		<thead>
 			<tr>
 				<th>ID</th>
-				<th>ID phiếu nhập</th>
+				<th>ID<br>YCầu nhập</th>
 				<th>Kho</th>
-				<th>Nhà cung<br>cấp</th>
+				<th>Nhà<br>cungcấp</th>
 				<th>Dự kiến nhập<br>(dd-mm-yyyy hh24:mi)</th>
 				<th>Nhập lúc<br>(dd-mm-yyyy hh24:mi)</th>
 				<th>Đã nhập</th>
@@ -91,13 +91,13 @@ Các Phiếu nhập
 					$account $employee)) (eq $account $accountant))}}
 					{{if (and (and $isManagerOrEmployeeOrAccountant (not01011000 .PutawayAt)) (not
 					(notProcessed .ActualAt)))}}
-					<a class="btn btn-sm btn-success" href="{{$domain}}/receive/{{.ID}}/process/result"
-						target="_blank">
-						Kết quả nhập
+					<a class="btn btn-sm btn-success"
+						href="{{$domain}}/receive/{{.ID}}/process/result" target="_blank">
+						KQuả nhập
 					</a>
 					<a class="btn btn-sm btn-dark" href="{{$domain}}/putaway/{{.ID}}/result"
 						target="_blank">
-						Kết quả cất
+						KQuả cất
 					</a>
 					{{end}}
 				</td>

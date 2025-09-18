@@ -126,3 +126,16 @@ func (ap *application) permit(roles ...string) func(http.Handler) http.Handler {
 		})
 	}
 }
+
+func (ap *application) permitStoreEmployee(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		sI, ok := r.Context().Value(authenticatedCtxStoreID).(string)
+		if !ok {
+			ap.logger.Error(fmt.Sprintf("%v; authenticatedCtxStoreID %v", ErrConvertCtxVal, sI))
+			http.Error(w, "Chỉ nhân viên cửa hàng truy cập được tài nguyên này", http.StatusBadRequest)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}

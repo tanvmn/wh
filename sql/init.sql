@@ -534,6 +534,37 @@ insert into account (role, bdate, name, phone, password_hash, store_id) values
 ('Nhân viên', date 'now()' - interval '19 years', 'nv kho', '0000000006', '$2a$12$sPDZCZEc01jKDxKNDhZgquKZH.4R0TtMn/9sCdnE0OJnrMMcnXPJy', 1)
 ;
 
+insert into purchase (warehouse_id, account_id, supplier_id, expected_at, status) values
+(1, 4, 1, timestamp 'now()' + interval '1 day', 'CHỜ PHẢN HỒI')
+;
+
+-- insert data from making a purchase to putting away the coresponding receives
+insert into purchase_item (purchase_id, gtin, quantity) values
+(1, '619659115906', 2)
+,(1, '8888021200126', 2)
+;
+
+insert into receive (purchase_id, account_id, expected_at, voucher_id) values
+(1, 4, timestamp 'now()' + interval '1 day', 'VOU-001')
+;
+
+insert into receive_item (purchase_id, receive_id, gtin, quantity) values
+(1, 1, '619659115906', 2)
+,(1, 1, '8888021200126', 2)
+;
+update purchase set status = 'CHỜ NHẬP' where id = 1;
+
+update receive set processed_by = 3, actual_at = timestamp 'now()' + interval '1 day' where id = 1;
+insert into serial (nanoid, gtin, purchase_id, receive_id, receive_tote) values
+('SER-ddEHD2fL3pynUGK4FZSUA', '8888021200126', 1, 1, 1)
+,('SER-RDUuGi_UwzkYXls79aqCF', '8888021200126', 1, 1, 1)
+,('SER-rMiGVGZIj4uVYePjnSZwW', '619659115906', 1, 1, 1)
+,('SER-0kzEXLSPez_NeSBybUT1A', '619659115906', 1, 1, 1)
+;
+update purchase set status = 'KẾT THÚC' where id = 1;
+
+update receive set putaway_by = 3, putaway_at = timestamp 'now()' + interval '1 day';
+update serial set bin_id = 1 where nanoid in ('SER-ddEHD2fL3pynUGK4FZSUA', 'SER-RDUuGi_UwzkYXls79aqCF', 'SER-rMiGVGZIj4uVYePjnSZwW', 'SER-0kzEXLSPez_NeSBybUT1A');
 
 alter table warehouse add constraint pk_warehouse primary key(id);
 alter table transfer add constraint pk_transfer primary key(id);
@@ -584,7 +615,7 @@ alter table purchase_item add constraint fk_purchase_item_gtin foreign key(gtin)
 
 alter table resupply add constraint fk_resupply_account_id foreign key(account_id) references account(id);
 alter table resupply add constraint fk_resupply_export_add_owner foreign key(export_add_owner) references account(id);
--- alter table resupply add constraint fk_resupply_store_id foreign key(store_id) references store(id);
+alter table resupply add constraint fk_resupply_store_id foreign key(store_id) references store(id);
 
 alter table supplier_item add constraint fk_supplier_gtin foreign key(gtin) references item(gtin);
 alter table supplier_item add constraint fk_supplier_supplier_id foreign key(supplier_id) references supplier(id);

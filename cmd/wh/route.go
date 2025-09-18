@@ -50,12 +50,11 @@ func (ap *application) routes() http.Handler {
 		// 	return
 		// }
 
-		iqs, err := ap.data.ResupplyItemsQuantityByWarehouse("WAR-1")
+		iqs, err := ap.data.StocksByWarehouse("WAR-1")
 		if err != nil {
 			panic(err)
 		}
-
-		println("no resupply items", len(iqs) == 0)
+		println("no stocks:", len(iqs) == 0)
 
 		for _, iq := range iqs {
 			println(iq.Item.GTIN, iq.Quantity)
@@ -125,8 +124,12 @@ func (ap *application) routes() http.Handler {
 	mux.Handle("GET /putaway/{receive}/result", append(identify, ap.permit(data.Manager, data.Employee, data.Accountant)).then(ap.putawayResultPage()))
 	mux.Handle("POST /putaway", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.putaway()))
 
+	// Resuppy
+	mux.Handle("GET /add-resupply", append(identify, ap.permit(data.Manager, data.Employee), ap.permitStoreEmployee).then(ap.resupplyAddPage()))
+	mux.Handle("POST /resupply", append(identify, ap.permit(data.Manager, data.Employee), ap.permitStoreEmployee).then(ap.addResupply()))
+
 	// Difference Activities
-	mux.Handle("GET /difference-activities", append(identify, ap.permit(data.Manager, data.Employee, data.Accountant)).then(ap.differenceActivitiesPage()))
+	mux.Handle("GET /difference-activities", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.differenceActivitiesPage()))
 
 	pre := middlewares{ap.recoverPanic, ap.logRequest, ap.addHeaders}
 

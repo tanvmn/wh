@@ -313,7 +313,7 @@ func (db *Data) ItemsBySupplier(supplierID string) ([]Item, error) {
 	return s, nil
 }
 
-func (db *Data) StocksByWarehouse(warehouseID string) (iqs []ItemQuantity, err error) {
+func (db *Data) CurrentItemQuantitiesInBinsByWarehouse(warehouseID string) (iqs []ItemQuantity, err error) {
 	wI, err := id64(warehouseID, WarehouseIDCode)
 	if err != nil {
 		return nil, err
@@ -321,13 +321,16 @@ func (db *Data) StocksByWarehouse(warehouseID string) (iqs []ItemQuantity, err e
 
 	stmt := `
 	select
-	gtin
+	serial.gtin
+	,type||', '||brand||', màu '||color||', cỡ '||size||', '||characteristic
+	,item.img_fspath
 	,count(*) as quantity
 	from serial
 	join purchase on purchase.id = serial.purchase_id
+	join item on item.gtin = serial.gtin
 	where bin_id is not null and (pick_tote is null and export_id is null)
 	and purchase.warehouse_id = $1
-	group by gtin
+	group by item.type, item.brand, item.color, item.size, item.characteristic, item.img_fspath, serial.gtin
 	;`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -349,6 +352,8 @@ func (db *Data) StocksByWarehouse(warehouseID string) (iqs []ItemQuantity, err e
 
 		err = rows.Scan(
 			&iq.Item.GTIN,
+			&iq.Item.Name,
+			&iq.Item.ImgFSPath,
 			&iq.Quantity,
 		)
 		if err != nil {
@@ -364,4 +369,29 @@ func (db *Data) StocksByWarehouse(warehouseID string) (iqs []ItemQuantity, err e
 	}
 
 	return iqs, nil
+}
+
+func (db *Data) StocksByWarehouse(warehouseID string) ([]ItemQuantity, error) {
+	currents, err := db.CurrentItemQuantitiesInBinsByWarehouse(warehouseID)
+	if err != nil {
+		return nil, err
+	}
+
+	resupplies, err := db.ResupplyItemsQuantityByWarehouse(warehouseID)
+	if err != nil {
+		return nil, err
+	}
+
+	var is []ItemQuantity
+
+	for _, c := range currents {
+		for _, r := range resupplies {
+			if c.Item.GTIN == r.Item.GTIN {
+				c.Quantity -= r.Quantity
+			}
+		}
+		is = append(is, c)
+	}
+
+	return is, nil
 }

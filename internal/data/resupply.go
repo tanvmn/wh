@@ -24,13 +24,16 @@ func (db *Data) ResupplyItemsQuantityByWarehouse(warehouseID string) ([]ItemQuan
 	stmt := fmt.Sprintf(`
 	select
 	ri.gtin
+	,type||', '||brand||', màu '||color||', cỡ '||size||', '||characteristic
+	,item.img_fspath
 	,sum(ri.quantity)
 	from resupply_item as ri
+	join item on item.gtin = ri.gtin
 	join resupply on resupply.id = ri.resupply_id
 	join store on store.id = resupply.store_id
 	where resupply.status != '%v'
 	and store.warehouse_id = $1
-	group by ri.gtin
+	group by item.type, item.brand, item.color, item.size, item.characteristic, item.img_fspath, ri.gtin
 	;`,
 		Ended,
 	)
@@ -55,6 +58,8 @@ func (db *Data) ResupplyItemsQuantityByWarehouse(warehouseID string) ([]ItemQuan
 		var iq ItemQuantity
 		err = rows.Scan(
 			&iq.Item.GTIN,
+			&iq.Item.Name,
+			&iq.Item.ImgFSPath,
 			&iq.Quantity,
 		)
 		if err != nil {

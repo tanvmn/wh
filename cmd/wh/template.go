@@ -254,12 +254,23 @@ func (ap *application) newTemplData(r *http.Request) (templData, error) {
 		return templData{}, err
 	}
 
-	wh, err := ap.data.Warehouse(wID)
-	if !errors.Is(err, data.ErrNoWarehouses) && err != nil {
-		return templData{}, err
+	if ac.Warehouse.ID != "" {
+		wh, err := ap.data.Warehouse(wID)
+		if !errors.Is(err, data.ErrNoWarehouses) && err != nil {
+			return templData{}, err
+		}
+		if wh != nil {
+			ac.Warehouse = *wh
+		}
 	}
-	if wh != nil {
-		ac.Warehouse = *wh
+	if ac.Store.ID != "" {
+		s, err := ap.data.Store(ac.Store.ID)
+		if !errors.Is(err, data.ErrNoStores) && err != nil {
+			return templData{}, err
+		}
+		if s != nil {
+			ac.Store = *s
+		}
 	}
 
 	ws, err := ap.data.Warehouses()

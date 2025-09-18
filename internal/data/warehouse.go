@@ -46,6 +46,7 @@ type Store struct {
 
 var (
 	ErrNoWarehouses = errors.New("data: no warehouses found")
+	ErrNoStores     = errors.New("data: no stores found")
 )
 
 func (db *Data) Warehouse(id string) (*Warehouse, error) {
@@ -359,4 +360,56 @@ func (db *Data) Bin(id string) (*Bin, error) {
 	b.Warehouse = *w
 
 	return &b, nil
+}
+
+func (db *Data) Store(id string) (*Store, error) {
+	i, err := id64(id, StoreIDCode)
+	if err != nil {
+		return nil, err
+	}
+
+	stmt := fmt.Sprintf(`
+	select
+	'%v'||id
+	,name
+	,address
+	,email
+	,phone
+	,version
+	,'%v'||warehouse_id
+	from store
+	where id = $1
+	;`,
+		StoreIDCode,
+		WarehouseIDCode,
+	)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var s Store
+
+	err = db.DB.QueryRowContext(ctx, stmt, i).Scan(
+		&s.ID,
+		&s.Name,
+		&s.Address,
+		&s.Email,
+		&s.Phone,
+		&s.Version,
+		&s.Warehouse.ID,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrNoStores
+		}
+		return nil, err
+	}
+
+	w, err := db.Warehouse(s.Warehouse.ID)
+	if err != nil {
+		return nil, err
+	}
+	s.Warehouse = *w
+
+	return &s, nil
 }
