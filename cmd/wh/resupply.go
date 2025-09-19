@@ -32,6 +32,12 @@ func (ap *application) resupplyAddPage() http.Handler {
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
+		if len(stocks) == 0 {
+			msg := fmt.Sprintf("Hiện kho %v/%v không còn hàng để cung cấp", s.Warehouse.ID, s.Warehouse.Name)
+			ap.logger.Error(msg)
+			http.Error(w, msg, http.StatusUnprocessableEntity)
+			return
+		}
 		p.Stocks = stocks
 
 		td, err := ap.newTemplData(r)
@@ -68,10 +74,101 @@ func (ap *application) addResupply() http.Handler {
 			return
 		}
 
-		println(rs.ExpectedAt)
-		for _, iq := range rs.Items {
-			println(iq.Item.GTIN, iq.Quantity)
+		// Get and set the resupply's account, store data
+		aID, ok := r.Context().Value(authenticatedCtxID).(string)
+		if !ok {
+			ap.logger.Error(fmt.Sprintf("%v; authenticatedCtxID %v", ErrConvertCtxVal, aID))
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
 		}
-		http.Error(w, "success", http.StatusBadRequest)
+		ac, err := ap.data.Account(aID)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		st, err := ap.data.Store(ac.Store.ID)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		ac.Store = *st
+		rs.Account = *ac
+
+		// Add the resupply
+		rID, err := ap.data.AddResupply(&rs)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		http.Error(w, rID, http.StatusBadRequest)
+	})
+}
+
+func (ap *application) resupplyPage() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		id := r.PathValue("id")
+
+		rs, err := ap.data.Resupply(id)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			if errors.Is(err, data.ErrNoResupplies) {
+				http.Error(w, fmt.Sprintf("Không tìm thấy yêu cầu xuất %v", id), http.StatusNotFound)
+			} else {
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			}
+			return
+		}
+
+		// Set the max quantity an item of resupply can be set to
+		err = ap.data.SetMaxResupplyItemQuantities(rs)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		// Start filtering the resupply items from the warehouse remaining stocks
+		stocks, err := ap.data.StocksByWarehouse(rs.Account.Store.Warehouse.ID)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		p := new(ResupplyPage)
+		p.Resupply = rs
+
+		for _, s := range stocks {
+			contained := false
+			for _, iq := range rs.Items {
+				if s.Item.GTIN == iq.Item.GTIN {
+					contained = true
+					break
+				}
+			}
+
+			if !contained {
+				p.ItemOpts = append(p.ItemOpts, s)
+			}
+		}
+
+		td, err := ap.newTemplData(r)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		td.Page = p
+
+		err = ap.render(w, http.StatusOK, "resupply", td)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
 	})
 }

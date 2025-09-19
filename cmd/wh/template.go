@@ -42,6 +42,7 @@ type templData struct {
 	ExportIDCode     string
 	AwaitingResponse string
 	AwaitingReceive  string
+	AwaitingExport   string
 	Receiving        string
 	Ended            string
 	Declined         string
@@ -67,6 +68,33 @@ type PutawayPage struct {
 
 type DifferenceActivitiesPage struct {
 	DifferenceActivities []data.DifferenceActivity
+}
+
+func differenceActivityURL(id string) string {
+	code := id[:4]
+	switch code {
+	case data.ReceiveIDCode:
+		return fmt.Sprintf("%v/receive/%v/process/result", domain, id)
+	case data.PutawayIDCode:
+		return fmt.Sprintf("%v/putaway/%v/result", domain, data.ReceiveIDCode+id[4:])
+	default:
+		return domain + "/health"
+	}
+}
+
+func differenceActivityBadgeBg(idCode string) string {
+	switch idCode[:4] {
+	case data.ReceiveIDCode:
+		return "warning"
+	case data.PutawayIDCode:
+		return "secondary"
+	case data.PickIDCode:
+		return "dark"
+	case data.PackIDCode:
+		return "danger"
+	default:
+		return "primary"
+	}
 }
 
 type ReceiveProcessResultPage struct {
@@ -157,24 +185,6 @@ func (ap *application) newPutawayResultPageByReceive(rc *data.Receive) (*Putaway
 	return p, nil
 }
 
-// Resupply Add page
-type ResupplyAddPage struct {
-	*data.Warehouse
-	Stocks []data.ItemQuantity
-}
-
-func differenceActivityURL(id string) string {
-	code := id[:4]
-	switch code {
-	case data.ReceiveIDCode:
-		return fmt.Sprintf("%v/receive/%v/process/result", domain, id)
-	case data.PutawayIDCode:
-		return fmt.Sprintf("%v/putaway/%v/result", domain, data.ReceiveIDCode+id[4:])
-	default:
-		return domain + "/health"
-	}
-}
-
 func actualPutawayQuantity(rc *data.Receive, gtin string) int {
 	n := 0
 	for _, iq := range rc.Items {
@@ -190,19 +200,16 @@ func actualPutawayQuantity(rc *data.Receive, gtin string) int {
 	return n
 }
 
-func differenceActivityBadgeBg(idCode string) string {
-	switch idCode[:4] {
-	case data.ReceiveIDCode:
-		return "warning"
-	case data.PutawayIDCode:
-		return "secondary"
-	case data.PickIDCode:
-		return "dark"
-	case data.PackIDCode:
-		return "danger"
-	default:
-		return "primary"
-	}
+// Resupply Add page
+type ResupplyAddPage struct {
+	*data.Warehouse
+	Stocks []data.ItemQuantity
+}
+
+// Resupply page
+type ResupplyPage struct {
+	*data.Resupply
+	ItemOpts []data.ItemQuantity
 }
 
 func badgeBg(status string) string {
@@ -307,6 +314,7 @@ func (ap *application) newTemplData(r *http.Request) (templData, error) {
 		ExportIDCode:     data.ExportIDCode,
 		AwaitingResponse: data.AwaitingResponse,
 		AwaitingReceive:  data.AwaitingReceive,
+		AwaitingExport:   data.AwaitingExport,
 		Receiving:        data.Receiving,
 		Ended:            data.Ended,
 		Declined:         data.Declined,

@@ -1,0 +1,275 @@
+{{define "title"}}
+Yêu cầu xuất
+{{end}}
+
+{{define "main"}}
+<style>
+	table,
+	thead,
+	tbody,
+	th,
+	td {
+		padding: 0;
+		text-align: center;
+	}
+</style>
+
+<div class="container-fluid">
+	<div class="row p-3">
+		{{$awaitingResponse := .AwaitingResponse}}
+		{{with .Page.Resupply}}
+		<div class="col-3">
+			<h3 class="d-inline">
+				Yêu cầu xuất ID:&nbsp&nbsp
+				<span id="resupplyID" class="badge text-bg-info">{{.ID}}</span>
+			</h3>
+		</div>
+		{{if (and (eq .Status $awaitingResponse) (ne .Account.Store.ID ""))}}
+		<div class="col-1">
+			<label class="form-check-label" for="setResupply">
+				<h4>Sửa</h4>
+			</label>
+			<input class="form-check-input" type="checkbox" id="setResupply">
+
+		</div>
+
+		<div class="col-1">
+			<button id="delResupplyBtn" class="btn btn-danger ms-5"><strong>Xóa</strong></button>
+		</div>
+		{{end}}
+		{{end}}
+	</div>
+
+	<form class="was-validated" novalidate>
+		<!-- Begin warehouse, supplier, expectedAt -->
+		<div class="row">
+			{{with .Page.Resupply.Account}}
+			<div class="col">
+				<label for="store" class="form-label">Cửa hàng</label>
+				<input name="store" id="store" class="form-control"
+					value="{{.Store.ID}} / {{.Store.Name}}" disabled>
+			</div>
+
+			<div class="col">
+				<label for="warehouse" class="form-label">Kho</label>
+				<input name="warehouse" id="warehouse" class="form-control"
+					value="{{.Store.Warehouse.ID}} / {{.Store.Warehouse.Name}}" disabled>
+			</div>
+			{{end}}
+			<div class="col">
+				<label for="expectedAt" class="form-label">Dự kiến nhập (mm/dd/yyyy)</label>
+				<input type="datetime-local" name="expectedAt" id="expectedAt" min="{{.MinTimestamp}}"
+					class="form-control was-validated"
+					value="{{slice .Page.Resupply.ExpectedAt 0 16}}" disabled>
+				<div class="invalid-feedback">
+					Thời điểm phải từ hiện tại trở về sau
+				</div>
+			</div>
+		</div>
+		<!-- End warehouse, supplier, expectedAt -->
+
+		<div class="setComponents d-none">
+			<div class="row my-4">
+				<div class="col-4 mx-auto">
+					<button class="btn btn-primary" type="submit" id="submitBtn">
+						Sửa phiếu xuất
+					</button>
+				</div>
+			</div>
+
+			<div class="row mt-3" id="itemInput">
+				<input onclick="this.value = ''" onblur="this.value = ''" list="itemOpts" id="itemPick"
+					placeholder="Tìm hàng...">
+				<datalist id="itemOpts">
+					{{range .Page.ItemOpts}}
+					<option
+						value="{{.Item.GTIN}};/rec/{{.Item.ImgFSPath}};{{.Item.Name}};{{.Quantity}}">
+						{{.Item.Name}} / {{.Quantity}} (cái)
+					</option>
+					{{end}}
+				</datalist>
+			</div>
+		</div>
+
+		<!-- Begin items pick table -->
+		<div class="row mt-1">
+			<table id="itemTable" class="table table-striped align-middle">
+				<thead>
+					<th></th>
+					<th>GTIN</th>
+					<th>Tên</th>
+					<th>Số lượng (cái)</th>
+					<th></th>
+				</thead>
+				<tbody id="itemList">
+					{{range .Page.Resupply.Items}}
+					<tr>
+						<td>
+							<img height="100" src="/rec/{{.Item.ImgFSPath}}" alt="/rec/{{.Item.ImgFSPath}}">
+						</td>
+						<td class="tdGTIN">{{.Item.GTIN}}</td>
+						<td class="tdName">{{.Item.Name}}</td>
+						<td>
+							<input class="form-control was-validated" type="number" min="1"
+								max="{{.MaxResupplyQuantity}}" value="{{.Quantity}}"
+								required disabled>
+							<div class="invalid-feedback">
+								Min 1, Max {{.MaxResupplyQuantity}}
+							</div>
+						</td>
+						<td>
+							<button class="btn btn-danger delete" disabled>X</button>
+						</td>
+					</tr>
+					{{end}}
+				</tbody>
+			</table>
+		</div>
+		<!-- End items pick table -->
+	</form>
+</div>
+<script type="module">
+	import { domain, IDCode, Scanner } from "/static/js/util.js";
+
+	// After getting items (above), begin others task from this point
+	document.addEventListener('DOMContentLoaded', function () {
+		// Initialize QR scanning
+		Scanner.init(addItem);
+
+		// Populate the table of chosen items based on the selection of item
+		document.querySelector('#itemPick').addEventListener('input', (e) => {
+			addItem(e.target.value);
+			console.log(e.target.value);
+			// e.target.value = '';
+		});
+
+		// Delete row in table of chosen items and repopulate the options of items
+		document.querySelector('#itemTable').addEventListener('click', (e) => {
+			delTR(e);
+		});
+
+		function addItem(input) {
+			document.querySelector('#itemOpts').querySelectorAll('option').forEach((o, i) => {
+				if (o.value === input) {
+					let split = o.value.split(';');
+					let gtin = split[0];
+					let img = split[1];
+					let name = split[2];
+					let quantity = split[3];
+
+					let tr = document.createElement('tr');
+					tr.innerHTML = `
+								<td><img height="90" src="${img}" alt="${img}"></td>
+								<td class>${gtin}</td>
+								<td>${name}</td>
+								<td>
+									<input class="form-control was-validated" type="number" min="1" max="${quantity}" required>
+									<div class="invalid-feedback">Min 1 , Max ${quantity}</div>
+								</td>
+								<td><button class="btn btn-danger delete">X</button></td>
+								`;
+
+					document.querySelector('#itemList').appendChild(tr);
+
+					delOpt(o.value);
+				}
+			});
+
+		}
+
+		function delOpt(value) {
+			document.querySelector('#itemOpts').querySelectorAll('option').forEach((o, i) => {
+				if (o.value === value) {
+					o.remove();
+				}
+			});
+		}
+
+		function delTR(e) {
+			if (e.target.classList.contains('delete')) {
+				let existed = false;
+				let gtin = e.target.parentElement.parentElement.firstElementChild.nextElementSibling.innerText;
+				let img = e.target.parentElement.parentElement.firstElementChild.querySelector('img').src.split(domain)[1];
+				let name = e.target.parentElement.parentElement.firstElementChild.nextElementSibling.nextElementSibling.innerText;
+				let quantity = e.target.parentElement.parentElement.querySelector('input[type=number]').max;
+				let value = `${gtin};${img};${name};${quantity}`;
+				console.log(value);
+
+				document.querySelector('#itemOpts').querySelectorAll('option').forEach((o, i) => {
+					if (o.value === value) {
+						existed = true;
+					}
+				});
+
+				if (!existed) {
+					let op = document.createElement('option');
+					op.value = value;
+					op.innerText = `${name} / ${quantity} (cái)`;
+
+					document.querySelector('#itemOpts').appendChild(op);
+				}
+
+				e.target.parentElement.parentElement.remove();
+			}
+		}
+
+		function input() {
+			let o = {
+				expectedAt: document.querySelector('#expectedAt').value,
+				items: [],
+			};
+
+			document.querySelector('#itemList').querySelectorAll('tr').forEach((tr, idx) => {
+				let it = {
+					item: { gtin: tr.firstElementChild.nextElementSibling.innerText },
+					quantity: parseInt(tr.querySelector('input[type=number]').value),
+				};
+				o.items.push(it);
+			});
+
+			console.log(JSON.stringify(o));
+			return o;
+		}
+
+		function request(obj) {
+			let ok = false;
+			fetch(domain + '/resupply', {
+				method: 'POST',
+				body: JSON.stringify(obj),
+				headers: {
+					'Content-Type': 'application/json'
+				}
+			})
+				.then(res => {
+					ok = res.ok;
+					if (res.redirected) {
+						window.location.replace(res.url);
+						return;
+					}
+					return res.text();
+				})
+				.then(data => {
+					if (!ok) alert(data);
+				});
+		}
+
+		// Submit the purchase in JSON to server
+		document.querySelector('form').addEventListener('submit', (e) => {
+			e.preventDefault();
+
+			if (document.querySelector('#itemList').querySelectorAll('tr').length === 0) {
+				alert('Phải chọn ít nhất 1 mặt hàng');
+				return;
+			}
+			if (!e.target.checkValidity()) {
+				return;
+			}
+
+			if (confirm('Bạn đã chắc về thông tin của yêu cầu nhập?')) {
+				request(input());
+			}
+		});
+
+	});
+</script>
+{{end}}

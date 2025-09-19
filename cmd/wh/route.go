@@ -126,6 +126,7 @@ func (ap *application) routes() http.Handler {
 
 	// Resuppy
 	mux.Handle("GET /add-resupply", append(identify, ap.permit(data.Manager, data.Employee), ap.permitStoreEmployee).then(ap.resupplyAddPage()))
+	mux.Handle("GET /resupply/{id}", append(identify, ap.permit(data.Manager, data.Employee), ap.permitStoreEmployee).then(ap.resupplyPage()))
 	mux.Handle("POST /resupply", append(identify, ap.permit(data.Manager, data.Employee), ap.permitStoreEmployee).then(ap.addResupply()))
 
 	// Difference Activities

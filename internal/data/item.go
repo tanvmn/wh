@@ -33,18 +33,19 @@ type Item struct {
 }
 
 type ItemQuantity struct {
-	Quantity           int64                     `json:"quantity,omitempty,omitzero"`
-	ActualQuantity     int64                     `json:"actualQuantity,omitempty,omitzero"`
-	MaxReceiveQuantity int64                     `json:"maxReceiveQuantity,omitempty,omitzero"`
-	Note               string                    `json:"note,omitempty,omitzero"`
-	PutawayNote        string                    `json:"putawayNote,omitempty,omitzero"`
-	PackNote           string                    `json:"packNote,omitempty,omitzero"`
-	PickNote           string                    `json:"pickNote,omitempty,omitzero"`
-	Serials            []Serial                  `json:"serials,omitempty,omitzero"`
-	Putaway            map[string][]ItemQuantity `json:"putaway,omitempty,omitzero"`
-	Item               `json:"item,omitempty,omitzero"`
-	Receive            `json:"receive,omitempty,omitzero"`
-	Export             `json:"export,omitempty,omitzero"`
+	Quantity            int64                     `json:"quantity,omitempty,omitzero"`
+	ActualQuantity      int64                     `json:"actualQuantity,omitempty,omitzero"`
+	MaxReceiveQuantity  int64                     `json:"maxReceiveQuantity,omitempty,omitzero"`
+	MaxResupplyQuantity int64                     `json:"maxResupplyQuantity,omitempty,omitzero"`
+	Note                string                    `json:"note,omitempty,omitzero"`
+	PutawayNote         string                    `json:"putawayNote,omitempty,omitzero"`
+	PackNote            string                    `json:"packNote,omitempty,omitzero"`
+	PickNote            string                    `json:"pickNote,omitempty,omitzero"`
+	Serials             []Serial                  `json:"serials,omitempty,omitzero"`
+	Putaway             map[string][]ItemQuantity `json:"putaway,omitempty,omitzero"`
+	Item                `json:"item,omitempty,omitzero"`
+	Receive             `json:"receive,omitempty,omitzero"`
+	Export              `json:"export,omitempty,omitzero"`
 }
 
 var (
@@ -382,15 +383,22 @@ func (db *Data) StocksByWarehouse(warehouseID string) ([]ItemQuantity, error) {
 		return nil, err
 	}
 
+	if len(resupplies) == 0 {
+		return currents, nil
+	}
+
 	var is []ItemQuantity
 
 	for _, c := range currents {
 		for _, r := range resupplies {
 			if c.Item.GTIN == r.Item.GTIN {
 				c.Quantity -= r.Quantity
+				if c.Quantity > 0 {
+					is = append(is, c)
+					break
+				}
 			}
 		}
-		is = append(is, c)
 	}
 
 	return is, nil
