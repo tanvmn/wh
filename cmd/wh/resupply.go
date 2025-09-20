@@ -104,7 +104,7 @@ func (ap *application) addResupply() http.Handler {
 			return
 		}
 
-		http.Error(w, rID, http.StatusBadRequest)
+		http.Redirect(w, r, fmt.Sprintf("%v/resupply/%v", domain, rID), http.StatusSeeOther)
 	})
 }
 
@@ -131,7 +131,7 @@ func (ap *application) resupplyPage() http.Handler {
 			return
 		}
 
-		// Start filtering the resupply items from the warehouse remaining stocks
+		// Start removing the resupply items from the warehouse remaining stocks for the datalist options
 		stocks, err := ap.data.StocksByWarehouse(rs.Account.Store.Warehouse.ID)
 		if err != nil {
 			ap.logger.Error(err.Error())
@@ -156,6 +156,7 @@ func (ap *application) resupplyPage() http.Handler {
 			}
 		}
 
+		// Prepare the template data
 		td, err := ap.newTemplData(r)
 		if err != nil {
 			ap.logger.Error(err.Error())
@@ -165,6 +166,114 @@ func (ap *application) resupplyPage() http.Handler {
 		td.Page = p
 
 		err = ap.render(w, http.StatusOK, "resupply", td)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+	})
+}
+
+func (ap *application) setResupply() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var rs data.Resupply
+
+		err := ap.decodeJSON(w, r, &rs)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			var mr *util.MalformedRequest
+			if errors.As(err, &mr) {
+				http.Error(w, mr.Msg, mr.Status)
+			} else {
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			}
+			return
+		}
+
+		err = ap.data.SetResupply(&rs)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		http.Redirect(w, r, fmt.Sprintf("%v/resupply/%v", domain, rs.ID), http.StatusSeeOther)
+	})
+}
+
+func (ap *application) delResupply() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		id := r.PathValue("id")
+
+		err := ap.data.DelResupply(id)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		http.Redirect(w, r, fmt.Sprintf("%v/resupplies", domain), http.StatusSeeOther)
+	})
+}
+
+func (ap *application) resuppliesPage() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		aID, ok := r.Context().Value(authenticatedCtxID).(string)
+		if !ok {
+			ap.logger.Error(fmt.Sprintf("%v; authenticatedCtxID: %v", ErrConvertCtxVal, aID))
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		ac, err := ap.data.Account(aID)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		var warehouseID string
+		if len(ac.Warehouse.ID) > 4 {
+			warehouseID = ac.Warehouse.ID
+		} else {
+			st, err := ap.data.Store(ac.Store.ID)
+			if err != nil {
+				ap.logger.Error(err.Error())
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				return
+			}
+
+			warehouseID = st.Warehouse.ID
+		}
+
+		p := new(ResuppliesPage)
+
+		rs, err := ap.data.ResuppliesByWarehouse(warehouseID)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		for i := range rs {
+			rs[i].ExpectedAt, err = util.FormatRFC3339(rs[i].ExpectedAt, "02-01-2006 15:04")
+			if err != nil {
+				ap.logger.Error(err.Error())
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				return
+			}
+		}
+		p.Resupplies = rs
+
+		td, err := ap.newTemplData(r)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		td.Page = p
+
+		err = ap.render(w, http.StatusOK, "resupplies", td)
 		if err != nil {
 			ap.logger.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)

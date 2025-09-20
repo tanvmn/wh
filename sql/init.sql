@@ -541,7 +541,7 @@ insert into purchase (warehouse_id, account_id, supplier_id, expected_at, status
 -- insert data from making a purchase to putting away the coresponding receives
 insert into purchase_item (purchase_id, gtin, quantity) values
 (1, '619659115906', 2)
-,(1, '8888021200126', 2)
+,(1, '8888021200126', 4)
 ;
 
 insert into receive (purchase_id, account_id, expected_at, voucher_id) values
@@ -550,7 +550,7 @@ insert into receive (purchase_id, account_id, expected_at, voucher_id) values
 
 insert into receive_item (purchase_id, receive_id, gtin, quantity) values
 (1, 1, '619659115906', 2)
-,(1, 1, '8888021200126', 2)
+,(1, 1, '8888021200126', 4)
 ;
 update purchase set status = 'CHỜ NHẬP' where id = 1;
 
@@ -558,13 +558,23 @@ update receive set processed_by = 3, actual_at = timestamp 'now()' + interval '1
 insert into serial (nanoid, gtin, purchase_id, receive_id, receive_tote) values
 ('SER-ddEHD2fL3pynUGK4FZSUA', '8888021200126', 1, 1, 1)
 ,('SER-RDUuGi_UwzkYXls79aqCF', '8888021200126', 1, 1, 1)
+,('SER-Ij2czMsg9ApYZI8kggcxL', '8888021200126', 1, 1, 1)
+,('SER-G9jVbMaf5kMkjj_AbYwS-', '8888021200126', 1, 1, 1)
 ,('SER-rMiGVGZIj4uVYePjnSZwW', '619659115906', 1, 1, 1)
 ,('SER-0kzEXLSPez_NeSBybUT1A', '619659115906', 1, 1, 1)
 ;
 update purchase set status = 'KẾT THÚC' where id = 1;
 
 update receive set putaway_by = 3, putaway_at = timestamp 'now()' + interval '1 day';
-update serial set bin_id = 1 where nanoid in ('SER-ddEHD2fL3pynUGK4FZSUA', 'SER-RDUuGi_UwzkYXls79aqCF', 'SER-rMiGVGZIj4uVYePjnSZwW', 'SER-0kzEXLSPez_NeSBybUT1A');
+update serial set bin_id = 1
+where nanoid in (
+	'SER-ddEHD2fL3pynUGK4FZSUA',
+	'SER-RDUuGi_UwzkYXls79aqCF', 
+	'SER-Ij2czMsg9ApYZI8kggcxL',
+	'SER-G9jVbMaf5kMkjj_AbYwS-',
+	'SER-rMiGVGZIj4uVYePjnSZwW',
+	'SER-0kzEXLSPez_NeSBybUT1A'
+);
 
 alter table warehouse add constraint pk_warehouse primary key(id);
 alter table transfer add constraint pk_transfer primary key(id);

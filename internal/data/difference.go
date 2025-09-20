@@ -46,7 +46,8 @@ func (db *Data) doesReceiveProcessHasDifferences(rc *Receive) (bool, error) {
 }
 
 // DifferenceReceiveProcess finds receives that have differences after processing
-// and returns the equivalent difference activities
+// and returns the equivalent difference activities.
+// Note that the receives parameters were obtained by a warehouse ID.
 func (db *Data) DifferenceReceiveProcesses(rs []Receive) (as []DifferenceActivity, err error) {
 	// filter receives that have difference after processing
 	for _, r := range rs {
@@ -82,6 +83,8 @@ func (db *Data) DifferenceReceiveProcesses(rs []Receive) (as []DifferenceActivit
 	return as, nil
 }
 
+// DifferenceReceivePutaways returns equivalent difference activities of receives that have differences after putaway.
+// Note that the receives parameters were obtained by a warehouse ID.
 func (db *Data) DifferenceReceivePutaways(rs []Receive) (as []DifferenceActivity, err error) {
 	for _, r := range rs {
 		ss, err := db.DifferenceSerialsByPutawayReceive(r.Purchase.Warehouse.ID, r.ID)

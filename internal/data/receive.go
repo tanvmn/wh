@@ -783,7 +783,7 @@ func (db *Data) Receives(warehouseID string) ([]Receive, error) {
 		TransferIDCode,
 	)
 	var (
-		rs                                                         []Receive
+		rs                                            []Receive
 		transferID, processedBy, putawayAt, putawayBy sql.NullString
 	)
 

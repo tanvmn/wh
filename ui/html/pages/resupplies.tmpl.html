@@ -1,0 +1,99 @@
+{{define "title"}}
+Các Phiếu Xuất
+{{end}}
+
+{{define "main"}}
+<link rel="stylesheet" href="https://cdn.datatables.net/2.3.2/css/dataTables.dataTables.css" />
+<style>
+	ul.no-bullets {
+		list-style-type: none;
+		margin: 0;
+		padding: 0;
+	}
+</style>
+
+<div class="container-fluid">
+	<h3 class="p-3">
+		Phiếu xuất của kho:&nbsp&nbsp
+		<span id="warehouseName" class="badge text-bg-info">{{.Account.Store.Warehouse.Name}}</span>
+	</h3>
+	<table id="dataTable" class="display compact">
+		<thead>
+			<tr>
+				<th>ID</th>
+				<th>Kho</th>
+				<th>Cửa hàng</th>
+				<th>Dự kiến xuất<br>(dd-mm-yyyy hh24:mi)</th>
+				<th>Trạng thái</th>
+				<th>Tạo bởi</th>
+				<th>Tạo lúc<br>(dd-mm-yyyy hh24:mi)</th>
+				<th></th>
+			</tr>
+		</thead>
+		<tbody id="tbody">
+			{{$domain := .Domain}}
+			{{$account := .Account}}
+			{{$manager := .Manager}}
+			{{range .Page.Resupplies}}
+			<tr>
+				<td>{{.ID}}</td>
+				<td>
+					<strong>ID: </strong>{{.Account.Store.Warehouse.ID}}<br>
+					<strong>Tên: </strong>{{.Account.Store.Warehouse.Name}}<br>
+				</td>
+				<td>
+					<strong>ID: </strong>{{.Account.Store.ID}}<br>
+					<strong>Tên: </strong>{{.Account.Store.Name}}<br>
+				</td>
+				<td>{{.ExpectedAt}}</td>
+				<td>
+					<span class="badge text-bg-{{badgeBg .Status}}">
+						{{.Status}}
+					</span>
+				</td>
+				<td>
+					<strong>ID: </strong>{{.Account.ID}}<br>
+					<strong>Tên: </strong>{{.Account.Name}}<br>
+					<strong>CVụ: </strong>{{.Account.Role}}<br>
+				</td>
+				<td>{{.CreatedAt}}</td>
+				<td>
+					{{if (or (eq $account.Role $manager) (ne $account.Store.ID ""))}}
+					<a class="btn btn-sm btn-info" href="{{$domain}}/resupply/{{.ID}}">
+						Xem
+					</a>
+					{{end}}
+				</td>
+			</tr>
+			{{end}}
+		</tbody>
+	</table>
+</div>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script src="https://cdn.datatables.net/2.3.2/js/dataTables.js"></script>
+<script type="module">
+	import { Scanner } from "../static/js/util.js";
+
+	function filterRow(table) {
+		return function (code) {
+			table.search(code);
+			table.draw();
+		};
+	}
+	document.addEventListener('DOMContentLoaded', () => {
+		let table = new DataTable('#dataTable', {
+			columnDefs: [
+				{
+					targets: '_all',
+					className: 'dt-center'
+				},
+			],
+			pageLength: 5,
+			lengthMenu: [5, 10, 25, 50, 75, 100],
+		});
+
+		Scanner.init(filterRow(table));
+	});
+</script>
+{{end}}

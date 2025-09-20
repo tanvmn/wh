@@ -393,11 +393,11 @@ func (db *Data) StocksByWarehouse(warehouseID string) ([]ItemQuantity, error) {
 		for _, r := range resupplies {
 			if c.Item.GTIN == r.Item.GTIN {
 				c.Quantity -= r.Quantity
-				if c.Quantity > 0 {
-					is = append(is, c)
-					break
-				}
+				break
 			}
+		}
+		if c.Quantity > 0 {
+			is = append(is, c)
 		}
 	}
 

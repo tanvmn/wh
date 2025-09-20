@@ -212,13 +212,18 @@ type ResupplyPage struct {
 	ItemOpts []data.ItemQuantity
 }
 
+// Resupplies Page
+type ResuppliesPage struct {
+	Resupplies []data.Resupply
+}
+
 func badgeBg(status string) string {
 	switch status {
 	case data.AwaitingResponse:
 		return "secondary"
-	case data.AwaitingReceive:
+	case data.AwaitingReceive, data.AwaitingExport:
 		return "primary"
-	case data.Receiving:
+	case data.Receiving, data.Exporting:
 		return "warning"
 	case data.Ended:
 		return "success"

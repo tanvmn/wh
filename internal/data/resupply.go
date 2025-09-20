@@ -13,6 +13,7 @@ type Resupply struct {
 	Status     string         `json:"status,omitempty,omitzero"`
 	ExpectedAt string         `json:"expectedAt,omitempty,omitzero"`
 	CreatedAt  string         `json:"createdAt,omitempty,omitzero"`
+	Note       string         `json:"note,omitempty,omitzero"`
 	Version    int            `json:"version,omitempty,omitzero"`
 	Items      []ItemQuantity `json:"items,omitempty,omitzero"`
 	Account    `json:"account,omitempty,omitzero"`
@@ -143,6 +144,7 @@ func (db *Data) AddResupply(r *Resupply) (id string, err error) {
 	if err != nil {
 		return "", err
 	}
+	defer tx.Rollback()
 
 	r.ID, err = addResupply(tx, r)
 	if err != nil {
@@ -162,16 +164,19 @@ func (db *Data) AddResupply(r *Resupply) (id string, err error) {
 	return r.ID, nil
 }
 
+// SetMaxResupplyItemQuantities queries the stocks of the resupply's target warehouse,
+// and for each common item that the resupply has with the stocks, sum the 2 quantity
+// to set the max quantity that the common item of the resupply could have
 func (db *Data) SetMaxResupplyItemQuantities(r *Resupply) error {
 	ss, err := db.StocksByWarehouse(r.Account.Store.Warehouse.ID)
 	if err != nil {
 		return err
 	}
 
-	for _, iq := range r.Items {
+	for i := range r.Items {
 		for _, s := range ss {
-			if iq.Item.GTIN == s.Item.GTIN {
-				iq.MaxResupplyQuantity = iq.Quantity + s.Quantity
+			if r.Items[i].Item.GTIN == s.Item.GTIN {
+				r.Items[i].MaxResupplyQuantity = r.Items[i].Quantity + s.Quantity
 				break
 			}
 		}
@@ -244,6 +249,7 @@ func (db *Data) Resupply(id string) (*Resupply, error) {
 	,expected_at
 	,to_char(created_at, 'DD-MM-YYYY HH24:MI')
 	,status
+	,note
 	,'%v'||account_id
 	,'%v'||store_id
 	,version
@@ -264,6 +270,7 @@ func (db *Data) Resupply(id string) (*Resupply, error) {
 		&r.ExpectedAt,
 		&r.CreatedAt,
 		&r.Status,
+		&r.Note,
 		&r.Account.ID,
 		&r.Account.Store.ID,
 		&r.Version,
@@ -292,4 +299,200 @@ func (db *Data) Resupply(id string) (*Resupply, error) {
 	r.Account = *a
 
 	return &r, nil
+}
+
+func setResupply(tx *sql.Tx, r *Resupply) error {
+	rI, err := id64(r.ID, ResupplyIDCode)
+	if err != nil {
+		return err
+	}
+
+	stmt := `
+	update resupply set expected_at = $1
+	, version = version + 1
+	where id = $2
+	and version = $3
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	result, err := tx.ExecContext(ctx, stmt, r.ExpectedAt, rI, r.Version)
+	if err != nil {
+		return err
+	}
+
+	ra, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if ra != 1 {
+		return ErrSetConflict
+	}
+
+	return nil
+}
+
+func delResupplyItems(tx *sql.Tx, resupplyID int64) error {
+	stmt := `
+	delete from resupply_item where resupply_id = $1
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err := tx.ExecContext(ctx, stmt, resupplyID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (db *Data) SetResupply(r *Resupply) error {
+	rI, err := id64(r.ID, ResupplyIDCode)
+	if err != nil {
+		return err
+	}
+
+	tx, err := db.DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	err = delResupplyItems(tx, rI)
+	if err != nil {
+		return err
+	}
+
+	err = setResupply(tx, r)
+	if err != nil {
+		return err
+	}
+
+	err = addResupplyItems(tx, r)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func delResupply(tx *sql.Tx, id int64) error {
+	stmt := `
+	delete from resupply where id = $1
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	result, err := tx.ExecContext(ctx, stmt, id)
+	if err != nil {
+		return err
+	}
+
+	_, err = result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (db *Data) DelResupply(id string) error {
+	i, err := id64(id, ResupplyIDCode)
+	if err != nil {
+		return err
+	}
+
+	tx, err := db.DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	err = delResupplyItems(tx, i)
+	if err != nil {
+		return err
+	}
+
+	err = delResupply(tx, i)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (db *Data) ResuppliesByWarehouse(warehouseID string) ([]Resupply, error) {
+	wI, err := id64(warehouseID, WarehouseIDCode)
+	if err != nil {
+		return nil, err
+	}
+
+	stmt := fmt.Sprintf(`
+	select 
+	'%v'||resupply.id
+	from resupply
+	join store on store.id = resupply.store_id
+	where store.warehouse_id = $1
+	;`,
+		ResupplyIDCode,
+	)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	rows, err := db.DB.QueryContext(ctx, stmt, wI)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		err2 := rows.Close()
+		if err2 != nil {
+			panic(err2)
+		}
+	}()
+
+	var rs []Resupply
+
+	for rows.Next() {
+		var r Resupply
+
+		err = rows.Scan(
+			&r.ID,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		rs = append(rs, r)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range rs {
+		rp, err := db.Resupply(rs[i].ID)
+		if err != nil {
+			return nil, err
+		}
+		rs[i] = *rp
+	}
+
+	return rs, nil
 }

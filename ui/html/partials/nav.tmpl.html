@@ -128,14 +128,19 @@
 	<!-- End Chênh lệch -->
 	{{end}}
 
+	<!-- Begin YCầu Xuất -->
 	{{if (or (ne .Account.Store.ID "") (eq .Account.Role .Manager))}}
 	<button class="dropdown-btn-w3">YCầu Xuất
 		<i class="fa fa-caret-down"></i>
 	</button>
 	<div class="dropdown-container-w3">
-		<a id="account" href="{{.Domain}}/add-resupply">Thêm</a>
+		{{if .Account.Store.ID}}
+		<a id="resupplyAdd" href="{{.Domain}}/add-resupply">Thêm</a>
+		{{end}}
+		<a id="resupplies" href="{{.Domain}}/resupplies">Xem</a>
 	</div>
 	{{end}}
+	<!-- End YCầu Xuất -->
 
 	<!-- Begin tài khoản -->
 	<button class="dropdown-btn-w3">Tài khoản

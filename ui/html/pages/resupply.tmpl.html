@@ -68,7 +68,7 @@ Yêu cầu xuất
 		</div>
 		<!-- End warehouse, supplier, expectedAt -->
 
-		<div class="setComponents d-none">
+		<div class="d-none" id="setComponents">
 			<div class="row my-4">
 				<div class="col-4 mx-auto">
 					<button class="btn btn-primary" type="submit" id="submitBtn">
@@ -105,14 +105,15 @@ Yêu cầu xuất
 					{{range .Page.Resupply.Items}}
 					<tr>
 						<td>
-							<img height="100" src="/rec/{{.Item.ImgFSPath}}" alt="/rec/{{.Item.ImgFSPath}}">
+							<img height="100" src="/rec/{{.Item.ImgFSPath}}"
+								alt="/rec/{{.Item.ImgFSPath}}">
 						</td>
 						<td class="tdGTIN">{{.Item.GTIN}}</td>
 						<td class="tdName">{{.Item.Name}}</td>
 						<td>
-							<input class="form-control was-validated" type="number" min="1"
-								max="{{.MaxResupplyQuantity}}" value="{{.Quantity}}"
-								required disabled>
+							<input class="form-control was-validated tdQuantity"
+								type="number" min="1" max="{{.MaxResupplyQuantity}}"
+								value="{{.Quantity}}" required disabled>
 							<div class="invalid-feedback">
 								Min 1, Max {{.MaxResupplyQuantity}}
 							</div>
@@ -127,14 +128,74 @@ Yêu cầu xuất
 		</div>
 		<!-- End items pick table -->
 	</form>
+
+	<input type="text" class="d-none" id="version" value="{{.Page.Resupply.Version}}">
 </div>
 <script type="module">
 	import { domain, IDCode, Scanner } from "/static/js/util.js";
 
+	function del(resupplyID) {
+		let ok = false;
+
+		fetch(domain + '/resupply/' + resupplyID, {
+			method: 'DELETE',
+		})
+			.then(res => {
+				ok = res.ok;
+				if (res.redirected) {
+					window.location.replace(res.url);
+					return;
+				}
+				return res.text();
+			})
+			.then(msg => {
+				if (!ok) {
+					alert(msg);
+				}
+			})
+			.catch(err => {
+				alert(err);
+			});
+	}
+
 	// After getting items (above), begin others task from this point
 	document.addEventListener('DOMContentLoaded', function () {
+		let resupplyID = document.querySelector('#resupplyID').innerText;
+
+		console.log('version', document.querySelector('#version').value);
+
 		// Initialize QR scanning
 		Scanner.init(addItem);
+
+		// Enables modifying the resupply's items
+		document.querySelector('#setResupply').addEventListener('change', (e) => {
+			if (e.target.checked === true) {
+				document.querySelector('#setComponents').classList.remove('d-none');
+				document.querySelector('#expectedAt').disabled = false;
+				document.querySelectorAll('.tdQuantity').forEach((quantityInput, idx) => {
+					quantityInput.disabled = false;
+				});
+				document.querySelectorAll('.delete').forEach((delBtn, idx) => {
+					delBtn.disabled = false;
+				});
+			} else {
+				document.querySelector('#setComponents').classList.add('d-none');
+				document.querySelector('#expectedAt').disabled = true;
+				document.querySelectorAll('.tdQuantity').forEach((quantityInput, idx) => {
+					quantityInput.disabled = true;
+				});
+				document.querySelectorAll('.delete').forEach((delBtn, idx) => {
+					delBtn.disabled = true;
+				});
+			}
+		});
+
+		// Enables deleting the resupply
+		document.querySelector('#delResupplyBtn').addEventListener('click', (e) => {
+			if (confirm('Bạn có chắc muốn xóa yêu cầu xuất?')) {
+				del(resupplyID);
+			}
+		});
 
 		// Populate the table of chosen items based on the selection of item
 		document.querySelector('#itemPick').addEventListener('input', (e) => {
@@ -215,6 +276,8 @@ Yêu cầu xuất
 
 		function input() {
 			let o = {
+				id: resupplyID,
+				version: parseInt(document.querySelector('#version').value),
 				expectedAt: document.querySelector('#expectedAt').value,
 				items: [],
 			};
@@ -231,10 +294,10 @@ Yêu cầu xuất
 			return o;
 		}
 
-		function request(obj) {
+		function set(obj) {
 			let ok = false;
 			fetch(domain + '/resupply', {
-				method: 'POST',
+				method: 'PUT',
 				body: JSON.stringify(obj),
 				headers: {
 					'Content-Type': 'application/json'
@@ -250,6 +313,9 @@ Yêu cầu xuất
 				})
 				.then(data => {
 					if (!ok) alert(data);
+				})
+				.catch(err => {
+					alert(err);
 				});
 		}
 
