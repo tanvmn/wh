@@ -130,7 +130,11 @@ func (ap *application) routes() http.Handler {
 	mux.Handle("GET /resupplies", append(identify, ap.permit(data.Manager, data.Employee), ap.permitStoreEmployee).then(ap.resuppliesPage()))
 	mux.Handle("POST /resupply", append(identify, ap.permit(data.Manager, data.Employee), ap.permitStoreEmployee).then(ap.addResupply()))
 	mux.Handle("PUT /resupply", append(identify, ap.permit(data.Manager, data.Employee), ap.permitStoreEmployee).then(ap.setResupply()))
+	mux.Handle("PUT /resupply/decline", append(identify, ap.permit(data.Manager, data.Employee), ap.permitStoreEmployee).then(ap.declineResupply()))
 	mux.Handle("DELETE /resupply/{id}", append(identify, ap.permit(data.Manager, data.Employee), ap.permitStoreEmployee).then(ap.delResupply()))
+
+	// Export
+	mux.Handle("POST /export", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.addExport()))
 
 	// Difference Activities
 	mux.Handle("GET /difference-activities", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.differenceActivitiesPage()))

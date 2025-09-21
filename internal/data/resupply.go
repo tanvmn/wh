@@ -43,7 +43,7 @@ func (db *Data) ResupplyItemsQuantityByWarehouse(warehouseID string) ([]ItemQuan
 	and store.warehouse_id = $1
 	group by item.type, item.brand, item.color, item.size, item.characteristic, item.img_fspath, ri.gtin
 	;`,
-		Ended,
+		Declined,
 	)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -495,4 +495,114 @@ func (db *Data) ResuppliesByWarehouse(warehouseID string) ([]Resupply, error) {
 	}
 
 	return rs, nil
+}
+
+func declineResupply(tx *sql.Tx, id int64, note string, version int) error {
+	stmt := `
+	update resupply set status = $1
+	,version = version + 1
+	,note = $2
+	where id = $3 and version = $4
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	result, err := tx.ExecContext(ctx, stmt, Declined, note, id, version)
+	if err != nil {
+		return err
+	}
+
+	ra, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if ra != 1 {
+		return fmt.Errorf("%w; resupply %v%v, version %v", ErrSetConflict, ResupplyIDCode, id, version)
+	}
+
+	return nil
+}
+
+// DeclineResupply set resupply status to data.Declined.
+// Note that parameter r has to have id and the current version before decline.
+func (db *Data) DeclineResupply(r *Resupply) error {
+	i, err := id64(r.ID, ResupplyIDCode)
+	if err != nil {
+		return err
+	}
+
+	tx, err := db.DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	err = declineResupply(tx, i, r.Note, r.Version)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func setResupplyStatus(tx *sql.Tx, id int64, status string, version int) error {
+	stmt := `
+	update resupply set status = $1 where id = $2 and version = $3
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	result, err := tx.ExecContext(ctx, stmt, status, id, version)
+	if err != nil {
+		return err
+	}
+
+	ra, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if ra != 1 {
+		return fmt.Errorf("%w; set status for resupply %v%v ,version %v", ErrSetConflict, ResupplyIDCode, id, version)
+	}
+
+	return nil
+}
+
+func (db *Data) SetResupplyStatus(id, status string) error {
+	i, err := id64(id, ResupplyIDCode)
+	if err != nil {
+		return err
+	}
+
+	r, err := db.Resupply(id)
+	if err != nil {
+		return err
+	}
+
+	tx, err := db.DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	err = setResupplyStatus(tx, i, status, r.Version)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

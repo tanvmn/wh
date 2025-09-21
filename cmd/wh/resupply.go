@@ -281,3 +281,35 @@ func (ap *application) resuppliesPage() http.Handler {
 		}
 	})
 }
+
+func (ap *application) declineResupply() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var rs data.Resupply
+
+		err := ap.decodeJSON(w, r, &rs)
+		if err != nil {
+			ap.logger.Error(err.Error())
+
+			var mr *util.MalformedRequest
+			if errors.As(err, &mr) {
+				http.Error(w, mr.Msg, mr.Status)
+			} else {
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			}
+			return
+		}
+
+		err = ap.data.DeclineResupply(&rs)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			if errors.Is(err, data.ErrNoResupplies) {
+				http.Error(w, fmt.Sprintf("Không tìm thấy yêu cầu xuất %v", rs.ID), http.StatusBadRequest)
+			} else {
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			}
+			return
+		}
+
+		http.Redirect(w, r, fmt.Sprintf("%v/resupply/%v", domain, rs.ID), http.StatusSeeOther)
+	})
+}

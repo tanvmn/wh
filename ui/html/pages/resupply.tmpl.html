@@ -17,6 +17,10 @@ Yêu cầu xuất
 <div class="container-fluid">
 	<div class="row p-3">
 		{{$awaitingResponse := .AwaitingResponse}}
+		{{$declined := .Declined}}
+		{{$account := .Account}}
+		{{$manager := .Manager}}
+		{{$validStoreID := (gt (len .Account.Store.ID) 4)}}
 		{{with .Page.Resupply}}
 		<div class="col-3">
 			<h3 class="d-inline">
@@ -24,20 +28,38 @@ Yêu cầu xuất
 				<span id="resupplyID" class="badge text-bg-info">{{.ID}}</span>
 			</h3>
 		</div>
-		{{if (and (eq .Status $awaitingResponse) (ne .Account.Store.ID ""))}}
+		{{if (and (eq .Status $awaitingResponse) $validStoreID)}}
 		<div class="col-1">
 			<label class="form-check-label" for="setResupply">
 				<h4>Sửa</h4>
 			</label>
 			<input class="form-check-input" type="checkbox" id="setResupply">
-
 		</div>
+		{{end}}
 
+		{{if (and (eq $account.Role $manager) (eq .Status $awaitingResponse))}}
+		<div class="col-2">
+			<button id="declineResupplyBtn" class="btn btn-warning ms-5"><strong>Từ chối</strong></button>
+		</div>
+		<div class="col-2">
+			<button id="addExportBtn" class="btn btn-dark ms-5"><strong>+ Phiếu xuất</strong></button>
+		</div>
+		{{end}}
+
+		{{if (and (or (eq .Status $awaitingResponse) (eq .Status $declined)) $validStoreID)}}
 		<div class="col-1">
 			<button id="delResupplyBtn" class="btn btn-danger ms-5"><strong>Xóa</strong></button>
 		</div>
 		{{end}}
 		{{end}}
+	</div>
+
+	<div class="row p-3 {{if (ne .Page.Resupply.Status .Declined)}}d-none{{end}}" id="declineNoteContainer">
+		<div class="col">
+			<label for="declineNote" class="form-label">Ghi chú từ chối</label>
+			<textarea class="form-control"
+				id="declineNote">{{if (eq .Page.Resupply.Status .Declined)}}{{.Page.Resupply.Note}}{{end}}</textarea>
+		</div>
 	</div>
 
 	<form class="was-validated" novalidate>
@@ -112,10 +134,12 @@ Yêu cầu xuất
 						<td class="tdName">{{.Item.Name}}</td>
 						<td>
 							<input class="form-control was-validated tdQuantity"
-								type="number" min="1" max="{{.MaxResupplyQuantity}}"
+								type="number" min="1"
+								max="{{if .MaxResupplyQuantity}}{{.MaxResupplyQuantity}}{{else}}{{.Quantity}}{{end}}"
 								value="{{.Quantity}}" required disabled>
 							<div class="invalid-feedback">
-								Min 1, Max {{.MaxResupplyQuantity}}
+								Min 1, Max {{if
+								.MaxResupplyQuantity}}{{.MaxResupplyQuantity}}{{else}}{{.Quantity}}{{end}}
 							</div>
 						</td>
 						<td>
@@ -130,6 +154,9 @@ Yêu cầu xuất
 	</form>
 
 	<input type="text" class="d-none" id="version" value="{{.Page.Resupply.Version}}">
+	<input type="text" class="d-none" id="status" value="{{.Page.Resupply.Status}}">
+	<input type="text" class="d-none" id="declineNote" value="{{.Page.Resupply.Note}}">
+	<input type="text" class="d-none" id="storeID" value="{{gt (len .Account.Store.ID) 4}}">
 </div>
 <script type="module">
 	import { domain, IDCode, Scanner } from "/static/js/util.js";
@@ -158,44 +185,138 @@ Yêu cầu xuất
 			});
 	}
 
+	function decline(obj) {
+		let ok = false;
+
+		fetch(domain + '/resupply/decline', {
+			method: 'PUT',
+			body: JSON.stringify(obj),
+			headers: {
+				'Content-Type': 'application/json'
+			}
+		})
+			.then(res => {
+				ok = res.ok;
+				if (res.redirected) {
+					window.location.replace(res.url);
+					return;
+				}
+				return res.text();
+			})
+			.then(msg => {
+				if (!ok) {
+					alert(msg);
+				}
+			})
+			.catch(err => {
+				alert(err);
+			});
+	}
+
+	function addExport(resupplyID) {
+		let ok = false;
+
+		fetch(domain + '/export?resupply=' + resupplyID, {
+			method: 'POST',
+		})
+			.then(res => {
+				ok = res.ok;
+				if (res.redirected) {
+					window.location.replace(res.url);
+					return;
+				}
+				return res.text();
+			})
+			.then(msg => {
+				if (!ok) {
+					alert(msg);
+				}
+			})
+			.catch(err => {
+				alert(err);
+			});
+	}
+
 	// After getting items (above), begin others task from this point
 	document.addEventListener('DOMContentLoaded', function () {
 		let resupplyID = document.querySelector('#resupplyID').innerText;
 
 		console.log('version', document.querySelector('#version').value);
+		console.log('status', document.querySelector('#status').value);
+		console.log('declineNote', document.querySelector('#declineNote').value);
+		console.log('storeID', document.querySelector('#storeID').value);
 
 		// Initialize QR scanning
 		Scanner.init(addItem);
 
 		// Enables modifying the resupply's items
-		document.querySelector('#setResupply').addEventListener('change', (e) => {
-			if (e.target.checked === true) {
-				document.querySelector('#setComponents').classList.remove('d-none');
-				document.querySelector('#expectedAt').disabled = false;
-				document.querySelectorAll('.tdQuantity').forEach((quantityInput, idx) => {
-					quantityInput.disabled = false;
-				});
-				document.querySelectorAll('.delete').forEach((delBtn, idx) => {
-					delBtn.disabled = false;
-				});
-			} else {
-				document.querySelector('#setComponents').classList.add('d-none');
-				document.querySelector('#expectedAt').disabled = true;
-				document.querySelectorAll('.tdQuantity').forEach((quantityInput, idx) => {
-					quantityInput.disabled = true;
-				});
-				document.querySelectorAll('.delete').forEach((delBtn, idx) => {
-					delBtn.disabled = true;
-				});
-			}
-		});
+		let setResupplyBtn = document.querySelector('#setResupply');
+		if (setResupplyBtn !== null) {
+			setResupplyBtn.addEventListener('change', (e) => {
+				if (e.target.checked === true) {
+					document.querySelector('#setComponents').classList.remove('d-none');
+					document.querySelector('#expectedAt').disabled = false;
+					document.querySelectorAll('.tdQuantity').forEach((quantityInput, idx) => {
+						quantityInput.disabled = false;
+					});
+					document.querySelectorAll('.delete').forEach((delBtn, idx) => {
+						delBtn.disabled = false;
+					});
+				} else {
+					document.querySelector('#setComponents').classList.add('d-none');
+					document.querySelector('#expectedAt').disabled = true;
+					document.querySelectorAll('.tdQuantity').forEach((quantityInput, idx) => {
+						quantityInput.disabled = true;
+					});
+					document.querySelectorAll('.delete').forEach((delBtn, idx) => {
+						delBtn.disabled = true;
+					});
+				}
+			});
+		}
 
-		// Enables deleting the resupply
-		document.querySelector('#delResupplyBtn').addEventListener('click', (e) => {
-			if (confirm('Bạn có chắc muốn xóa yêu cầu xuất?')) {
-				del(resupplyID);
-			}
-		});
+		// Deletes the resupply
+		let delResupplyBtn = document.querySelector('#delResupplyBtn');
+		if (delResupplyBtn !== null) {
+			delResupplyBtn.addEventListener('click', (e) => {
+				if (confirm('Bạn có chắc muốn xóa yêu cầu xuất?')) {
+					del(resupplyID);
+				}
+			});
+		}
+
+		// Declines the resupply
+		let declineResupplyBtn = document.querySelector('#declineResupplyBtn');
+		if (declineResupplyBtn !== null) {
+			declineResupplyBtn.addEventListener('click', (e) => {
+				let declineNoteContainer = document.querySelector('#declineNoteContainer');
+				let declineNote = document.querySelector('#declineNote');
+
+				if (declineNoteContainer.classList.contains('d-none')) {
+					declineNoteContainer.classList.remove('d-none');
+					return;
+				}
+
+				if (!declineNoteContainer.classList.contains('d-none') && declineNote.value === "") {
+					alert('Cần thêm ghi chú khi từ chối yêu cầu xuất');
+					return;
+				}
+
+				if (!declineNoteContainer.classList.contains('d-none') && declineNote.value !== "") {
+					if (confirm('Bạn có chắc muốn từ chối yêu cầu xuất?')) {
+						decline(input());
+					}
+				}
+			});
+		}
+
+		// Add an export based on this resupply
+		let addExportBtn = document.querySelector('#addExportBtn');
+		if (addExportBtn !== null) {
+			addExportBtn.addEventListener('click', (e) => {
+				addExport(resupplyID);
+			});
+		}
 
 		// Populate the table of chosen items based on the selection of item
 		document.querySelector('#itemPick').addEventListener('input', (e) => {
@@ -279,6 +400,7 @@ Yêu cầu xuất
 				id: resupplyID,
 				version: parseInt(document.querySelector('#version').value),
 				expectedAt: document.querySelector('#expectedAt').value,
+				note: document.querySelector('#declineNote').value,
 				items: [],
 			};
 
@@ -332,7 +454,7 @@ Yêu cầu xuất
 			}
 
 			if (confirm('Bạn đã chắc về thông tin của yêu cầu nhập?')) {
-				request(input());
+				set(input());
 			}
 		});
 
