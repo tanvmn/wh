@@ -76,12 +76,12 @@ Các Phiếu nhập
 				</td>
 				<td>{{.CreatedAt}}</td>
 				<td>
-					{{if (and (or (eq $account $manager) (eq $account $employee)) (notProcessed
-					.ActualAt))}}
 					<a class="btn btn-sm btn-info" href="{{$domain}}/receive/{{.ID}}"
 						target="_blank">
 						Xem
 					</a>
+					{{if (and (or (eq $account $manager) (eq $account $employee)) (notProcessed
+					.ActualAt))}}
 					<a class="btn btn-sm btn-secondary" href="{{$domain}}/receive/{{.ID}}/process"
 						target="_blank">
 						Xử lý

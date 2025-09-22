@@ -18,30 +18,30 @@ type Warehouse struct {
 }
 
 type Bin struct {
-	ID        string    `json:"id,omitempty,omitzero"`
-	Warehouse Warehouse `json:"warehouse,omitempty,omitzero"`
-	Capacity  float64   `json:"capacity,omitempty,omitzero"`
-	Shelf     int64     `json:"shelf,omitempty,omitzero"`
-	Row       int64     `json:"row,omitempty,omitzero"`
-	Col       int64     `json:"col,omitempty,omitzero"`
-	Version   int       `json:"version,omitempty,omitzero"`
+	ID        string  `json:"id,omitempty,omitzero"`
+	Capacity  float64 `json:"capacity,omitempty,omitzero"`
+	Shelf     int64   `json:"shelf,omitempty,omitzero"`
+	Row       int64   `json:"row,omitempty,omitzero"`
+	Col       int64   `json:"col,omitempty,omitzero"`
+	Version   int     `json:"version,omitempty,omitzero"`
+	Warehouse `json:"warehouse,omitempty,omitzero"`
 }
 
 type Tote struct {
-	ID        string    `json:"id,omitempty,omitzero"`
-	Warehouse Warehouse `json:"warehouse,omitempty,omitzero"`
-	Capacity  float64   `json:"capacity,omitempty,omitzero"`
-	Version   int       `json:"version,omitempty,omitzero"`
+	ID        string  `json:"id,omitempty,omitzero"`
+	Capacity  float64 `json:"capacity,omitempty,omitzero"`
+	Version   int     `json:"version,omitempty,omitzero"`
+	Warehouse `json:"warehouse,omitempty,omitzero"`
 }
 
 type Store struct {
-	ID        string    `json:"id,omitempty,omitzero"`
-	Name      string    `json:"name,omitempty,omitzero"`
-	Address   string    `json:"address,omitempty,omitzero"`
-	Phone     string    `json:"phone,omitempty,omitzero"`
-	Email     string    `json:"email,omitempty,omitzero"`
-	Warehouse Warehouse `json:"warehouse,omitempty,omitzero"`
-	Version   int       `json:"version,omitempty,omitzero"`
+	ID        string `json:"id,omitempty,omitzero"`
+	Name      string `json:"name,omitempty,omitzero"`
+	Address   string `json:"address,omitempty,omitzero"`
+	Phone     string `json:"phone,omitempty,omitzero"`
+	Email     string `json:"email,omitempty,omitzero"`
+	Version   int    `json:"version,omitempty,omitzero"`
+	Warehouse `json:"warehouse,omitempty,omitzero"`
 }
 
 var (

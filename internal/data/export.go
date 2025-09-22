@@ -251,7 +251,7 @@ func (db *Data) Export(id string) (*Export, error) {
 	,$2||export.account_id
 	,$2||export.picked_by
 	,$2||export.packed_by
-	,to_char(export.created_at, 'DD-MM-YYYY HH24-MI')
+	,to_char(export.created_at, 'DD-MM-YYYY HH24:MI')
 	,export.expected_at
 	,export.picked_at
 	,export.packed_at
@@ -349,4 +349,60 @@ func (db *Data) Export(id string) (*Export, error) {
 	}
 
 	return &e, nil
+}
+
+func (db *Data) ExportsByWarehouse(warehouseID string) ([]Export, error) {
+	wI, err := id64(warehouseID, WarehouseIDCode)
+	if err != nil {
+		return nil, err
+	}
+
+	stmt := `
+	select
+	$1||export.id
+	from export
+	join resupply on resupply.id = export.resupply_id
+	join store on store.id = resupply.store_id
+	where store.warehouse_id = $2
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	rows, err := db.DB.QueryContext(ctx, stmt, ExportIDCode, wI)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if err2 := rows.Close(); err2 != nil {
+			panic(err2)
+		}
+	}()
+
+	var es []Export
+
+	for rows.Next() {
+		e := new(Export)
+
+		err = rows.Scan(
+			&e.ID,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		e, err := db.Export(e.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		es = append(es, *e)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+
+	return es, nil
 }

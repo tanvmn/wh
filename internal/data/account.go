@@ -81,9 +81,19 @@ func (db *Data) Account(id string) (*Account, error) {
 
 	if warehouseID.Valid {
 		ac.Warehouse.ID = WarehouseIDCode + fmt.Sprint(warehouseID.Int64)
+		w, err := db.Warehouse(ac.Warehouse.ID)
+		if err != nil {
+			return nil, err
+		}
+		ac.Warehouse = *w
 	}
 	if storeID.Valid {
 		ac.Store.ID = StoreIDCode + fmt.Sprint(storeID.Int64)
+		s, err := db.Store(ac.Store.ID)
+		if err != nil {
+			return nil, err
+		}
+		ac.Store = *s
 	}
 
 	return &ac, nil

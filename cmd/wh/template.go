@@ -222,6 +222,11 @@ type ExportPage struct {
 	*data.Export
 }
 
+// Exports Page
+type ExportsPage struct {
+	Exports []data.Export
+}
+
 func badgeBg(status string) string {
 	switch status {
 	case data.AwaitingResponse:

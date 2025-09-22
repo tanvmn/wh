@@ -152,6 +152,7 @@ func (ap *application) routes() http.Handler {
 	// Export
 	mux.Handle("POST /export", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.addExport()))
 	mux.Handle("GET /export/{id}", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.exportPage()))
+	mux.Handle("GET /exports", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.exportsByWarehousePage()))
 
 	// Difference Activities
 	mux.Handle("GET /difference-activities", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.differenceActivitiesPage()))

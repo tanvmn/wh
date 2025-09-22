@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/tanNguyen2220022/wh/internal/data"
+	"github.com/tanNguyen2220022/wh/internal/util"
 )
 
 func (ap *application) addExport() http.Handler {
@@ -58,6 +59,51 @@ func (ap *application) exportPage() http.Handler {
 		err = ap.render(w, http.StatusOK, "export", t)
 		if err != nil {
 			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+	})
+}
+
+func (ap *application) exportsByWarehousePage() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		wID, ok := r.Context().Value(authenticatedCtxWarehouseID).(string)
+		if !ok {
+			ap.logger.Error(fmt.Sprintf("%v; authenticatedCtxWarehouseID: %v", ErrConvertCtxVal, wID))
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		es, err := ap.data.ExportsByWarehouse(wID)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		for i := range es {
+			t, err := util.FormatRFC3339(es[i].ExpectedAt, util.DDMMYYYY24HMI)
+			if err != nil {
+				ap.logger.Error(err.Error())
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				return
+			}
+			es[i].ExpectedAt = t
+		}
+
+		p := new(ExportsPage)
+		p.Exports = es
+
+		t, err := ap.newTemplData(r)
+		if err != nil {
+			ap.logger.Error(fmt.Sprintf("%v; authenticatedCtxWarehouseID: %v", ErrConvertCtxVal, wID))
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		t.Page = p
+
+		err = ap.render(w, http.StatusOK, "exports", t)
+		if err != nil {
+			ap.logger.Error(fmt.Sprintf("%v; authenticatedCtxWarehouseID: %v", ErrConvertCtxVal, wID))
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}

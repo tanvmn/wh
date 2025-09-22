@@ -101,7 +101,7 @@
 
 	<!-- Begin Yêu cầu nhập -->
 	{{if not (or (eq .Account.Role .Manager) (eq .Account.Role .Employee))}}
-	<button class="dropdown-btn-w3">Ycầu nhập
+	<button class="dropdown-btn-w3">Ycầu Nhập
 		<i class="fa fa-caret-down"></i>
 	</button>
 	<div class="dropdown-container-w3">
@@ -112,20 +112,16 @@
 	<!-- End Yêu cầu nhập -->
 
 	<!-- Begin phiếu nhập -->
-	<button class="dropdown-btn-w3">Phiếu nhập
+	<button class="dropdown-btn-w3">Phiếu Nhập
 		<i class="fa fa-caret-down"></i>
 	</button>
 	<div class="dropdown-container-w3">
 		<a id="receives" href="{{.Domain}}/receives">Xem</a>
 		{{if (or (eq .Account.Role .Manager) (eq .Account.Role .Employee))}}
-		<a id="putaway" href="{{.Domain}}/putaway-prompt">Cất hàng</a>
+		<a id="putaway" href="{{.Domain}}/putaway-prompt">Cất Hàng</a>
 		{{end}}
 	</div>
 	<!-- End phiếu nhập -->
-
-	<!-- Begin Chênh lệch -->
-	<a id="difference" href="{{.Domain}}/difference-activities">Chênh lệch</a>
-	<!-- End Chênh lệch -->
 	{{end}}
 
 	<!-- Begin YCầu Xuất -->
@@ -142,13 +138,30 @@
 	{{end}}
 	<!-- End YCầu Xuất -->
 
+	<!-- Begin Phiếu Xuất -->
+	{{if (or (ne .Account.Role .Employee) (eq .Account.Role .Manager))}}
+	<button class="dropdown-btn-w3">Phiếu Xuất
+		<i class="fa fa-caret-down"></i>
+	</button>
+	<div class="dropdown-container-w3">
+		<a id="exportsByWarehouse" href="{{.Domain}}/exports">Xem</a>
+	</div>
+	{{end}}
+	<!-- End Phiếu Xuất -->
+
+	{{if .Account.Warehouse.ID}}
+	<!-- Begin Chênh lệch -->
+	<a id="difference" href="{{.Domain}}/difference-activities">Chênh Lệch</a>
+	<!-- End Chênh lệch -->
+	{{end}}
+
 	<!-- Begin tài khoản -->
 	<button class="dropdown-btn-w3">Tài khoản
 		<i class="fa fa-caret-down"></i>
 	</button>
 	<div class="dropdown-container-w3">
 		<a id="account" href="{{.Domain}}/account/{{.Account.ID}}">Xem</a>
-		<a id="logout" href="{{.Domain}}/logout">Đăng xuất</a>
+		<a id="logout" href="{{.Domain}}/logout">Đăng Xuất</a>
 	</div>
 	<!-- End tài khoản -->
 </div>

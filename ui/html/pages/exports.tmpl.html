@@ -1,10 +1,9 @@
 {{define "title"}}
-Yêu Cầu Xuất
+Phiếu Xuất
 {{end}}
 
 {{define "main"}}
 <link rel="stylesheet" href="https://cdn.datatables.net/2.3.2/css/dataTables.dataTables.css" />
-<!-- <link href="https://cdn.datatables.net/v/ju/dt-2.3.4/datatables.min.css" rel="stylesheet" integrity="sha384-t8fbM9GPq3X/YVcNvadPtLggPLi3rhvwutVXmgZLzrp3rymnUI/8J6tXLFka159r" crossorigin="anonymous"> -->
 <style>
 	ul {
 		list-style-type: none;
@@ -15,7 +14,7 @@ Yêu Cầu Xuất
 
 <div class="container-fluid">
 	<h3 class="p-3">
-		Yêu cầu xuất của kho:&nbsp&nbsp
+		Phiếu xuất của kho:&nbsp&nbsp
 		<span id="warehouseName" class="badge text-bg-info">
 			{{if.Account.Store.ID}}{{.Account.Store.Warehouse.Name}}{{else}}{{.Account.Warehouse.Name}}{{end}}
 		</span>
@@ -27,7 +26,8 @@ Yêu Cầu Xuất
 				<th>Kho</th>
 				<th>Cửa hàng</th>
 				<th>Dự kiến xuất<br>(dd-mm-yyyy hh24:mi)</th>
-				<th>Trạng thái</th>
+				<th>Lấy hàng<br>(dd-mm-yyyy hh24:mi)</th>
+				<th>Đóng gói<br>(dd-mm-yyyy hh24:mi)</th>
 				<th>Tạo bởi</th>
 				<th>Tạo lúc<br>(dd-mm-yyyy hh24:mi)</th>
 				<th></th>
@@ -37,8 +37,9 @@ Yêu Cầu Xuất
 			{{$domain := .Domain}}
 			{{$account := .Account}}
 			{{$manager := .Manager}}
+			{{$employee := .Employee}}
 			{{$exportIDCode := .ExportIDCode}}
-			{{range .Page.Resupplies}}
+			{{range .Page.Exports}}
 			<tr>
 				<td>{{.ID}}</td>
 				<td>
@@ -51,9 +52,22 @@ Yêu Cầu Xuất
 				</td>
 				<td>{{.ExpectedAt}}</td>
 				<td>
-					<span class="badge text-bg-{{badgeBg .Status}}">
-						{{.Status}}
+					{{if (notProcessed .PickedAt)}}
+					<span class="badge text-bg-secondary">
+						CHƯA LẤY HÀNG
 					</span>
+					{{else}}
+					{{.PickedAt}}
+					{{end}}
+				</td>
+				<td>
+					{{if (notProcessed .PackedAt)}}
+					<span class="badge text-bg-dark">
+						CHƯA ĐÓNG GÓI
+					</span>
+					{{else}}
+					{{.PackedAt}}
+					{{end}}
 				</td>
 				<td>
 					<strong>ID: </strong>{{.Account.ID}}<br>
@@ -62,13 +76,20 @@ Yêu Cầu Xuất
 				</td>
 				<td>{{.CreatedAt}}</td>
 				<td>
-					{{if (or (eq $account.Role $manager) (ne $account.Store.ID ""))}}
-					<a class="btn btn-sm btn-info" href="{{$domain}}/resupply/{{.ID}}">
+					{{if (or (eq $account.Role $manager) (ne $account.Role $employee))}}
+					<a class="btn btn-sm btn-info" href="{{$domain}}/export/{{.ID}}">
 						Xem
 					</a>
-					<!-- <a class="btn btn-sm btn-dark" href="{{$domain}}/export/{{$exportIDCode }}{{slice .ID 4}}">
-						Phiếu xuất
-					</a> -->
+					{{if (notProcessed .PickedAt)}}
+					<a class="btn btn-sm btn-secondary" href="{{$domain}}/export/{{.ID}}/pick">
+						Lấy hàng
+					</a>
+					{{end}}
+					{{if (notProcessed .PackedAt)}}
+					<a class="btn btn-sm btn-dark" href="{{$domain}}/export/{{.ID}}/pack">
+						Đóng gói
+					</a>
+					{{end}}
 					{{end}}
 				</td>
 			</tr>
@@ -79,7 +100,6 @@ Yêu Cầu Xuất
 
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 <script src="https://cdn.datatables.net/2.3.2/js/dataTables.js"></script>
-<!-- <script src="https://cdn.datatables.net/v/ju/dt-2.3.4/datatables.min.js" integrity="sha384-Mjq1iPaM3TWDHqpKuga8uK1zeqKty4tZNaKFgIsYaKAJtYQgIn3OHge6z3ELbtyz" crossorigin="anonymous"></script> -->
 <script type="module">
 	import { Scanner } from "../static/js/util.js";
 
