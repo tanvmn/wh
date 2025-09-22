@@ -79,7 +79,7 @@ Yêu cầu xuất
 			</div>
 			{{end}}
 			<div class="col">
-				<label for="expectedAt" class="form-label">Dự kiến nhập (mm/dd/yyyy)</label>
+				<label for="expectedAt" class="form-label">Dự kiến xuất (mm/dd/yyyy)</label>
 				<input type="datetime-local" name="expectedAt" id="expectedAt" min="{{.MinTimestamp}}"
 					class="form-control was-validated"
 					value="{{slice .Page.Resupply.ExpectedAt 0 16}}" disabled>

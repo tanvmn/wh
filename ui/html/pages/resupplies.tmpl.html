@@ -14,7 +14,7 @@ Các Phiếu Xuất
 
 <div class="container-fluid">
 	<h3 class="p-3">
-		Phiếu xuất của kho:&nbsp&nbsp
+		Yêu cầu xuất của kho:&nbsp&nbsp
 		<span id="warehouseName" class="badge text-bg-info">{{.Account.Store.Warehouse.Name}}</span>
 	</h3>
 	<table id="dataTable" class="display compact">
@@ -34,6 +34,7 @@ Các Phiếu Xuất
 			{{$domain := .Domain}}
 			{{$account := .Account}}
 			{{$manager := .Manager}}
+			{{$exportIDCode := .ExportIDCode}}
 			{{range .Page.Resupplies}}
 			<tr>
 				<td>{{.ID}}</td>
@@ -62,6 +63,9 @@ Các Phiếu Xuất
 					<a class="btn btn-sm btn-info" href="{{$domain}}/resupply/{{.ID}}">
 						Xem
 					</a>
+					<!-- <a class="btn btn-sm btn-dark" href="{{$domain}}/export/{{$exportIDCode }}{{slice .ID 4}}">
+						Phiếu xuất
+					</a> -->
 					{{end}}
 				</td>
 			</tr>

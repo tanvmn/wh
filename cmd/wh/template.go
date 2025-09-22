@@ -217,6 +217,11 @@ type ResuppliesPage struct {
 	Resupplies []data.Resupply
 }
 
+// Export Page
+type ExportPage struct {
+	*data.Export
+}
+
 func badgeBg(status string) string {
 	switch status {
 	case data.AwaitingResponse:

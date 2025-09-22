@@ -3,22 +3,33 @@ package data
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 )
 
 type Export struct {
-	ID         string   `json:"id,omitempty,omitzero"`
-	Resupply   Resupply `json:"resupply,omitempty,omitzero"`
-	ExpectedAt string   `json:"expectedAt,omitempty,omitzero"`
-	ActualAt   string   `json:"actualAt,omitempty,omitzero"`
-	CreatedAt  string   `json:"createdAt,omitempty,omitzero"`
-	Transfer   Transfer `json:"transfer,omitempty,omitzero"`
-	Items      []struct {
-		Item     Item  `json:"item,omitempty,omitzero"`
-		Quantity int64 `json:"quantity,omitempty,omitzero"`
-	} `json:"items,omitempty,omitzero"`
+	ID         string         `json:"id,omitempty,omitzero"`
+	CreatedAt  string         `json:"createdAt,omitempty,omitzero"`
+	ExpectedAt string         `json:"expectedAt,omitempty,omitzero"`
+	PickedAt   string         `json:"pickedAt,omitempty,omitzero"`
+	PackedAt   string         `json:"packedAt,omitempty,omitzero"`
+	PickedBy   Account        `json:"pickedBy,omitempty,omitzero"`
+	PackedBy   Account        `json:"packedBy,omitempty,omitzero"`
+	Note       string         `json:"note,omitempty,omitzero"`
+	PickNote   string         `json:"pickNote,omitempty,omitzero"`
+	PackNote   string         `json:"packNote,omitempty,omitzero"`
+	VoucherID  string         `json:"voucherID,omitempty,omitzero"`
+	Version    int            `json:"version,omitempty,omitzero"`
+	Items      []ItemQuantity `json:"items,omitempty,omitzero"`
+	Account    `json:"account,omitempty,omitzero"`
+	Transfer   `json:"transfer,omitempty,omitzero"`
+	Resupply   `json:"resupply,omitempty,omitzero"`
 }
+
+var (
+	ErrNoExports = errors.New("no exports found")
+)
 
 func delExportItemsByResupply(tx *sql.Tx, resupplyID int64) error {
 	stmt := `
@@ -166,4 +177,176 @@ func (db *Data) AddExport(resupplyID string) (exportID string, err error) {
 	}
 
 	return fmt.Sprintf("%v%v", ExportIDCode, exportID64), nil
+}
+
+func (db *Data) ExportItems(resupplyID, exportID int64) ([]ItemQuantity, error) {
+	stmt := `
+	select
+	ei.gtin
+	,ei.note
+	,ei.pick_note
+	,ei.pack_note
+	,ei.quantity
+	from export_item as ei
+	where export_id = $1
+	and resupply_id = $2
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var is []ItemQuantity
+
+	rows, err := db.DB.QueryContext(ctx, stmt, exportID, resupplyID)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		err2 := rows.Close()
+		if err2 != nil {
+			panic(err2)
+		}
+	}()
+
+	for rows.Next() {
+		var iq ItemQuantity
+
+		err = rows.Scan(
+			&iq.Item.GTIN,
+			&iq.Note,
+			&iq.PickNote,
+			&iq.PackNote,
+			&iq.Quantity,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		i, err := db.Item(iq.Item.GTIN)
+		if err != nil {
+			return nil, err
+		}
+		iq.Item = *i
+
+		is = append(is, iq)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+
+	return is, nil
+}
+
+func (db *Data) Export(id string) (*Export, error) {
+	i, err := id64(id, ExportIDCode)
+	if err != nil {
+		return nil, err
+	}
+
+	stmt := `
+	select
+	$1||export.id
+	,$2||export.account_id
+	,$2||export.picked_by
+	,$2||export.packed_by
+	,to_char(export.created_at, 'DD-MM-YYYY HH24-MI')
+	,export.expected_at
+	,export.picked_at
+	,export.packed_at
+	,export.note
+	,export.pick_note
+	,export.pack_note
+	,export.voucher_id
+	,$3||export.resupply_id
+	,$4||export.transfer_id
+	,export.version
+	from export
+	where export.id = $5
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var (
+		pickedBy, packedBy, transferID sql.NullString
+		e                              Export
+	)
+
+	err = db.DB.QueryRowContext(ctx, stmt,
+		ExportIDCode,
+		AccountIDCode,
+		ResupplyIDCode,
+		TransferIDCode,
+		i,
+	).Scan(
+		&e.ID,
+		&e.Account.ID,
+		&pickedBy,
+		&packedBy,
+		&e.CreatedAt,
+		&e.ExpectedAt,
+		&e.PickedAt,
+		&e.PackedAt,
+		&e.Note,
+		&e.PickNote,
+		&e.PackNote,
+		&e.VoucherID,
+		&e.Resupply.ID,
+		&transferID,
+		&e.Version,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("%w; id %v", ErrNoExports, id)
+		}
+		return nil, err
+	}
+
+	if pickedBy.Valid {
+		a, err := db.Account(pickedBy.String)
+		if err != nil {
+			return nil, err
+		}
+		e.PickedBy = *a
+	}
+
+	if packedBy.Valid {
+		a, err := db.Account(packedBy.String)
+		if err != nil {
+			return nil, err
+		}
+		e.PackedBy = *a
+	}
+
+	{
+		a, err := db.Account(e.Account.ID)
+		if err != nil {
+			return nil, err
+		}
+		e.Account = *a
+	}
+
+	r, err := db.Resupply(e.Resupply.ID)
+	if err != nil {
+		return nil, err
+	}
+	e.Resupply = *r
+
+	// Get the export's items
+	rI, err := id64(e.Resupply.ID, ResupplyIDCode)
+	if err != nil {
+		return nil, err
+	}
+	e.Items, err = db.ExportItems(rI, i)
+	if err != nil {
+		return nil, err
+	}
+
+	if transferID.Valid {
+		e.Transfer.ID = transferID.String
+	}
+
+	return &e, nil
 }

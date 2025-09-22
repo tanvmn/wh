@@ -50,14 +50,30 @@ func (ap *application) routes() http.Handler {
 		// 	return
 		// }
 
-		iqs, err := ap.data.StocksByWarehouse("WAR-1")
+		e, err := ap.data.Export("EXP-5")
 		if err != nil {
-			panic(err)
+			ap.logger.Error(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
-		println("no stocks:", len(iqs) == 0)
 
-		for _, iq := range iqs {
-			println(iq.Item.GTIN, iq.Quantity)
+		println(e.ID)
+		println("made by", e.Account.ID)
+		println("picked by", e.PickedBy.ID)
+		println("packed by", e.PackedBy.ID)
+		println("created at", e.CreatedAt)
+		println("expected at", e.ExpectedAt)
+		println("picked at", e.PickedAt)
+		println("packed at", e.PackedAt)
+		println("note", e.Note)
+		println("pick note", e.PickNote)
+		println("pack note", e.PackNote)
+		println("voucher id", e.VoucherID)
+		println("resupply id", e.Resupply.ID)
+
+		println()
+		for _, iq := range e.Items {
+			println(iq.Item.GTIN, iq.Item.Name, iq.Quantity, iq.Item.ImgFSPath)
 		}
 	})
 
@@ -135,6 +151,7 @@ func (ap *application) routes() http.Handler {
 
 	// Export
 	mux.Handle("POST /export", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.addExport()))
+	mux.Handle("GET /export/{id}", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.exportPage()))
 
 	// Difference Activities
 	mux.Handle("GET /difference-activities", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.differenceActivitiesPage()))
