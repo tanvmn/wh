@@ -358,7 +358,7 @@ Phiếu xuất
 
 	function result() {
 		let o = {
-			id: document.querySelector('#exportID').value,
+			id: document.querySelector('#exportID').innerText,
 			items: [],
 		};
 
@@ -372,10 +372,12 @@ Phiếu xuất
 
 			for (let s of serials) {
 				if (s.gtin === iq.item.gtin && s.pickTote !== "") {
-					let s = {
+					let sr = {
 						nanoID: s.nanoID,
+						gtin: s.gtin,
 						pickTote: { id: s.pickTote }
 					};
+					iq.serials.push(sr);
 				}
 			}
 
@@ -440,6 +442,8 @@ Phiếu xuất
 			if (missingPickNote()) {
 				return;
 			}
+
+			result();
 		});
 	});
 </script>
