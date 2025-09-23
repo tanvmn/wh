@@ -19,7 +19,7 @@ type Serial struct {
 	Export      `json:"export,omitempty,omitzero"`
 }
 
-// Serials returns the serials of a gtin
+// SerialsByGTINAndWarehouse returns the serials of a gtin in a warehouse
 func (db *Data) SerialsByGTINAndWarehouse(gtin string, warehouseID string) ([]Serial, error) {
 	if len(gtin) < 5 {
 		return nil, fmt.Errorf("%w: %v", ErrNoItems, gtin)
@@ -32,9 +32,9 @@ func (db *Data) SerialsByGTINAndWarehouse(gtin string, warehouseID string) ([]Se
 	stmt := fmt.Sprintf(
 		`select
 		nanoid
-		,'%v'||receive_tote
-		,'%v'||pick_tote
-		,'%v'||bin_id
+		,'%v'||serial.receive_tote
+		,'%v'||serial.pick_tote
+		,'%v'||serial.bin_id
 		,bin.shelf
 		,bin.row
 		,bin.col
@@ -43,16 +43,15 @@ func (db *Data) SerialsByGTINAndWarehouse(gtin string, warehouseID string) ([]Se
 		,'%v'||serial.purchase_id
 		,'%v'||purchase.warehouse_id
 		,warehouse.name
-		,gtin
+		,serial.gtin
 		from
 		serial
 		join receive on serial.receive_id = receive.id
 		join purchase on serial.purchase_id = purchase.id
 		join warehouse on purchase.warehouse_id = warehouse.id
-		left join export on export.id = serial.export_id
 		left join bin on serial.bin_id = bin.id
 		where gtin = $1
-		and (export.picked_at = '1000-01-01 00:00' or export.picked_at is null)
+		and serial.export_id is null
 		and warehouse.id = $2
 		;`,
 		ToteIDCode,
@@ -128,6 +127,61 @@ func (db *Data) SerialsByGTINAndWarehouse(gtin string, warehouseID string) ([]Se
 		// }
 
 		ss = append(ss, s)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return ss, nil
+}
+
+// Serials returns the serials in a warehouse
+func (db *Data) SerialsByWarehouse(warehouseID string) ([]Serial, error) {
+	wI, err := id64(warehouseID, WarehouseIDCode)
+	if err != nil {
+		return nil, err
+	}
+
+	stmt := `
+	select
+	distinct serial.gtin
+	from serial
+	join bin on bin.id = serial.bin_id
+	where bin.warehouse_id = $1
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	rows, err := db.DB.QueryContext(ctx, stmt, wI)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		err2 := rows.Close()
+		if err2 != nil {
+			panic(err2)
+		}
+	}()
+
+	ss := []Serial{}
+	for rows.Next() {
+		var gtin string
+
+		err = rows.Scan(
+			&gtin,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		s, err := db.SerialsByGTINAndWarehouse(gtin, warehouseID)
+		if err != nil {
+			return nil, err
+		}
+
+		ss = append(ss, s...)
 	}
 
 	if err = rows.Err(); err != nil {

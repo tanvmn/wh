@@ -227,6 +227,14 @@ type ExportsPage struct {
 	Exports []data.Export
 }
 
+// Export Pick Page
+type ExportPickPage struct {
+	*data.Export
+	Picks []data.ItemQuantity
+	Serials []data.Serial
+	UnusedTotes []data.Tote
+}
+
 func badgeBg(status string) string {
 	switch status {
 	case data.AwaitingResponse:

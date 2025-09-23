@@ -41,12 +41,12 @@ type ItemQuantity struct {
 	PutawayNote         string                    `json:"putawayNote,omitempty,omitzero"`
 	PackNote            string                    `json:"packNote,omitempty,omitzero"`
 	PickNote            string                    `json:"pickNote,omitempty,omitzero"`
+	PickBin             Bin                       `json:"bin,omitempty,omitzero"`
 	Serials             []Serial                  `json:"serials,omitempty,omitzero"`
 	Putaway             map[string][]ItemQuantity `json:"putaway,omitempty,omitzero"`
 	Item                `json:"item,omitempty,omitzero"`
 	Receive             `json:"receive,omitempty,omitzero"`
 	Export              `json:"export,omitempty,omitzero"`
-	Bin                 `json:"bin,omitempty,omitzero"`
 }
 
 var (
@@ -180,7 +180,7 @@ func (db *Data) Items(gtins ...string) ([]Item, error) {
 	return is, nil
 }
 
-// Stock returns the currently stored and exported quantity of a gtin
+// Stock returns the currently stored and not exported quantity of a gtin
 func (db *Data) Stock(gtin string, warehouseID string) (int64, error) {
 	wI, err := id64(warehouseID, WarehouseIDCode)
 	if err != nil {
@@ -403,4 +403,70 @@ func (db *Data) StocksByWarehouse(warehouseID string) ([]ItemQuantity, error) {
 	}
 
 	return is, nil
+}
+
+func (db *Data) BinAndItemQuantityByWarehouse(warehouseID string) ([]ItemQuantity, error) {
+	wI, err := id64(warehouseID, WarehouseIDCode)
+	if err != nil {
+		return nil, err
+	}
+
+	stmt := `
+	select
+	$1||serial.bin_id
+	,serial.gtin
+	,count(*)
+	from serial
+	join bin on bin.id = serial.bin_id
+	where bin.warehouse_id = $2
+	group by serial.bin_id, serial.gtin
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	rows, err := db.DB.QueryContext(ctx, stmt, BinIDCode, wI)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if err2 := rows.Close(); err2 != nil {
+			panic(err2)
+		}
+	}()
+
+	var is []ItemQuantity
+
+	for rows.Next() {
+		var iq ItemQuantity
+
+		err = rows.Scan(
+			&iq.PickBin.ID,
+			&iq.Item.GTIN,
+			&iq.Quantity,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		i, err := db.Item(iq.Item.GTIN)
+		if err != nil {
+			return nil, err
+		}
+		iq.Item = *i
+
+		b, err := db.Bin(iq.PickBin.ID)
+		if err != nil {
+			return nil, err
+		}
+		iq.PickBin = *b
+
+		is = append(is, iq)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return is, err
 }

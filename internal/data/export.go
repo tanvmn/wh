@@ -406,3 +406,46 @@ func (db *Data) ExportsByWarehouse(warehouseID string) ([]Export, error) {
 
 	return es, nil
 }
+
+func (db *Data) CalculatedPicks(exportID string) ([]ItemQuantity, error) {
+	e, err := db.Export(exportID)
+	if err != nil {
+		return nil, err
+	}
+
+	bi, err := db.BinAndItemQuantityByWarehouse(e.Account.Store.Warehouse.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	var is []ItemQuantity
+
+	// for each export item:
+	//   for each bin that has the stock of the export item:
+	//     if export item's quantity <= stock's quantity in bin, then pick all from that bin and move onto the next export item
+	//     else pick all from the bin, calculate the remain quantity of that export item and move onto the next bin that has stock of the export item
+	for _, ei := range e.Items {
+		for i := range bi {
+			if ei.Item.GTIN == bi[i].Item.GTIN {
+				var iq ItemQuantity
+				iq.Item = ei.Item
+				iq.PickBin = bi[i].PickBin
+
+				if ei.Quantity <= bi[i].Quantity {
+					iq.Quantity = ei.Quantity
+					bi[i].Quantity -= ei.Quantity
+
+					is = append(is, iq)
+					break
+				}
+				iq.Quantity = ei.Quantity - bi[i].Quantity
+				ei.Quantity -= bi[i].Quantity
+				bi[i].Quantity = 0
+
+				is = append(is, iq)
+			}
+		}
+	}
+
+	return is, nil
+}

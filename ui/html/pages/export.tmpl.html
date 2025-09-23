@@ -16,6 +16,7 @@ Phiếu xuất
 
 <div class="container-fluid">
 	<div class="row p-3">
+		{{$domain := .Domain}}
 		{{with .Page.Export}}
 		<div class="col-3">
 			<h3 class="d-inline">
@@ -26,13 +27,13 @@ Phiếu xuất
 
 		{{if not (not01011000 .PickedAt)}}
 		<div class="col-2">
-			<button id="pickBtn" class="btn btn-primary ms-5"><strong>Lấy hàng</strong></button>
+			<a id="pickBtn" href="{{$domain}}/export/{{.ID}}/pick" class="btn btn-secondary ms-5"><strong>Lấy hàng</strong></a>
 		</div>
 		{{end}}
 
 		{{if not (not01011000 .PackedAt)}}
 		<div class="col-2">
-			<button id="packBtn" class="btn btn-success ms-5"><strong>Đóng gói</strong></button>
+			<a id="packBtn" href="{{$domain}}/export/{{.ID}}/pack" class="btn btn-dark ms-5"><strong>Đóng gói</strong></a>
 		</div>
 		{{end}}
 		{{end}}

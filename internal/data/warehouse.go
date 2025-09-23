@@ -200,7 +200,7 @@ func (db *Data) UnusedTotes(warehouseID string) ([]Tote, error) {
 
 	stmt := fmt.Sprintf(`
 	select
-	'%v'||tote.id
+	distinct '%v'||tote.id as toteid
 	,capacity
 	,warehouse_id
 	,tote.version
@@ -209,6 +209,7 @@ func (db *Data) UnusedTotes(warehouseID string) ([]Tote, error) {
 	left join export on export.id = serial.export_id and export.packed_at = '1000-01-01'
 	where tote.warehouse_id = $1
 	and serial.nanoid is null
+	order by toteid
 	;`,
 		ToteIDCode,
 	)

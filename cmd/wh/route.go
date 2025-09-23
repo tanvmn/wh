@@ -50,30 +50,13 @@ func (ap *application) routes() http.Handler {
 		// 	return
 		// }
 
-		e, err := ap.data.Export("EXP-5")
+		picks, err := ap.data.CalculatedPicks("EXP-5")
 		if err != nil {
-			ap.logger.Error(err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+			panic(err)
 		}
 
-		println(e.ID)
-		println("made by", e.Account.ID)
-		println("picked by", e.PickedBy.ID)
-		println("packed by", e.PackedBy.ID)
-		println("created at", e.CreatedAt)
-		println("expected at", e.ExpectedAt)
-		println("picked at", e.PickedAt)
-		println("packed at", e.PackedAt)
-		println("note", e.Note)
-		println("pick note", e.PickNote)
-		println("pack note", e.PackNote)
-		println("voucher id", e.VoucherID)
-		println("resupply id", e.Resupply.ID)
-
-		println()
-		for _, iq := range e.Items {
-			println(iq.Item.GTIN, iq.Item.Name, iq.Quantity, iq.Item.ImgFSPath)
+		for _, iq := range picks {
+			println(iq.Item.GTIN, iq.Quantity, iq.PickBin.ID)
 		}
 	})
 
@@ -150,9 +133,10 @@ func (ap *application) routes() http.Handler {
 	mux.Handle("DELETE /resupply/{id}", append(identify, ap.permit(data.Manager, data.Employee), ap.permitStoreEmployee).then(ap.delResupply()))
 
 	// Export
-	mux.Handle("POST /export", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.addExport()))
 	mux.Handle("GET /export/{id}", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.exportPage()))
+	mux.Handle("GET /export/{id}/pick", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.exportPickPage()))
 	mux.Handle("GET /exports", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.exportsByWarehousePage()))
+	mux.Handle("POST /export", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.addExport()))
 
 	// Difference Activities
 	mux.Handle("GET /difference-activities", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.differenceActivitiesPage()))

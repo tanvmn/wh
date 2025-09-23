@@ -109,3 +109,58 @@ func (ap *application) exportsByWarehousePage() http.Handler {
 		}
 	})
 }
+
+func (ap *application) exportPickPage() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		exportID := r.PathValue("id")
+
+		picks, err := ap.data.CalculatedPicks(exportID)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		e, err := ap.data.Export(exportID)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		ss, err := ap.data.SerialsByWarehouse(e.Resupply.Account.Store.Warehouse.ID)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		ts, err := ap.data.UnusedTotes(e.Resupply.Account.Store.Warehouse.ID)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		p := new(ExportPickPage)
+		p.Export = e
+		p.Picks = picks
+		p.Serials = ss
+		p.UnusedTotes = ts
+
+		t, err := ap.newTemplData(r)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		t.Page = p
+
+		err = ap.render(w, http.StatusOK, "export_pick", t)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+	})
+}
