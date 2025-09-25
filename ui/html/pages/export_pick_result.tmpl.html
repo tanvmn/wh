@@ -62,19 +62,17 @@ KQuả lấy hàng
 		<div class="row mt-1">
 			<table id="itemTable" class="table table-striped align-middle">
 				<thead>
-					<!-- <th>ID Giỏ</th> -->
 					<th></th>
 					<th>Hàng</th>
 					<th>Cần lấy (cái)</th>
 					<th>Đã lấy (cái)</th>
 					<th>Lệch (cái)</th>
-					<th>Serial / Bin</th>
+					<th class="d-none">Serial / Bin</th>
 					<th>Ghi chú</th>
 				</thead>
 				<tbody id="itemList">
 					{{range .Page.Export.Items}}
 					<tr>
-						<!-- <td class="binID">{{.PickBin.ID}}</td> -->
 						<td>
 							<img height="100" src="/rec/{{.Item.ImgFSPath}}"
 								alt="/rec/{{.Item.ImgFSPath}}">
@@ -102,7 +100,7 @@ KQuả lấy hàng
 								type="number" value="{{.ExportItemDifference}}" required
 								readonly>
 						</td>
-						<td>
+						<td class="d-none">
 							<ul class="serials list-group">
 								{{range .Serials}}
 								<li class="list-group-item">
