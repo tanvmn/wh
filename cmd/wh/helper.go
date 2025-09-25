@@ -11,6 +11,7 @@ import (
 	"runtime/debug"
 	"strings"
 
+	"github.com/tanNguyen2220022/wh/internal/data"
 	"github.com/tanNguyen2220022/wh/internal/util"
 )
 
@@ -219,4 +220,18 @@ func (ap *application) background(fn func()) {
 
 		fn()
 	}()
+}
+
+func (ap *application) authenticatedAccount(r *http.Request) (*data.Account, error) {
+	aID, ok := r.Context().Value(authenticatedCtxID).(string)
+	if !ok {
+		return nil, fmt.Errorf("%w, authenticatedCtxID %v", ErrConvertCtxVal, aID)
+	}
+
+	ac, err := ap.data.Account(aID)
+	if err != nil {
+		return nil, err
+	}
+
+	return ac, nil
 }

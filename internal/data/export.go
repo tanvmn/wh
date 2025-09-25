@@ -449,3 +449,115 @@ func (db *Data) CalculatedPicks(exportID string) ([]ItemQuantity, error) {
 
 	return is, nil
 }
+
+// updateExportAfterPick set an export's pick_by, pick_at based on pick result from client
+func updateExportAfterPick(tx *sql.Tx, pickResult *Export) error {
+	aI, err := id64(pickResult.PickedBy.ID, AccountIDCode)
+	if err != nil {
+		return err
+	}
+	eI, err := id64(pickResult.ID, ExportIDCode)
+	if err != nil {
+		return err
+	}
+
+	stmt := `
+	update export
+	set picked_by = $1
+	,picked_at = now()
+	,version = version + 1
+	where id = $2
+	and version = $3
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	result, err := tx.ExecContext(ctx, stmt, aI, eI, pickResult.Version)
+	if err != nil {
+		return err
+	}
+
+	ra, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if ra != 1 {
+		return fmt.Errorf("%w; update after pick, export %v, verison %v", ErrSetConflict, pickResult.ID, pickResult.Version)
+	}
+
+	return nil
+}
+
+func updateExportItemAfterPick(tx *sql.Tx, pickResult *Export) error {
+	eI, err := id64(pickResult.ID, ExportIDCode)
+	if err != nil {
+		return err
+	}
+	rI, err := id64(pickResult.Resupply.ID, ResupplyIDCode)
+	if err != nil {
+		return err
+	}
+
+	stmt := `
+	update export_item
+	set pick_note = $1
+	where export_id = $2
+	and resupply_id = $3
+	and gtin = $4
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	for _, iq := range pickResult.Items {
+		if iq.PickNote != "" {
+			_, err = tx.ExecContext(ctx, stmt, iq.PickNote, eI, rI, iq.Item.GTIN)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (db *Data) PickExport(pickResult *Export) error {
+	tx, err := db.DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	err = updateExportAfterPick(tx, pickResult)
+	if err != nil {
+		return err
+	}
+
+	err = updateExportItemAfterPick(tx, pickResult)
+	if err != nil {
+		return err
+	}
+
+	err = updateSerialAfterPick(tx, pickResult)
+	if err != nil {
+		return err
+	}
+
+	rI, err := id64(pickResult.Resupply.ID, ResupplyIDCode)
+	if err != nil {
+		return err
+	}
+	err = updateResupplyAfterPick(tx, rI, pickResult.Resupply.Version)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

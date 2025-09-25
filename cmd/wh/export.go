@@ -164,3 +164,63 @@ func (ap *application) exportPickPage() http.Handler {
 		}
 	})
 }
+
+func (ap *application) pickExport() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var pickResult data.Export
+
+		err := ap.decodeJSON(w, r, &pickResult)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			var mr *util.MalformedRequest
+			if errors.As(err, &mr) {
+				http.Error(w, mr.Msg, mr.Status)
+			} else {
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			}
+			return
+		}
+
+		println(pickResult.ID)
+		for _, iq := range pickResult.Items {
+			println()
+			if iq.PickNote != "" {
+				println(iq.Item.GTIN, iq.Quantity, iq.PickNote)
+			}
+			for _, s := range iq.Serials {
+				println(s.NanoID, s.GTIN, s.PickTote.ID)
+			}
+		}
+
+		ac, err := ap.authenticatedAccount(r)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		pickResult.PickedBy = *ac
+
+		ex, err := ap.data.Export(pickResult.ID)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		rs, err := ap.data.Resupply(ex.Resupply.ID)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		pickResult.Resupply = *rs
+
+		err = ap.data.PickExport(&pickResult)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		http.Error(w, "success", http.StatusBadRequest)
+	})
+}

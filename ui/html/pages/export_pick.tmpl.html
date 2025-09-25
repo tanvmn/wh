@@ -155,6 +155,7 @@ Phiếu xuất
 		<input type="text" value="{{.ID}}">
 		{{end}}
 	</div>
+	<input class="d-none" type="text" id="version" value="{{.Page.Export.Version}}">
 </div>
 <script type="module">
 	import { domain, IDCode, Scanner } from "/static/js/util.js";
@@ -229,21 +230,9 @@ Phiếu xuất
 			if (s.nanoID === nanoID && s.pickTote === "") {
 				return true;
 			}
-		}
-		return false;
-	}
-
-	function binIDByNanoID(nanoID) {
-		for (let s of serials) {
-			if (s.nanoID === nanoID) {
-				return s.binID;
-			}
-		}
-	}
-
-	function updateLatestGTINAndSerialAndBin(gtin, nanoID) {
-		latestGTIN.value = gtin;
-		latestSerial.value = nanoID;
+		} return false;
+	} function binIDByNanoID(nanoID) { for (let s of serials) { if (s.nanoID === nanoID) { return s.binID; } } } function updateLatestGTINAndSerialAndBin(gtin, nanoID) {
+		latestGTIN.value = gtin; latestSerial.value = nanoID;
 		latestBin.value = binIDByNanoID(nanoID);
 	}
 
@@ -277,6 +266,9 @@ Phiếu xuất
 					return true;
 				}
 				console.log(`need ${tr.querySelector('.needQuantity').value} <= picked ${tr.querySelector('.pickQuantity').value}`);
+				let msg = 'KHÔNG THỂ LẤY DƯ';
+				msg += '\n' + `CẦN ${tr.querySelector('.needQuantity').value} <= ĐÃ LẤY ${tr.querySelector('.pickQuantity').value}`;
+				alert(msg);
 				return false;
 			}
 		}
@@ -329,7 +321,7 @@ Phiếu xuất
 			return;
 		}
 
-		alert(`INPUT ${input} KHÔNG HỢP LỆ`);
+		alert(`INPUT ${input} CÓ THỂ KHÔNG PHẢI LÀ TOTE CHƯA SỬ DỤNG HOẶC KHÔNG HỢP LỆ`);
 	}
 
 	// missingPickNote alert and return true if a tr has a missing pick note, else return false
@@ -359,6 +351,7 @@ Phiếu xuất
 	function result() {
 		let o = {
 			id: document.querySelector('#exportID').innerText,
+			version: parseInt(document.querySelector('#version').value),
 			items: [],
 		};
 
@@ -388,30 +381,32 @@ Phiếu xuất
 		return o;
 	}
 
-	// function set(obj) {
-	// 	let ok = false;
-	// 	fetch(domain + '/resupply', {
-	// 		method: 'PUT',
-	// 		body: JSON.stringify(obj),
-	// 		headers: {
-	// 			'Content-Type': 'application/json'
-	// 		}
-	// 	})
-	// 		.then(res => {
-	// 			ok = res.ok;
-	// 			if (res.redirected) {
-	// 				window.location.replace(res.url);
-	// 				return;
-	// 			}
-	// 			return res.text();
-	// 		})
-	// 		.then(data => {
-	// 			if (!ok) alert(data);
-	// 		})
-	// 		.catch(err => {
-	// 			alert(err);
-	// 		});
-	// }
+	function request(obj) {
+		let ok = false;
+		let exportID = document.querySelector('#exportID').innerText;
+
+		fetch(domain + '/export/' + exportID + '/pick', {
+			method: 'POST',
+			body: JSON.stringify(obj),
+			headers: {
+				'Content-Type': 'application/json'
+			}
+		})
+			.then(res => {
+				ok = res.ok;
+				if (res.redirected) {
+					window.location.replace(res.url);
+					return;
+				}
+				return res.text();
+			})
+			.then(data => {
+				if (!ok) alert(data);
+			})
+			.catch(err => {
+				alert(err);
+			});
+	}
 
 	// After getting items (above), begin others task from this point
 	document.addEventListener('DOMContentLoaded', function () {
@@ -443,7 +438,7 @@ Phiếu xuất
 				return;
 			}
 
-			result();
+			request(result());
 		});
 	});
 </script>

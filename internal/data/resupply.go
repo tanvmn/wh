@@ -606,3 +606,31 @@ func (db *Data) SetResupplyStatus(id, status string) error {
 
 	return nil
 }
+
+func updateResupplyAfterPick(tx *sql.Tx, resupplyID int64, version int) error {
+	stmt := `
+	update resupply
+	set status = $1
+	where id = $2
+	and version = $3
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	result, err := tx.ExecContext(ctx, stmt, Ended, resupplyID, version)
+	if err != nil {
+		return err
+	}
+
+	ra, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if ra != 1 {
+		return fmt.Errorf("%w; update after pick, resupply %v, verison %v", ErrSetConflict, fmt.Sprintf("%v%v", ResupplyIDCode, resupplyID), version)
+	}
+
+	return nil
+}

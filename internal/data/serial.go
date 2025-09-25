@@ -440,3 +440,40 @@ func (db *Data) AddDifferenceSerialsByGTINOfPutawayReceive(rc *Receive) error {
 
 	return nil
 }
+
+func updateSerialAfterPick(tx *sql.Tx, pickResult *Export) error {
+	eI, err := id64(pickResult.ID, ExportIDCode)
+	if err != nil {
+		return err
+	}
+	rI, err := id64(pickResult.Resupply.ID, ResupplyIDCode)
+	if err != nil {
+		return err
+	}
+
+	stmt := `
+	update serial
+	set pick_tote = $1
+	,export_id = $2
+	,resupply_id = $3
+	where nanoid = $4
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	for _, iq := range pickResult.Items {
+		for _, s := range iq.Serials {
+			tI, err := id64(s.PickTote.ID, ToteIDCode)
+			if err != nil {
+				return err
+			}
+			_, err = tx.ExecContext(ctx, stmt, tI, eI, rI, s.NanoID)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
