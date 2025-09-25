@@ -477,3 +477,59 @@ func updateSerialAfterPick(tx *sql.Tx, pickResult *Export) error {
 
 	return nil
 }
+
+func (db *Data) SerialsByExport(exportID int64) ([]Serial, error) {
+	stmt := `
+	select
+	nanoid
+	,gtin
+	,$1||export_id
+	,$2||bin_Id
+	from serial
+	where export_id = $3
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	rows, err := db.DB.QueryContext(ctx, stmt, ExportIDCode, BinIDCode, exportID)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		err2 := rows.Close()
+		if err2 != nil {
+			panic(err2)
+		}
+	}()
+
+	var ss []Serial
+
+	for rows.Next() {
+		var s Serial
+		err = rows.Scan(
+			&s.NanoID,
+			&s.GTIN,
+			&s.Export.ID,
+			&s.Bin.ID,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		b, err := db.Bin(s.Bin.ID)
+		if err != nil {
+			return nil, err
+		}
+		s.Bin = *b
+
+		ss = append(ss, s)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+
+	return ss, nil
+}

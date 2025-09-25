@@ -84,6 +84,10 @@ Phiếu Xuất
 					<a class="btn btn-sm btn-secondary" href="{{$domain}}/export/{{.ID}}/pick">
 						Lấy hàng
 					</a>
+					{{else}}
+					<a class="btn btn-sm btn-primary" href="{{$domain}}/export/{{.ID}}/pick/result">
+						KQuả lấy
+					</a>
 					{{end}}
 					{{if (notProcessed .PackedAt)}}
 					<a class="btn btn-sm btn-dark" href="{{$domain}}/export/{{.ID}}/pack">

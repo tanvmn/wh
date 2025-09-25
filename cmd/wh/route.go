@@ -50,13 +50,17 @@ func (ap *application) routes() http.Handler {
 		// 	return
 		// }
 
-		picks, err := ap.data.CalculatedPicks("EXP-5")
+		e, err := ap.data.Export("EXP-5")
 		if err != nil {
 			panic(err)
 		}
-
-		for _, iq := range picks {
-			println(iq.Item.GTIN, iq.Quantity, iq.PickBin.ID)
+		println(e.ID)
+		for _, iq := range e.Items {
+			println()
+			println(iq.GTIN, "quantity", iq.Quantity, iq.PickNote)
+			for _, s := range iq.Serials {
+				println(s.NanoID, s.GTIN, s.Bin.ID)
+			}
 		}
 	})
 
@@ -135,6 +139,7 @@ func (ap *application) routes() http.Handler {
 	// Export
 	mux.Handle("GET /export/{id}", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.exportPage()))
 	mux.Handle("GET /export/{id}/pick", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.exportPickPage()))
+	mux.Handle("GET /export/{id}/pick/result", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.exportPickResultPage()))
 	mux.Handle("GET /exports", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.exportsByWarehousePage()))
 	mux.Handle("POST /export", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.addExport()))
 	mux.Handle("POST /export/{id}/pick", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.pickExport()))

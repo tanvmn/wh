@@ -208,6 +208,11 @@ func (db *Data) ExportItems(resupplyID, exportID int64) ([]ItemQuantity, error) 
 		}
 	}()
 
+	ss, err := db.SerialsByExport(exportID)
+	if err != nil {
+		return nil, err
+	}
+
 	for rows.Next() {
 		var iq ItemQuantity
 
@@ -227,6 +232,12 @@ func (db *Data) ExportItems(resupplyID, exportID int64) ([]ItemQuantity, error) 
 			return nil, err
 		}
 		iq.Item = *i
+
+		for _, s := range ss {
+			if s.GTIN == iq.Item.GTIN {
+				iq.Serials = append(iq.Serials, s)
+			}
+		}
 
 		is = append(is, iq)
 	}

@@ -235,3 +235,31 @@ func (ap *application) authenticatedAccount(r *http.Request) (*data.Account, err
 
 	return ac, nil
 }
+
+func (ap *application) authenticatedWarehouse(r *http.Request) (*data.Warehouse, error) {
+	wID, ok := r.Context().Value(authenticatedCtxWarehouseID).(string)
+	if !ok {
+		return nil, fmt.Errorf("%w, authenticatedCtxWarehouseID %v", ErrConvertCtxVal, wID)
+	}
+
+	wh, err := ap.data.Warehouse(wID)
+	if err != nil {
+		return nil, err
+	}
+
+	return wh, nil
+}
+
+func (ap *application) authenticatedStore(r *http.Request) (*data.Store, error) {
+	sID, ok := r.Context().Value(authenticatedCtxStoreID).(string)
+	if !ok {
+		return nil, fmt.Errorf("%w, authenticatedCtxStoreID %v", ErrConvertCtxVal, sID)
+	}
+
+	st, err := ap.data.Store(sID)
+	if err != nil {
+		return nil, err
+	}
+
+	return st, nil
+}

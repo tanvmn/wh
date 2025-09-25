@@ -77,6 +77,8 @@ func differenceActivityURL(id string) string {
 		return fmt.Sprintf("%v/receive/%v/process/result", domain, id)
 	case data.PutawayIDCode:
 		return fmt.Sprintf("%v/putaway/%v/result", domain, data.ReceiveIDCode+id[4:])
+	case data.PickIDCode:
+		return fmt.Sprintf("%v/export/%v/pick/result", domain, data.ExportIDCode+id[4:])
 	default:
 		return domain + "/health"
 	}
@@ -230,9 +232,17 @@ type ExportsPage struct {
 // Export Pick Page
 type ExportPickPage struct {
 	*data.Export
-	Picks []data.ItemQuantity
-	Serials []data.Serial
+	Picks       []data.ItemQuantity
+	Serials     []data.Serial
 	UnusedTotes []data.Tote
+}
+
+// Export Pick Result Page
+type ExportPickResultPage struct {
+	*data.Export
+	// Picks []data.ItemQuantity
+	// Serials []data.Serial
+	// UnusedTotes []data.Tote
 }
 
 func badgeBg(status string) string {

@@ -49,6 +49,10 @@ type ItemQuantity struct {
 	Export              `json:"export,omitempty,omitzero"`
 }
 
+func (iq ItemQuantity) ExportItemDifference() int64 {
+	return int64(len(iq.Serials)) - iq.Quantity
+}
+
 var (
 	ErrNoItems = errors.New("data: no items found")
 )

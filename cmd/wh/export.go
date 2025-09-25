@@ -224,3 +224,38 @@ func (ap *application) pickExport() http.Handler {
 		http.Error(w, "success", http.StatusBadRequest)
 	})
 }
+
+func (ap *application) exportPickResultPage() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		id := r.PathValue("id")
+
+		e, err := ap.data.Export(id)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			if errors.Is(err, data.ErrNoExports) {
+				http.Error(w, fmt.Sprintf("Không tìm thấy phiếu xuất %v", id), http.StatusNotFound)
+			} else {
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			}
+			return
+		}
+
+		p := new(ExportPickResultPage)
+		p.Export = e
+
+		t, err := ap.newTemplData(r)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		t.Page = p
+
+		err = ap.render(w, http.StatusOK, "export_pick_result", t)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+	})
+}

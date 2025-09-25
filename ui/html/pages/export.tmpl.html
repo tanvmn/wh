@@ -29,6 +29,10 @@ Phiếu xuất
 		<div class="col-2">
 			<a id="pickBtn" href="{{$domain}}/export/{{.ID}}/pick" class="btn btn-secondary ms-5"><strong>Lấy hàng</strong></a>
 		</div>
+		{{else}}
+		<div class="col-2">
+			<a id="pickBtn" href="{{$domain}}/export/{{.ID}}/pick/result" class="btn btn-primary ms-5"><strong>KQuả lấy</strong></a>
+		</div>
 		{{end}}
 
 		{{if not (not01011000 .PackedAt)}}

@@ -48,7 +48,12 @@ func (db *Data) doesReceiveProcessHasDifferences(rc *Receive) (bool, error) {
 // DifferenceReceiveProcess finds receives that have differences after processing
 // and returns the equivalent difference activities.
 // Note that the receives parameters were obtained by a warehouse ID.
-func (db *Data) DifferenceReceiveProcesses(rs []Receive) (as []DifferenceActivity, err error) {
+func (db *Data) DifferenceReceiveProcesses(warehouseID string) (as []DifferenceActivity, err error) {
+	rs, err := db.Receives(warehouseID)
+	if err != nil {
+		return nil, err
+	}
+
 	// filter receives that have difference after processing
 	for _, r := range rs {
 		diff, err := db.doesReceiveProcessHasDifferences(&r)
@@ -85,7 +90,12 @@ func (db *Data) DifferenceReceiveProcesses(rs []Receive) (as []DifferenceActivit
 
 // DifferenceReceivePutaways returns equivalent difference activities of receives that have differences after putaway.
 // Note that the receives parameters were obtained by a warehouse ID.
-func (db *Data) DifferenceReceivePutaways(rs []Receive) (as []DifferenceActivity, err error) {
+func (db *Data) DifferenceReceivePutaways(warehouseID string) (as []DifferenceActivity, err error) {
+	rs, err := db.Receives(warehouseID)
+	if err != nil {
+		return nil, err
+	}
+
 	for _, r := range rs {
 		ss, err := db.DifferenceSerialsByPutawayReceive(r.Purchase.Warehouse.ID, r.ID)
 		if err != nil {
@@ -115,27 +125,51 @@ func (db *Data) DifferenceReceivePutaways(rs []Receive) (as []DifferenceActivity
 	return as, err
 }
 
-func (db *Data) DifferenceActivities(warehouseID string) (as []DifferenceActivity, err error) {
-	rs, err := db.Receives(warehouseID)
+func (db *Data) DifferenceExportPick(warehouseID string) (as []DifferenceActivity, err error) {
+	es, err := db.ExportsByWarehouse(warehouseID)
 	if err != nil {
 		return nil, err
 	}
 
+	for _, e := range es {
+		for _, iq := range e.Items {
+			pickedQuantity := len(iq.Serials)
+			if iq.Quantity != int64(pickedQuantity) {
+				ac := DifferenceActivity{
+					ID:      PickIDCode + e.ID[4:],
+					Name:    db.DifferenceActivityName(PutawayIDCode + e.ID[4:]),
+					At:      e.PickedAt,
+					Account: &e.PickedBy,
+					Result:  fmt.Sprintf("%v / %v", pickedQuantity, iq.Quantity),
+				}
+				as = append(as, ac)
+			}
+		}
+	}
+	return as, err
+}
+
+func (db *Data) DifferenceActivities(warehouseID string) (as []DifferenceActivity, err error) {
 	// Check for receives of a warehouse that have expected receive quantity different from actual receive quantity
-	pcs, err := db.DifferenceReceiveProcesses(rs)
+	processes, err := db.DifferenceReceiveProcesses(warehouseID)
 	if err != nil {
 		return nil, err
 	}
-	as = append(as, pcs...)
+	as = append(as, processes...)
 
 	// Check for receives of a warehouse that have differences in putaway
-	pts, err := db.DifferenceReceivePutaways(rs)
+	putaways, err := db.DifferenceReceivePutaways(warehouseID)
 	if err != nil {
 		return nil, err
 	}
-	as = append(as, pts...)
+	as = append(as, putaways...)
 
 	// Check for export of a warehouse that have differences in picking
+	picks, err := db.DifferenceExportPick(warehouseID)
+	if err != nil {
+		return nil, err
+	}
+	as = append(as, picks...)
 
 	// Check for export of a warehouse that have differences in packing
 
