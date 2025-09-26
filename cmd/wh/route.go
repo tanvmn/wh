@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/tanNguyen2220022/wh/internal/data"
@@ -50,17 +51,19 @@ func (ap *application) routes() http.Handler {
 		// 	return
 		// }
 
-		e, err := ap.data.Export("EXP-5")
+		ps, err := ap.data.CalculatedPackages("EXP-1")
 		if err != nil {
-			panic(err)
+			fmt.Println(err)
+			return
 		}
-		println(e.ID)
-		for _, iq := range e.Items {
-			println()
-			println(iq.GTIN, "quantity", iq.Quantity, iq.PickNote)
-			for _, s := range iq.Serials {
-				println(s.NanoID, s.GTIN, s.Bin.ID)
+
+		for _, p := range ps {
+			println("test")
+			println("package", p.NanoID)
+			for _, iq := range p.Items {
+				println(iq.Item.GTIN, iq.Quantity)
 			}
+			println()
 		}
 	})
 
@@ -140,9 +143,11 @@ func (ap *application) routes() http.Handler {
 	mux.Handle("GET /export/{id}", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.exportPage()))
 	mux.Handle("GET /export/{id}/pick", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.exportPickPage()))
 	mux.Handle("GET /export/{id}/pick/result", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.exportPickResultPage()))
+	mux.Handle("GET /export/{id}/pack", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.exportPackPage()))
 	mux.Handle("GET /exports", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.exportsByWarehousePage()))
 	mux.Handle("POST /export", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.addExport()))
 	mux.Handle("POST /export/{id}/pick", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.pickExport()))
+	mux.Handle("POST /export/pack", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.packExport()))
 
 	// Difference Activities
 	mux.Handle("GET /difference-activities", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.differenceActivitiesPage()))

@@ -1,0 +1,488 @@
+{{define "title"}}
+Đóng gói
+{{end}}
+
+{{define "main"}}
+<style>
+	table,
+	thead,
+	tbody,
+	th,
+	td {
+		padding: 0;
+		text-align: center;
+	}
+
+	ul {
+		list-style-type: none;
+		margin: 0;
+		padding: 0;
+	}
+</style>
+
+<div class="container-fluid">
+	<div class="row p-3">
+		{{with .Page.Export}}
+		<div class="col-3">
+			<h3 class="d-inline">
+				Đóng gói phiếu xuất ID:&nbsp&nbsp
+				<span id="exportID" class="badge text-bg-info">{{.ID}}</span>
+			</h3>
+		</div>
+		{{end}}
+	</div>
+
+	<form class="was-validated" novalidate>
+		<!-- Begin warehouse, supplier, expectedAt -->
+		<div class="row">
+			{{with .Page.Export.Resupply.Account}}
+			<div class="col">
+				<label for="store" class="form-label">Cửa hàng</label>
+				<input name="store" id="store" class="form-control"
+					value="{{.Store.ID}} / {{.Store.Name}}" disabled>
+			</div>
+
+			<div class="col">
+				<label for="warehouse" class="form-label">Kho</label>
+				<input name="warehouse" id="warehouse" class="form-control"
+					value="{{.Store.Warehouse.ID}} / {{.Store.Warehouse.Name}}" disabled>
+			</div>
+			{{end}}
+
+			<div class="col">
+				<label for="pickedAt" class="form-label">Lấy lúc (mm/dd/yyyy)</label>
+				<input type="datetime-local" name="pickedAt" id="pickedAt"
+					class="form-control was-validated" value="{{slice .Page.Export.PickedAt 0 16}}"
+					disabled>
+			</div>
+		</div>
+		<!-- End warehouse, supplier, expectedAt -->
+
+		<div class="row mt-3">
+			<div class="row mt-2 text-center">
+				<label for="latestGTIN" class="form-label bg-secondary-subtle">
+					<strong>GTIN vừa quét:&nbsp;&nbsp</strong>
+					<input class="w-50" type="text" name="latestGTIN" id="latestGTIN" readonly>
+				</label>
+
+			</div>
+			<div class="row mt-2 text-center">
+				<label for="latestSerial" class="form-label bg-success-subtle">
+					<strong>SERIAL vừa quét:&nbsp;&nbsp</strong>
+					<input class="w-50" type="text" name="latestSerial" id="latestSerial" readonly>
+				</label>
+
+			</div>
+			<!-- <div class="row mt-3 text-center">
+				<label for="latestBin" class="form-label bg-info-subtle">
+					<strong>BIN vừa lấy:&nbsp;&nbsp</strong>
+					<input class="w-50" type="text" name="latestBin" id="latestBin" readonly>
+				</label>
+
+			</div> -->
+			<div class="row mt-3 text-center d-none">
+				<label for="latestTote" class="form-label bg-warning-subtle">
+					<strong>PACKAGE vừa quét:&nbsp;&nbsp</strong>
+					<input class="w-50" type="text" name="latestPackage" id="latestPackage"
+						readonly>
+				</label>
+
+			</div>
+		</div>
+
+		<div class="row my-4 text-center">
+			<div class="col-4 mx-auto">
+				<button class="btn btn-primary" type="submit" id="submitBtn">
+					Đóng gói
+				</button>
+			</div>
+		</div>
+
+		<!-- Begin items pick table -->
+		<div class="row mt-1">
+			<table id="itemTable" class="table table-striped align-middle">
+				<thead>
+					<th>ID Package</th>
+					<th></th>
+					<th>Hàng</th>
+					<th>Cần gói (cái)</th>
+					<th>Đã gói (cái)</th>
+					<th>Ghi chú</th>
+				</thead>
+				<tbody id="itemList">
+					{{range .Page.Packages}}
+					{{$p := .}}
+					{{range .Items}}
+					<tr class="packageTR">
+						<td class="packageIDTD">{{$p.NanoID}}</td>
+						<td>
+							<img height="100" src="/rec/{{.Item.ImgFSPath}}"
+								alt="/rec/{{.Item.ImgFSPath}}">
+						</td>
+						<td>
+							<ul>
+								<li>
+									<b>GTIN: </b>
+									<span class="gtin">{{.Item.GTIN}}</span>
+								</li>
+								<li class="itemName">{{.Item.Name}}</li>
+							</ul>
+						</td>
+						<td>
+							<input class="form-control was-validated needQuantity"
+								type="number" value="{{.Quantity}}" required disabled>
+						</td>
+						<td>
+							<input class="form-control was-validated packQuantity bg-success-subtle"
+								type="number" value="0" required readonly>
+						</td>
+						<td>
+							<textarea class="packNote"></textarea>
+						</td>
+					</tr>
+					{{end}}
+					{{end}}
+				</tbody>
+			</table>
+		</div>
+		<!-- End items pick table -->
+	</form>
+
+	<div id="serials" class="d-none">
+		{{range .Page.Serials}}
+		<input type="text" value="{{.NanoID}};{{.GTIN}};{{.Bin.ID}}">
+		{{end}}
+	</div>
+
+	<div id="packages" class="d-none">
+		{{range .Page.Packages}}
+		<div class="package">
+			<input type="text" class="packageID" value="{{.NanoID}}">
+			{{range .Items}}
+			<input type="text" class="item" value="{{.GTIN}};{{.Quantity}}">
+			{{end}}
+		</div>
+		{{end}}
+	</div>
+	<input class="d-none" type="text" id="exportVersion" value="{{.Page.Export.Version}}">
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/3.0.0/jspdf.umd.min.js"></script>
+<script type="module">
+	import { domain, IDCode, Scanner } from "/static/js/util.js";
+
+	const { jsPDF } = window.jspdf;
+
+	let serials = [];
+	let packages = [];
+
+	let latestGTIN = undefined;
+	let latestSerial = undefined;
+	let latestPackage = undefined;
+
+	function getSerials(serials) {
+		document.querySelector('#serials').querySelectorAll('input[type=text]').forEach((i, idx) => {
+			let v = i.value.split(';');
+			let s = {
+				nanoID: v[0],
+				gtin: v[1],
+				binID: v[2],
+				pickTote: "",
+			};
+			serials.push(s);
+		});
+	}
+
+	function getPackages(packages) {
+		document.querySelector('#packages').querySelectorAll('.package').forEach((p, idx) => {
+			let pk = {
+				nanoID: p.querySelector('.packageID').value,
+				items: [],
+			};
+
+			p.querySelectorAll('.item').forEach((i, idx) => {
+				let iq = {
+					item: { gtin: i.value.split(';')[0] },
+					quantity: parseInt(i.value.split(';')[1]),
+					serials: [],
+				};
+				pk.items.push(iq);
+			});
+
+			packages.push(pk);
+		});
+	}
+
+	function getPackagesStamps(packages) {
+		// // Generate ready-print qr pdf
+		// const doc = new jsPDF({
+		// 	unit: 'mm',
+		// 	format: [28, 115],
+		// 	orientation: 'landscape',
+		// });
+		// doc.setFontSize(11);
+
+		// for (let i = 0; i < packages.length; i++) {
+		// 	doc.addImage(`https://api.qrserver.com/v1/create-qr-code/?size=60x60&data=${packages[i].nanoID}`, 'PNG', 6, 6);
+
+		// 	let s = `Package:  ${packages[i].nanoID}`;
+		// 	let text = doc.splitTextToSize(s, 84);
+		// 	doc.text(text, 31, 8);
+
+		// 	if (i + 1 < packages.length) {
+		// 		doc.addPage([28, 115], 'l');
+		// 	}
+		// }
+		// doc.autoPrint({ variant: 'non-conform' });
+		// doc.output('dataurlnewwindow');
+		// // doc.save(td.innerText + '__' + ser + '.pdf');
+		// // window.open(doc.output('bloburl'));
+
+		for (let p of packages) {
+			// Generate ready-print qr pdf
+			const doc = new jsPDF({
+				unit: 'mm',
+				format: [28, 115],
+				orientation: 'landscape',
+			});
+			doc.setFontSize(11);
+			doc.addImage(`https://api.qrserver.com/v1/create-qr-code/?size=60x60&data=${p.nanoID}`, 'PNG', 6, 6);
+
+			let s = `Package:  ${p.nanoID}`;
+			let text = doc.splitTextToSize(s, 84);
+			doc.text(text, 31, 8);
+
+			doc.autoPrint({ variant: 'non-conform' });
+			doc.output('dataurlnewwindow');
+			// doc.save(td.innerText + '__' + ser + '.pdf');
+			// window.open(doc.output('bloburl'));
+		}
+	}
+
+	// isPickedSerial return true if:
+	// input is a picked serial of the current export,
+	function isPickedSerial(gtin, nanoID) {
+		for (let s of serials) {
+			if (s.gtin === gtin && s.nanoID === nanoID) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	// isSerialUnpacked returns true if the scanned serial is not in the packages obj
+	function isSerialUnpacked(gtin, nanoID) {
+		for (let p of packages) {
+			for (let iq of p.items) {
+				for (let s of iq.serials) {
+					if (iq.item.gtin === gtin && s.nanoID === nanoID) {
+						return false;
+					}
+				}
+			}
+		}
+		return true;
+	}
+
+	function updateLatestGTINAndSerial(gtin, nanoID) {
+		latestGTIN.value = gtin;
+		latestSerial.value = nanoID;
+	}
+
+	function packageIDByGTINAndNanoID(gtin, nanoID) {
+		for (let p of packages) {
+			for (let iq of p.items) {
+				for (let s of iq.serials) {
+					if (iq.item.gtin === gtin && s.nanoID === nanoID) {
+						return p.nanoID;
+					}
+				}
+			}
+		}
+		return '';
+	}
+
+	function isPackage(input) {
+		for (let p of packages) {
+			if (p.nanoID === input) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	// updatePackagesObj add the packaged serial to the package object
+	function updatePackagesObj(packages) {
+		packages.forEach((p, idx) => {
+			p.items.forEach((iq, idx) => {
+				if (p.nanoID === latestPackage.value && iq.item.gtin === latestGTIN.value) {
+					let s = {
+						nanoID: latestSerial.value,
+						gtin: latestGTIN.value,
+					};
+					iq.serials.push(s);
+				}
+			});
+		});
+	}
+
+	// updateItemList updates the packed quantity of the item of the successfully scanned item
+	function updateItemList() {
+		document.querySelector('#itemList').querySelectorAll('tr').forEach((tr, idx) => {
+			let gtin = tr.querySelector('.gtin').innerText;
+			let packageID = tr.querySelector('.packageIDTD').innerText;
+
+			if (gtin === latestGTIN.value && packageID === latestPackage.value) {
+				if (tr.querySelector('.needQuantity').value > tr.querySelector('.packQuantity').value) {
+					tr.querySelector('.packQuantity').value = parseInt(tr.querySelector('.packQuantity').value) + 1;
+					return;
+				}
+			}
+		});
+	}
+
+	function processWrapper(packages) {
+		return function process(input) {
+			let split = input.split(';');
+			let gtin = split[0];
+			let nanoID = split[1];
+
+			if (isPickedSerial(gtin, nanoID)) {
+				if (isSerialUnpacked(gtin, nanoID)) {
+					updateLatestGTINAndSerial(gtin, nanoID);
+				} else {
+					let msg = undefined;
+					if (packageIDByGTINAndNanoID(gtin, nanoID) !== '') {
+						msg = `${gtin};${nanoID} đã được gói trong ${packageIDByGTINAndNanoID(gtin, nanoID)}`;
+					} else {
+						msg = `${gtin};${nanoID} KHÔNG HỢP LỆ`;
+					}
+					alert(msg);
+				}
+				return;
+			}
+
+			if (isPackage(input)) {
+				if (latestGTIN.value !== "" && latestSerial.value !== "") {
+					latestPackage.value = input;
+					updateItemList();
+					updatePackagesObj(packages);
+					console.log(packages);
+
+					latestGTIN.value = '';
+					latestSerial.value = '';
+					latestPackage.value = '';
+				} else {
+					alert('HÃY QUÉT HÀNG TRƯỚC');
+				}
+				return;
+			}
+
+			alert(`INPUT ${input} KHÔNG HỢP LỆ`);
+		};
+	}
+
+	// missingPickNote alert and return true if a tr has a missing pick note, else return false
+	function missingPackNote() {
+		for (let tr of Array.from(document.querySelector('#itemList').querySelectorAll('tr'))) {
+			let need = tr.querySelector('.needQuantity').value;
+			let pack = tr.querySelector('.packQuantity').value;
+			let gtin = tr.querySelector('.gtin').innerText;
+			let packageID = tr.querySelector('.packageIDTD').innerText;
+			let itemName = tr.querySelector('.itemName').innerText;
+			let packNote = tr.querySelector('.packNote').value;
+
+			if (need !== pack && packNote === "") {
+				console.log('package', packageID, 'gtin', gtin, 'need', need, 'pack', pack);
+				console.log('pack note', packNote);
+
+				let msg = `${gtin}/${itemName} ở ${packageID}`;
+				msg += '\nCẦN THÊM GHI CHÚ';
+				alert(msg);
+
+				return true;
+			}
+		}
+		return false;
+	}
+
+	function result() {
+		// add the pack note
+		document.querySelector('#itemList').querySelectorAll('tr').forEach((tr, idx) => {
+			for (let i = 0; i < packages.length; i++) {
+				if (tr.querySelector('.packageIDTD').innerText === packages[i].nanoID) {
+					for (let j = 0; j < packages[i].items.length; j++) {
+						if (tr.querySelector('.gtin').innerText === packages[i].items[j].item.gtin) {
+							packages[i].items[j].pickNote = tr.querySelector('.packNote').value;
+						}
+					}
+				}
+			}
+		});
+
+		let o = {
+			id: document.querySelector('#exportID').innerText,
+			packages: packages,
+		};
+
+		console.log(JSON.stringify(o));
+		return o;
+	}
+
+	function request(obj) {
+		let ok = false;
+
+		fetch(domain + '/export/pack', {
+			method: 'POST',
+			body: JSON.stringify(obj),
+			headers: {
+				'Content-Type': 'application/json'
+			}
+		})
+			.then(res => {
+				ok = res.ok;
+				if (res.redirected) {
+					window.location.replace(res.url);
+					return;
+				}
+				return res.text();
+			})
+			.then(data => {
+				if (!ok) alert(data);
+			})
+			.catch(err => {
+				alert(err);
+			});
+	}
+
+	document.addEventListener('DOMContentLoaded', function () {
+		latestGTIN = document.querySelector('#latestGTIN');
+		latestSerial = document.querySelector('#latestSerial');
+		latestPackage = document.querySelector('#latestPackage');
+
+		getSerials(serials);
+		console.log('serials', serials);
+
+		getPackages(packages);
+		console.log('packages', packages);
+
+		getPackagesStamps(packages);
+
+		Scanner.init(processWrapper(packages));
+
+		document.querySelector('#submitBtn').addEventListener('click', (e) => {
+			console.log('submit');
+			e.preventDefault();
+
+			if (!e.target.checkValidity()) {
+				return;
+			}
+
+			if (missingPackNote()) {
+				return;
+			}
+
+			request(result());
+		});
+	});
+</script>
+{{end}}

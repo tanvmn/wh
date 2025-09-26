@@ -80,6 +80,7 @@ func (ap *application) exportsByWarehousePage() http.Handler {
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
+		// format the times to dd/mm/yyyy hh24:mi
 		for i := range es {
 			t, err := util.FormatRFC3339(es[i].ExpectedAt, util.DDMMYYYY24HMI)
 			if err != nil {
@@ -88,6 +89,14 @@ func (ap *application) exportsByWarehousePage() http.Handler {
 				return
 			}
 			es[i].ExpectedAt = t
+
+			t, err = util.FormatRFC3339(es[i].PickedAt, util.DDMMYYYY24HMI)
+			if err != nil {
+				ap.logger.Error(err.Error())
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				return
+			}
+			es[i].PickedAt = t
 		}
 
 		p := new(ExportsPage)
@@ -181,17 +190,6 @@ func (ap *application) pickExport() http.Handler {
 			return
 		}
 
-		println(pickResult.ID)
-		for _, iq := range pickResult.Items {
-			println()
-			if iq.PickNote != "" {
-				println(iq.Item.GTIN, iq.Quantity, iq.PickNote)
-			}
-			for _, s := range iq.Serials {
-				println(s.NanoID, s.GTIN, s.PickTote.ID)
-			}
-		}
-
 		ac, err := ap.authenticatedAccount(r)
 		if err != nil {
 			ap.logger.Error(err.Error())
@@ -221,7 +219,7 @@ func (ap *application) pickExport() http.Handler {
 			return
 		}
 
-		http.Error(w, "success", http.StatusBadRequest)
+		http.Redirect(w, r, fmt.Sprintf("/export/%v/pick/result", pickResult.ID), http.StatusSeeOther)
 	})
 }
 
@@ -257,5 +255,95 @@ func (ap *application) exportPickResultPage() http.Handler {
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
+	})
+}
+
+func (ap *application) exportPackPage() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		id := r.PathValue("id")
+
+		p := new(ExportPackPage)
+
+		e, err := ap.data.Export(id)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			if errors.Is(err, data.ErrNoExports) {
+				http.Error(w, fmt.Sprintf("Không tìm thấy phiếu nhập %v", id), http.StatusNotFound)
+			} else {
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			}
+			return
+		}
+		p.Export = e
+
+		ps, err := ap.data.CalculatedPackages(id)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		p.Packages = ps
+
+		eI, err := data.ID64(id, data.ExportIDCode)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		ss, err := ap.data.SerialsByExport(eI)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		p.Serials = ss
+
+		t, err := ap.newTemplData(r)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		t.Page = p
+
+		err = ap.render(w, http.StatusOK, "export_pack", t)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+	})
+}
+
+func (ap *application) packExport() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var packResult data.Export
+
+		err := ap.decodeJSON(w, r, &packResult)
+		if err != nil {
+			ap.logger.Error(err.Error())
+
+			var mr *util.MalformedRequest
+			if errors.As(err, &mr) {
+				http.Error(w, mr.Msg, mr.Status)
+			} else {
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			}
+			return
+		}
+
+		println(packResult.ID)
+		for _, p := range packResult.Packages {
+			println()
+			println("package", p.NanoID)
+			for _, iq := range p.Items {
+				println("item", iq.Item.GTIN, iq.Quantity)
+				for _, s := range iq.Serials {
+					println("serial", s.NanoID, s.GTIN)
+				}
+			}
+		}
+
+		http.Error(w, "success", http.StatusBadRequest)
 	})
 }

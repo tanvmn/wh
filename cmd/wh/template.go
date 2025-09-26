@@ -245,6 +245,13 @@ type ExportPickResultPage struct {
 	// UnusedTotes []data.Tote
 }
 
+// Export Pack Page
+type ExportPackPage struct {
+	*data.Export
+	Packages []data.Package
+	Serials []data.Serial
+}
+
 func badgeBg(status string) string {
 	switch status {
 	case data.AwaitingResponse:

@@ -22,6 +22,7 @@ type Export struct {
 	VoucherID  string         `json:"voucherID,omitempty,omitzero"`
 	Version    int            `json:"version,omitempty,omitzero"`
 	Items      []ItemQuantity `json:"items,omitempty,omitzero"`
+	Packages   []Package      `json:"packages,omitempty,omitzero"`
 	Account    `json:"account,omitempty,omitzero"`
 	Transfer   `json:"transfer,omitempty,omitzero"`
 	Resupply   `json:"resupply,omitempty,omitzero"`
@@ -571,4 +572,60 @@ func (db *Data) PickExport(pickResult *Export) error {
 	}
 
 	return nil
+}
+
+func (db *Data) PickedItems(exportID string) ([]ItemQuantity, error) {
+	eI, err := id64(exportID, ExportIDCode)
+	if err != nil {
+		return nil, err
+	}
+
+	stmt := `
+	select
+	gtin
+	,count(*)
+	from serial
+	where export_id = $1
+	group by gtin
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	rows, err := db.DB.QueryContext(ctx, stmt, eI)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if err2 := rows.Close(); err2 != nil {
+			panic(err2)
+		}
+	}()
+
+	var iqs []ItemQuantity
+
+	for rows.Next() {
+		var iq ItemQuantity
+		err = rows.Scan(
+			&iq.Item.GTIN,
+			&iq.Quantity,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		i, err := db.Item(iq.Item.GTIN)
+		if err != nil {
+			return nil, err
+		}
+		iq.Item = *i
+
+		iqs = append(iqs, iq)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return iqs, nil
 }

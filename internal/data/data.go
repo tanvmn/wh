@@ -30,6 +30,7 @@ const (
 	PutawayIDCode   = "PUT-"
 	PickIDCode      = "PIC-"
 	PackIDCode      = "PAC-"
+	PackageIDCode   = "PKG-"
 )
 
 const (
@@ -74,6 +75,16 @@ func Range(n int64) string {
 	r = "(" + r + ")"
 
 	return r
+}
+
+// ID64 is public wrapper for id64
+func ID64(id string, permittedCodes string) (int64, error) {
+	i64, err := id64(id, permittedCodes)
+	if err != nil {
+		return 0, err
+	}
+
+	return i64, nil
 }
 
 // id64 checks if id is at least 5 chars and if the code part is one of permittedCodes,

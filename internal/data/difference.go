@@ -2,6 +2,8 @@ package data
 
 import (
 	"fmt"
+
+	"github.com/tanNguyen2220022/wh/internal/util"
 )
 
 type DifferenceActivity struct {
@@ -134,11 +136,17 @@ func (db *Data) DifferenceExportPick(warehouseID string) (as []DifferenceActivit
 	for _, e := range es {
 		for _, iq := range e.Items {
 			pickedQuantity := len(iq.Serials)
+
 			if iq.Quantity != int64(pickedQuantity) {
+				ddmmyyyy24hmi, err := util.FormatRFC3339(e.PickedAt, util.DDMMYYYY24HMI)
+				if err != nil {
+					return nil, err
+				}
+
 				ac := DifferenceActivity{
 					ID:      PickIDCode + e.ID[4:],
 					Name:    db.DifferenceActivityName(PutawayIDCode + e.ID[4:]),
-					At:      e.PickedAt,
+					At:      ddmmyyyy24hmi,
 					Account: &e.PickedBy,
 					Result:  fmt.Sprintf("%v / %v", pickedQuantity, iq.Quantity),
 				}

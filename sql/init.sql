@@ -59,6 +59,9 @@ drop table if exists serial cascade;
 drop table if exists difference cascade;
 drop table if exists sessions cascade;
 drop table if exists difference_serial cascade;
+drop table if exists package cascade;
+drop table if exists package_item cascade;
+drop table if exists package_serial cascade;
 
 
 create table if not exists warehouse (
@@ -330,6 +333,24 @@ create table if not exists difference_serial (
 	resupply_id bigint
 );
 
+create table if not exists package (
+	nanoid text not null
+	,export_id bigint not null
+);
+
+create table if not exists package_item (
+	package_nanoid text not null
+	,gtin text not null
+	,quantity bigint not null
+	,pack_note text not null default 'none'
+);
+
+create table if not exists package_serial (
+	package_nanoid text not null
+	,gtin text not null
+	,serial_nanoid text not null
+);
+
 
 insert into warehouse (name, address, phone, email) values 
 ('HCM K1', 'địa chỉ HCM K1', '0000000010', 'tan.nguyen2220022@hcmut.edu.vn'),
@@ -538,8 +559,8 @@ insert into purchase (warehouse_id, account_id, supplier_id, expected_at, status
 
 -- insert data from making a purchase to putting away the coresponding receives
 insert into purchase_item (purchase_id, gtin, quantity) values
-(1, '619659115906', 2)
-,(1, '8888021200126', 4)
+(1, '619659115906', 5)
+,(1, '8888021200126', 5)
 ;
 
 insert into receive (purchase_id, account_id, expected_at, voucher_id) values
@@ -547,8 +568,8 @@ insert into receive (purchase_id, account_id, expected_at, voucher_id) values
 ;
 
 insert into receive_item (purchase_id, receive_id, gtin, quantity) values
-(1, 1, '619659115906', 2)
-,(1, 1, '8888021200126', 4)
+(1, 1, '619659115906', 5)
+,(1, 1, '8888021200126', 5)
 ;
 update purchase set status = 'CHỜ NHẬP' where id = 1;
 
@@ -558,21 +579,71 @@ insert into serial (nanoid, gtin, purchase_id, receive_id, receive_tote) values
 ,('SER-RDUuGi_UwzkYXls79aqCF', '8888021200126', 1, 1, 1)
 ,('SER-Ij2czMsg9ApYZI8kggcxL', '8888021200126', 1, 1, 1)
 ,('SER-G9jVbMaf5kMkjj_AbYwS-', '8888021200126', 1, 1, 1)
+,('SER-XhjoVoESIan9Oy1NEm94v', '8888021200126', 1, 1, 1)
 ,('SER-rMiGVGZIj4uVYePjnSZwW', '619659115906', 1, 1, 1)
 ,('SER-0kzEXLSPez_NeSBybUT1A', '619659115906', 1, 1, 1)
+,('SER-uBobwbyVeKLVFAOMw4tkA', '619659115906', 1, 1, 1)
+,('SER-bR4nemcPjES_9RoR2OU5D', '619659115906', 1, 1, 1)
+,('SER-QDVSSh0u3BeNh4fdq4Jtv', '619659115906', 1, 1, 1)
 ;
 update purchase set status = 'KẾT THÚC' where id = 1;
 
 update receive set putaway_by = 3, putaway_at = timestamp 'now()' + interval '1 day';
 update serial set bin_id = 1
 where nanoid in (
-	'SER-ddEHD2fL3pynUGK4FZSUA',
-	'SER-RDUuGi_UwzkYXls79aqCF', 
-	'SER-Ij2czMsg9ApYZI8kggcxL',
-	'SER-G9jVbMaf5kMkjj_AbYwS-',
-	'SER-rMiGVGZIj4uVYePjnSZwW',
-	'SER-0kzEXLSPez_NeSBybUT1A'
+	'SER-ddEHD2fL3pynUGK4FZSUA'
+	,'SER-RDUuGi_UwzkYXls79aqCF' 
+	,'SER-Ij2czMsg9ApYZI8kggcxL'
+	,'SER-G9jVbMaf5kMkjj_AbYwS-'
+	,'SER-XhjoVoESIan9Oy1NEm94v'
+	,'SER-rMiGVGZIj4uVYePjnSZwW'
+	,'SER-0kzEXLSPez_NeSBybUT1A'
+	,'SER-uBobwbyVeKLVFAOMw4tkA'
+	,'SER-bR4nemcPjES_9RoR2OU5D'
+	,'SER-QDVSSh0u3BeNh4fdq4Jtv'
 );
+
+-- add resupply ,export, pick export
+insert into resupply (created_at, expected_at, account_id, store_id) values
+(now(), timestamp 'now()' + interval '1 day', 7, 1)
+;
+
+insert into resupply_item (resupply_id, gtin, quantity) values
+(1, 8888021200126, 3)
+;
+
+insert into export (account_id, created_at, expected_at, voucher_id, resupply_id) values
+(7, now(), timestamp 'now()' + interval '1 day', 'VOU-1', 1)
+;
+
+insert into export_item (export_id, resupply_id, gtin, quantity) values
+(1, 1, 8888021200126, 3)
+;
+
+update resupply set status = 'CHỜ XUẤT' where id = 1;
+
+update export set picked_by = 3
+,picked_at = now()
+where id = 1
+;
+
+update serial set pick_tote = 1
+,export_id = 1
+,resupply_id = 1
+where nanoid in (
+	'SER-G9jVbMaf5kMkjj_AbYwS-'
+	,'SER-Ij2czMsg9ApYZI8kggcxL'
+)
+;
+
+update export_item set pick_note = 'khong tim thay 1'
+where export_id = 1
+and resupply_id = 1
+and gtin = '8888021200126'
+;
+
+update resupply set status = 'KẾT THÚC' where id = 1;
+
 
 alter table warehouse add constraint pk_warehouse primary key(id);
 alter table transfer add constraint pk_transfer primary key(id);
@@ -595,6 +666,9 @@ alter table export_item add constraint pk_export_item primary key(export_id, res
 alter table resupply_item add constraint pk_resupply_item primary key(resupply_id, gtin);
 alter table serial add constraint pk_serial primary key(nanoid);
 alter table difference_serial add constraint pk_difference_serial primary key(nanoid);
+alter table package add constraint pk_package primary key(nanoid);
+alter table package_item add constraint pk_package_item primary key(package_nanoid, gtin);
+alter table package_serial add constraint pk_package_serial primary key(package_nanoid, gtin, serial_nanoid);
 
 alter table bin add constraint unq_bin_warehouse_id_shelf_row_col unique(warehouse_id, shelf, row, col);
 
@@ -659,6 +733,13 @@ alter table difference_serial add constraint fk_difference_serial_pick_tote fore
 alter table difference_serial add constraint fk_difference_serial_bin_id foreign key(bin_id) references bin(id);
 alter table difference_serial add constraint fk_difference_serial_receive_id_purchase_id_gtin foreign key(receive_id, purchase_id, gtin) references receive_item(receive_id, purchase_id, gtin);
 alter table difference_serial add constraint fk_difference_serial_export_id_resupply_id_gtin foreign key(export_id, resupply_id, gtin) references export_item(export_id, resupply_id, gtin);
+
+alter table package add constraint fk_package_export_id foreign key(export_id) references export(id);
+alter table package_item add constraint fk_package_item_package_nanoid foreign key(package_nanoid) references package(nanoid);
+alter table package_item add constraint fk_package_item_gtin foreign key(gtin) references item(gtin);
+alter table package_serial add constraint fk_package_serial_package_nanoid_gtin foreign key(package_nanoid, gtin) references package_item(package_nanoid, gtin);
+alter table package_serial add constraint fk_package_serial_serial_nanoid foreign key(serial_nanoid) references serial(nanoid);
+
 
 CREATE TABLE sessions (
 	token TEXT PRIMARY KEY,
