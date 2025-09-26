@@ -607,7 +607,7 @@ func (db *Data) SetResupplyStatus(id, status string) error {
 	return nil
 }
 
-func updateResupplyAfterPick(tx *sql.Tx, resupplyID int64, version int) error {
+func updateResupplyAfterPack(tx *sql.Tx, resupplyID int64, version int) error {
 	stmt := `
 	update resupply
 	set status = $1

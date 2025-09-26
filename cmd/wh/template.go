@@ -249,7 +249,25 @@ type ExportPickResultPage struct {
 type ExportPackPage struct {
 	*data.Export
 	Packages []data.Package
-	Serials []data.Serial
+	Serials  []data.Serial
+}
+
+// Export Pack Result Page
+type ExportPackResultPage struct {
+	*data.Export
+	Packages []data.Package
+}
+
+func (p *ExportPackResultPage) PackDifference(gtin string) int {
+	for _, p := range p.Packages {
+		for _, iq := range p.Items {
+			if iq.Item.GTIN == gtin {
+				return len(iq.Serials) - int(iq.Quantity)
+			}
+		}
+	}
+
+	return -1
 }
 
 func badgeBg(status string) string {

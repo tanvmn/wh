@@ -405,7 +405,11 @@
 				if (tr.querySelector('.packageIDTD').innerText === packages[i].nanoID) {
 					for (let j = 0; j < packages[i].items.length; j++) {
 						if (tr.querySelector('.gtin').innerText === packages[i].items[j].item.gtin) {
-							packages[i].items[j].pickNote = tr.querySelector('.packNote').value;
+							if (tr.querySelector('.packNote').value !== '') {
+								packages[i].items[j].packNote = tr.querySelector('.packNote').value;
+							} else {
+								packages[i].items[j].packNote = 'none'
+							}
 						}
 					}
 				}

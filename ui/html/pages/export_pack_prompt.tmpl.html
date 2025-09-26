@@ -1,0 +1,39 @@
+{{define "title"}}
+Đóng gói
+{{end}}
+
+{{define "main"}}
+<div class="container-fluid vh-100 d-flex justify-content-center align-items-center">
+	<div class="row">
+		<div class="col">
+			<span class="badge bg-dark">
+				<h1>Hãy quét 1 mã Serial trong 1 giỏ đựng để chọn đóng gói hàng của 1 phiếu nhập</h1>
+			</span>
+		</div>
+	</div>
+</div>
+<script type="module">
+	import { domain, IDCode, Scanner } from "/static/js/util.js";
+
+	document.addEventListener('DOMContentLoaded', () => {
+		// Initialize QR scanning
+		Scanner.init(page);
+
+		function page(input) {
+			let serial = input.split(';')[1];
+
+			fetch(domain + '/pack-prompt/process?serial=' + serial)
+				.then(res => {
+					if (res.redirected) {
+						window.location.replace(res.url);
+					} else {
+						return res.text();
+					}
+				})
+				.then(msg => {
+					alert(msg);
+				});
+		}
+	})
+</script>
+{{end}}

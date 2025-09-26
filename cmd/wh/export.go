@@ -97,6 +97,14 @@ func (ap *application) exportsByWarehousePage() http.Handler {
 				return
 			}
 			es[i].PickedAt = t
+
+			t, err = util.FormatRFC3339(es[i].PackedAt, util.DDMMYYYY24HMI)
+			if err != nil {
+				ap.logger.Error(err.Error())
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				return
+			}
+			es[i].PackedAt = t
 		}
 
 		p := new(ExportsPage)
@@ -332,18 +340,100 @@ func (ap *application) packExport() http.Handler {
 			return
 		}
 
-		println(packResult.ID)
-		for _, p := range packResult.Packages {
-			println()
-			println("package", p.NanoID)
-			for _, iq := range p.Items {
-				println("item", iq.Item.GTIN, iq.Quantity)
-				for _, s := range iq.Serials {
-					println("serial", s.NanoID, s.GTIN)
-				}
-			}
+		aID, ok := r.Context().Value(authenticatedCtxID).(string)
+		if !ok {
+			ap.logger.Error(fmt.Sprintf("%v; authenticatedCtxID: %v", ErrConvertCtxVal, aID))
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		a, err := ap.data.Account(aID)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		packResult.PackedBy = *a
+
+		err = ap.data.PackExport(&packResult)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
 		}
 
-		http.Error(w, "success", http.StatusBadRequest)
+		http.Redirect(w, r, fmt.Sprintf("/export/%v/pack/result", packResult.ID), http.StatusSeeOther)
+	})
+}
+
+func (ap *application) exportPackResultPage() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		id := r.PathValue("id")
+
+		p := new(ExportPackResultPage)
+
+		e, err := ap.data.Export(id)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			if errors.Is(err, data.ErrNoExports) {
+				http.Error(w, fmt.Sprintf("Không tìm thấy phiếu nhập %v", id), http.StatusNotFound)
+			} else {
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			}
+			return
+		}
+		p.Export = e
+
+		ps, err := ap.data.Packages(id)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		p.Packages = ps
+
+		t, err := ap.newTemplData(r)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		t.Page = p
+
+		err = ap.render(w, http.StatusOK, "export_pack_result", t)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+	})
+}
+
+func (ap *application) exportPackPromptPage() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		err := ap.render(w, http.StatusOK, "export_pack_prompt", templData{})
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+	})
+}
+
+func (ap *application) exportPackPageByPrompt() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		nanoID := r.URL.Query().Get("serial")
+
+		e, err := ap.data.ExportByPickedSerial(nanoID)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			if errors.Is(err, data.ErrNoExports) {
+				http.Error(w, fmt.Sprintf("Không tìm thấy phiếu nhập có Serial %v", nanoID), http.StatusNotFound)
+			} else {
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			}
+			return
+		}
+
+		http.Redirect(w, r, fmt.Sprintf("/export/%v/pack", e.ID), http.StatusSeeOther)
 	})
 }

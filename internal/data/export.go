@@ -557,15 +557,6 @@ func (db *Data) PickExport(pickResult *Export) error {
 		return err
 	}
 
-	rI, err := id64(pickResult.Resupply.ID, ResupplyIDCode)
-	if err != nil {
-		return err
-	}
-	err = updateResupplyAfterPick(tx, rI, pickResult.Resupply.Version)
-	if err != nil {
-		return err
-	}
-
 	err = tx.Commit()
 	if err != nil {
 		return err
@@ -628,4 +619,130 @@ func (db *Data) PickedItems(exportID string) ([]ItemQuantity, error) {
 	}
 
 	return iqs, nil
+}
+
+func setExportPackedAt(tx *sql.Tx, exportID64 int64) error {
+	stmt := `
+	update export set packed_at = now()
+	where id = $1
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err := tx.ExecContext(ctx, stmt, exportID64)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func setExportPackedBy(tx *sql.Tx, exportID64 int64, accountID64 int64) error {
+	stmt := `
+	update export set packed_by = $1
+	where id = $2
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err := tx.ExecContext(ctx, stmt, accountID64, exportID64)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (db *Data) PackExport(packResult *Export) error {
+	tx, err := db.DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	err = addPackages(tx, packResult)
+	if err != nil {
+		return err
+	}
+
+	err = addPackageItems(tx, packResult)
+	if err != nil {
+		return err
+	}
+
+	err = addPackageSerials(tx, packResult)
+	if err != nil {
+		return err
+	}
+
+	e, err := db.Export(packResult.ID)
+	if err != nil {
+		return err
+	}
+
+	rI, err := id64(e.Resupply.ID, ResupplyIDCode)
+	if err != nil {
+		return err
+	}
+	err = updateResupplyAfterPack(tx, rI, e.Resupply.Version)
+	if err != nil {
+		return err
+	}
+
+	eI, err := id64(packResult.ID, ExportIDCode)
+	if err != nil {
+		return err
+	}
+	err = setExportPackedAt(tx, eI)
+	if err != nil {
+		return err
+	}
+
+	aI, err := id64(packResult.PackedBy.ID, AccountIDCode)
+	if err != nil {
+		return err
+	}
+	err = setExportPackedBy(tx, eI, aI)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (db *Data) ExportByPickedSerial(nanoID string) (*Export, error) {
+	stmt := `
+	select
+	$1||serial.export_id
+	from serial
+	where export_id is not null
+	and pick_tote is not null
+	and nanoid = $2
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	e := new(Export)
+
+	err := db.DB.QueryRowContext(ctx, stmt, ExportIDCode, nanoID).Scan(
+		&e.ID,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	e, err = db.Export(e.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return e, nil
 }
