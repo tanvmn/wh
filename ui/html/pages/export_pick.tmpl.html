@@ -385,7 +385,7 @@ Lấy hàng
 		let ok = false;
 		let exportID = document.querySelector('#exportID').innerText;
 
-		fetch(domain + '/export/' + exportID + '/pick', {
+		fetch(domain + '/export/pick', {
 			method: 'POST',
 			body: JSON.stringify(obj),
 			headers: {
