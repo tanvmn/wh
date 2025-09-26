@@ -28,6 +28,42 @@ type Export struct {
 	Resupply   `json:"resupply,omitempty,omitzero"`
 }
 
+func (e *Export) NeededPickQuantity() int64 {
+	var sum int64
+	for _, iq := range e.Items {
+		sum += iq.Quantity
+	}
+
+	return sum
+}
+
+func (e *Export) ActualPickQuantity() int64 {
+	var sum int64
+	for _, iq := range e.Items {
+		sum += int64(len(iq.Serials))
+	}
+
+	return sum
+}
+
+func (e *Export) NeededPackQuantity() int64 {
+	var sum int64
+	for _, p := range e.Packages {
+		sum += p.NeededPackQuantity()
+	}
+
+	return sum
+}
+
+func (e *Export) ActualPackQuantity() int64 {
+	var sum int64
+	for _, p := range e.Packages {
+		sum += p.ActualPackQuantity()
+	}
+
+	return sum
+}
+
 var (
 	ErrNoExports = errors.New("no exports found")
 )

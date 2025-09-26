@@ -15,6 +15,22 @@ type Package struct {
 	Export `json:"export,omitempty,omitzero"`
 }
 
+func (p *Package) NeededPackQuantity() int64 {
+	var sum int64
+	for _, iq := range p.Items {
+		sum += iq.Quantity
+	}
+	return sum
+}
+
+func (p *Package) ActualPackQuantity() int64 {
+	var sum int64
+	for _, iq := range p.Items {
+		sum += int64(len(iq.Serials))
+	}
+	return sum
+}
+
 func (db *Data) NewPackage() (*Package, error) {
 	nanoID, err := gonanoid.New()
 	if err != nil {

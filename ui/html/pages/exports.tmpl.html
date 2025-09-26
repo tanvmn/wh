@@ -25,11 +25,13 @@ Phiếu Xuất
 				<th>ID</th>
 				<th>Kho</th>
 				<th>Cửa hàng</th>
-				<th>Dự kiến xuất<br>(dd-mm-yyyy hh24:mi)</th>
-				<th>Lấy hàng<br>(dd-mm-yyyy hh24:mi)</th>
-				<th>Đóng gói<br>(dd-mm-yyyy hh24:mi)</th>
+				<th>Dự kiến xuất<br>(d-m-y hh24:mi)</th>
+				<th>Lấy hàng<br>(d-m-y hh24:mi)</th>
+				<th>KQuả lấy<br>Cần/Đã (cái)</th>
+				<th>Đóng gói<br>(d-m-y hh24:mi)</th>
+				<th>KQuả gói<br>Cần/Đã (cái)</th>
 				<th>Tạo bởi</th>
-				<th>Tạo lúc<br>(dd-mm-yyyy hh24:mi)</th>
+				<th>Tạo lúc<br>(d-m-y hh24:mi)</th>
 				<th></th>
 			</tr>
 		</thead>
@@ -60,6 +62,9 @@ Phiếu Xuất
 					{{.PickedAt}}
 					{{end}}
 				</td>
+				{{if not01011000 .PickedAt}}
+				<td><span class="badge text-bg-primary">{{.NeededPickQuantity}} / {{.ActualPickQuantity}}</span></td>
+				{{end}}
 				<td>
 					{{if (notProcessed .PackedAt)}}
 					<span class="badge text-bg-dark">
@@ -69,6 +74,9 @@ Phiếu Xuất
 					{{.PackedAt}}
 					{{end}}
 				</td>
+				{{if not01011000 .PackedAt}}
+				<td><span class="badge text-bg-success">{{.NeededPackQuantity}} / {{.ActualPackQuantity}}</span></td>
+				{{end}}
 				<td>
 					<strong>ID: </strong>{{.Account.ID}}<br>
 					<strong>Tên: </strong>{{.Account.Name}}<br>

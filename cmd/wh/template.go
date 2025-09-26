@@ -229,6 +229,27 @@ type ExportsPage struct {
 	Exports []data.Export
 }
 
+func (p *ExportsPage) NeededQuantity() int64 {
+	var sum int64
+	for _, e := range p.Exports {
+		for _, iq := range e.Items {
+				sum += iq.Quantity
+		}
+	}
+
+	return sum
+}
+func (p *ExportsPage) ActualQuantity() int64 {
+	var sum int64
+	for _, e := range p.Exports {
+		for _, iq := range e.Items {
+				sum += int64(len(iq.Serials))
+		}
+	}
+
+	return sum
+}
+
 // Export Pick Page
 type ExportPickPage struct {
 	*data.Export

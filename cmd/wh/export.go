@@ -105,6 +105,14 @@ func (ap *application) exportsByWarehousePage() http.Handler {
 				return
 			}
 			es[i].PackedAt = t
+
+			ps, err := ap.data.Packages(es[i].ID)
+			if err != nil {
+				ap.logger.Error(err.Error())
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				return
+			}
+			es[i].Packages = ps
 		}
 
 		p := new(ExportsPage)
@@ -112,7 +120,7 @@ func (ap *application) exportsByWarehousePage() http.Handler {
 
 		t, err := ap.newTemplData(r)
 		if err != nil {
-			ap.logger.Error(fmt.Sprintf("%v; authenticatedCtxWarehouseID: %v", ErrConvertCtxVal, wID))
+			ap.logger.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -120,7 +128,7 @@ func (ap *application) exportsByWarehousePage() http.Handler {
 
 		err = ap.render(w, http.StatusOK, "exports", t)
 		if err != nil {
-			ap.logger.Error(fmt.Sprintf("%v; authenticatedCtxWarehouseID: %v", ErrConvertCtxVal, wID))
+			ap.logger.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -367,6 +375,7 @@ func (ap *application) packExport() http.Handler {
 
 func (ap *application) exportPackResultPage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// id of the export
 		id := r.PathValue("id")
 
 		p := new(ExportPackResultPage)
