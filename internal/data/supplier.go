@@ -14,6 +14,7 @@ type Supplier struct {
 	Address string `json:"address,omitempty,omitzero"`
 	Phone   string `json:"phone,omitempty,omitzero"`
 	Email   string `json:"email,omitempty,omitzero"`
+	Items   []Item `json:"items,omitempty,omitzero"`
 }
 
 var (
@@ -95,6 +96,19 @@ func (db *Data) Suppliers() ([]Supplier, error) {
 		)
 		if err != nil {
 			return nil, err
+		}
+
+		// Add the items that supplier supplies
+		gtins, err := db.GTINsBySupplier(s.ID)
+		if err != nil {
+			return nil, err
+		}
+		for _, gtin := range gtins {
+			i, err := db.Item(gtin)
+			if err != nil {
+				return nil, err
+			}
+			s.Items = append(s.Items, *i)
 		}
 
 		ss = append(ss, s)

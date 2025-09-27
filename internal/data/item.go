@@ -37,12 +37,18 @@ type ItemQuantity struct {
 	ActualQuantity      int64                     `json:"actualQuantity,omitempty,omitzero"`
 	MaxReceiveQuantity  int64                     `json:"maxReceiveQuantity,omitempty,omitzero"`
 	MaxResupplyQuantity int64                     `json:"maxResupplyQuantity,omitempty,omitzero"`
+	DailyConsumption    int64                     `json:"dailyConsumption,omitempty,omitzero"`
+	RestockDays         int64                     `json:"restockDays,omitempty,omitzero"`
+	Restock             int64                     `json:"restock,omitempty,omitzero"`
+	SafeStock           int64                     `json:"safeStock,omitempty,omitzero"`
+	Stock               int64                     `json:"stock,omitempty,omitzero"`
 	Note                string                    `json:"note,omitempty,omitzero"`
 	PutawayNote         string                    `json:"putawayNote,omitempty,omitzero"`
 	PackNote            string                    `json:"packNote,omitempty,omitzero"`
 	PickNote            string                    `json:"pickNote,omitempty,omitzero"`
 	PickBin             Bin                       `json:"bin,omitempty,omitzero"`
 	Serials             []Serial                  `json:"serials,omitempty,omitzero"`
+	Suppliers           []Supplier                `json:"suppliers,omitempty,omitzero"`
 	Putaway             map[string][]ItemQuantity `json:"putaway,omitempty,omitzero"`
 	Item                `json:"item,omitempty,omitzero"`
 	Receive             `json:"receive,omitempty,omitzero"`
@@ -377,6 +383,7 @@ func (db *Data) CurrentItemQuantitiesInBinsByWarehouse(warehouseID string) (iqs 
 	return iqs, nil
 }
 
+// StocksByWarehouse returns the stocks of a warehouse's items
 func (db *Data) StocksByWarehouse(warehouseID string) ([]ItemQuantity, error) {
 	currents, err := db.CurrentItemQuantitiesInBinsByWarehouse(warehouseID)
 	if err != nil {
@@ -473,4 +480,211 @@ func (db *Data) BinAndItemQuantityByWarehouse(warehouseID string) ([]ItemQuantit
 	}
 
 	return is, err
+}
+
+func (db *Data) DailyConsumptions(warehouseID string) ([]ItemQuantity, error) {
+	wI, err := id64(warehouseID, WarehouseIDCode)
+	if err != nil {
+		return nil, err
+	}
+
+	stmt := `
+	select
+	ei.gtin,
+	case
+		when extract(epoch from (max(export.packed_at) - min(export.packed_at))::interval)/86400 < 1 then sum(ei.quantity)
+		else sum(ei.quantity) / extract(epoch from (max(export.packed_at) - min(export.packed_at))::interval)/86400
+	end
+	from export_item as ei
+	join export on export.id = ei.export_id
+	join resupply on resupply.id = ei.resupply_id
+	join store on store.id = resupply.store_id
+	where store.warehouse_id = $1
+	group by ei.gtin
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	rows, err := db.DB.QueryContext(ctx, stmt, wI)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if err2 := rows.Close(); err2 != nil {
+			panic(err2)
+		}
+	}()
+
+	var iqs []ItemQuantity
+
+	for rows.Next() {
+		var iq ItemQuantity
+
+		err = rows.Scan(
+			&iq.Item.GTIN,
+			&iq.DailyConsumption,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		i, err := db.Item(iq.Item.GTIN)
+		if err != nil {
+			return nil, err
+		}
+		iq.Item = *i
+
+		iqs = append(iqs, iq)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return iqs, nil
+}
+
+func (db *Data) RestockDays(warehouseID string) ([]ItemQuantity, error) {
+	wI, err := id64(warehouseID, WarehouseIDCode)
+	if err != nil {
+		return nil, err
+	}
+
+	stmt := `
+	select
+	ri.gtin
+	,case
+		when extract(epoch from (sum(receive.actual_at - purchase.created_at))::interval / 86400) / count(ri.gtin) < 7 then 7
+		else extract(epoch from (sum(receive.actual_at - purchase.created_at))::interval / 86400) / count(ri.gtin)
+	end
+	from receive_item as ri
+	join receive on receive.id = ri.receive_id
+	join purchase on purchase.id = ri.purchase_id
+	where purchase.warehouse_id = $1
+	group by ri.gtin
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	rows, err := db.DB.QueryContext(ctx, stmt, wI)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if err2 := rows.Close(); err2 != nil {
+			panic(err2)
+		}
+	}()
+
+	var iqs []ItemQuantity
+
+	for rows.Next() {
+		var iq ItemQuantity
+
+		err = rows.Scan(
+			&iq.Item.GTIN,
+			&iq.RestockDays,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		i, err := db.Item(iq.Item.GTIN)
+		if err != nil {
+			return nil, err
+		}
+		iq.Item = *i
+
+		iqs = append(iqs, iq)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return iqs, nil
+}
+
+// SafeStocks calculates and assigns the dailyconsumption, restock days, safe stocks of a warehouse's items
+func (db *Data) SafeStocks(warehouseID string) ([]ItemQuantity, error) {
+	dc, err := db.DailyConsumptions(warehouseID)
+	if err != nil {
+		return nil, err
+	}
+
+	rd, err := db.RestockDays(warehouseID)
+	if err != nil {
+		return nil, err
+	}
+
+	var iqs []ItemQuantity
+
+	// calculate and assign consumption, restock days and safe stock
+	for _, iq1 := range dc {
+		for _, iq2 := range rd {
+			if iq1.Item.GTIN == iq2.Item.GTIN {
+				var iq ItemQuantity
+				i, err := db.Item(iq1.Item.GTIN)
+				if err != nil {
+					return nil, err
+				}
+				iq.Item = *i
+
+				iq.DailyConsumption = iq1.DailyConsumption
+				iq.RestockDays = iq2.RestockDays
+				iq.SafeStock = iq1.DailyConsumption * iq2.RestockDays
+
+				iqs = append(iqs, iq)
+			}
+		}
+	}
+
+	return iqs, nil
+}
+
+func (db *Data) UnsafeStocks(warehouseID string) ([]ItemQuantity, error) {
+	sf, err := db.SafeStocks(warehouseID)
+	if err != nil {
+		return nil, err
+	}
+
+	s, err := db.StocksByWarehouse(warehouseID)
+	if err != nil {
+		return nil, err
+	}
+
+	sp, err := db.Suppliers()
+	if err != nil {
+		return nil, err
+	}
+
+	var iqs []ItemQuantity
+
+	for _, iq1 := range sf {
+		for _, iq2 := range s {
+			if iq1.Item.GTIN == iq2.Item.GTIN && iq1.SafeStock >= iq2.Quantity {
+				iq1.Stock = iq2.Quantity
+				iq1.Restock = iq1.SafeStock - iq2.Quantity
+			} else {
+				iq1.Restock = iq1.SafeStock
+			}
+			break
+		}
+		iqs = append(iqs, iq1)
+	}
+
+	// Add the suppliers
+	for i := range iqs {
+		for _, s := range sp {
+			for _, it := range s.Items {
+				if iqs[i].Item.GTIN == it.GTIN {
+					iqs[i].Suppliers = append(iqs[i].Suppliers, s)
+				}
+			}
+		}
+	}
+
+	return iqs, nil
 }

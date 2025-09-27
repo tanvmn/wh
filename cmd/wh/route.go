@@ -51,19 +51,16 @@ func (ap *application) routes() http.Handler {
 		// 	return
 		// }
 
-		ps, err := ap.data.CalculatedPackages("EXP-1")
+		s, err := ap.data.UnsafeStocks("WAR-1")
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
-
-		for _, p := range ps {
-			println("test")
-			println("package", p.NanoID)
-			for _, iq := range p.Items {
-				println(iq.Item.GTIN, iq.Quantity)
+		for _, iq := range s {
+			println(iq.Item.GTIN, "stock", iq.Stock, "safe", iq.SafeStock, "restock", iq.Restock)
+			for _, s := range iq.Suppliers {
+				println("supplier", s.Name)
 			}
-			println()
 		}
 	})
 
