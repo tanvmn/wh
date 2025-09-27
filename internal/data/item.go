@@ -644,13 +644,52 @@ func (db *Data) SafeStocks(warehouseID string) ([]ItemQuantity, error) {
 	return iqs, nil
 }
 
+// StocksByPurchaseItems returns all the purchase items of a warehouse,
+// which in this case is considered as stock
+func (db *Data) StocksByPurchaseItems(warehouseID string) ([]ItemQuantity, error) {
+	ps, err := db.Purchases(warehouseID)
+	if err != nil {
+		return nil, err
+	}
+
+	var iqs []ItemQuantity
+
+	for _, p := range ps {
+		iqs = append(iqs, p.Items...)
+	}
+
+	return iqs, nil
+}
+
+// StocksByAwaitingResponseOrAwaitingReceivePurchaseItems returns all the awaiting response and awaiting receive purchase items of a warehouse,
+// which in this case is considered as stock
+func (db *Data) StocksByAwaitingResponseOrAwaitingReceivePurchaseItems(warehouseID string) ([]ItemQuantity, error) {
+	ps, err := db.AwaitingReponseOrAwaitingReceivePurchases(warehouseID)
+	if err != nil {
+		return nil, err
+	}
+
+	var iqs []ItemQuantity
+
+	for _, p := range ps {
+		iqs = append(iqs, p.Items...)
+	}
+
+	return iqs, nil
+}
+
 func (db *Data) UnsafeStocks(warehouseID string) ([]ItemQuantity, error) {
 	sf, err := db.SafeStocks(warehouseID)
 	if err != nil {
 		return nil, err
 	}
 
-	s, err := db.StocksByWarehouse(warehouseID)
+	as, err := db.StocksByAwaitingResponseOrAwaitingReceivePurchaseItems(warehouseID)
+	if err != nil {
+		return nil, err
+	}
+
+	s, err := db.CurrentItemQuantitiesInBinsByWarehouse(warehouseID)
 	if err != nil {
 		return nil, err
 	}
@@ -662,17 +701,38 @@ func (db *Data) UnsafeStocks(warehouseID string) ([]ItemQuantity, error) {
 
 	var iqs []ItemQuantity
 
-	for _, iq1 := range sf {
+	// Calculate safe stocks with the stocks of the warehouse
+	for i := range sf {
 		for _, iq2 := range s {
-			if iq1.Item.GTIN == iq2.Item.GTIN && iq1.SafeStock >= iq2.Quantity {
-				iq1.Stock = iq2.Quantity
-				iq1.Restock = iq1.SafeStock - iq2.Quantity
-			} else {
-				iq1.Restock = iq1.SafeStock
+			if sf[i].Item.GTIN == iq2.Item.GTIN {
+				sf[i].Stock += iq2.Quantity
+				sf[i].Restock += sf[i].SafeStock - iq2.Quantity
+				println("match with wh stocks", sf[i].Item.GTIN, "stock", sf[i].Stock, "restock", sf[i].Restock)
+				break
 			}
-			break
 		}
-		iqs = append(iqs, iq1)
+		if sf[i].Stock == 0 {
+			sf[i].Restock += sf[i].SafeStock
+			println("unmatch with wh stocks", sf[i].Item.GTIN, "stock", sf[i].Stock, "restock", sf[i].Restock)
+		}
+	}
+
+	for i := range sf {
+		for _, iq := range as {
+			if sf[i].Item.GTIN == iq.Item.GTIN {
+				sf[i].Stock += iq.Quantity
+				sf[i].Restock += sf[i].SafeStock - iq.Quantity
+				println("match with awaiting stocks", sf[i].Item.GTIN, "stock", sf[i].Stock, "restock", sf[i].Restock)
+				break
+			}
+		}
+	}
+
+	// Add the calculated safe stock that > 0
+	for _, iq := range sf {
+		if iq.Restock > 0 {
+			iqs = append(iqs, iq)
+		}
 	}
 
 	// Add the suppliers

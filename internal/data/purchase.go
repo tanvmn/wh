@@ -263,6 +263,7 @@ func (db *Data) Purchases(warehouseID string) ([]Purchase, error) {
 		WarehouseIDCode,
 		AccountIDCode,
 		SupplierIDCode)
+
 	var ps []Purchase
 
 	rows, err := db.DB.QueryContext(ctx, stmt, wI)
@@ -858,4 +859,21 @@ func (db *Data) UnreceivedPurchaseItemsOpt(rc *Receive) ([]ItemQuantity, error) 
 	}
 
 	return iqs, nil
+}
+
+func (db *Data) AwaitingReponseOrAwaitingReceivePurchases(warehouseID string) ([]Purchase, error) {
+	ps, err := db.Purchases(warehouseID)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []Purchase
+
+	for _, p := range ps {
+		if p.Status == AwaitingResponse || p.Status == AwaitingReceive {
+			result = append(result, p)
+		}
+	}
+
+	return result, nil
 }

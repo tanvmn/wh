@@ -233,7 +233,7 @@ func (p *ExportsPage) NeededQuantity() int64 {
 	var sum int64
 	for _, e := range p.Exports {
 		for _, iq := range e.Items {
-				sum += iq.Quantity
+			sum += iq.Quantity
 		}
 	}
 
@@ -243,7 +243,7 @@ func (p *ExportsPage) ActualQuantity() int64 {
 	var sum int64
 	for _, e := range p.Exports {
 		for _, iq := range e.Items {
-				sum += int64(len(iq.Serials))
+			sum += int64(len(iq.Serials))
 		}
 	}
 
@@ -289,6 +289,11 @@ func (p *ExportPackResultPage) PackDifference(gtin string) int {
 	}
 
 	return -1
+}
+
+// Unsafe Stock Page
+type UnsafeStockPage struct {
+	UnsafeStocks []data.ItemQuantity
 }
 
 func badgeBg(status string) string {

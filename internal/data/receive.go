@@ -1086,3 +1086,61 @@ func (db *Data) SetReceiveProcessedBy(rc *Receive) error {
 
 	return nil
 }
+
+// ReceiveItemsByWarehouse returns the items and their quantities of a warehouse
+func (db *Data) ReceiveItemsByWarehouse(warehouseID string) ([]ItemQuantity, error) {
+	wI, err := id64(warehouseID, WarehouseIDCode)
+	if err != nil {
+		return nil, err
+	}
+
+	stmt := `
+	select
+	receive.gtin
+	,sum(receive.quantity)
+	from receive
+	join purchase on purchase.id = receive.purchase_id
+	where purchase.warehouse_id = $1
+	group by receive.gtin
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	rows, err := db.DB.QueryContext(ctx, stmt, wI)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if err2 := rows.Close(); err2 != nil {
+			panic(err2)
+		}
+	}()
+
+	var iqs []ItemQuantity
+
+	for rows.Next() {
+		var iq ItemQuantity
+		err = rows.Scan(
+			&iq.Item.GTIN,
+			&iq.Quantity,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		i, err := db.Item(iq.Item.GTIN)
+		if err != nil {
+			return nil, err
+		}
+		iq.Item = *i
+
+		iqs = append(iqs, iq)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return iqs, nil
+}

@@ -51,16 +51,25 @@ func (ap *application) routes() http.Handler {
 		// 	return
 		// }
 
-		s, err := ap.data.UnsafeStocks("WAR-1")
+		// s, err := ap.data.UnsafeStocks("WAR-1")
+		// if err != nil {
+		// 	fmt.Println(err)
+		// 	return
+		// }
+
+		// println()
+		// println("unsafe stock")
+		// for _, iq := range s {
+		// 		println(iq.Item.GTIN, "stock", iq.Stock, "restock", iq.Restock)
+		// }
+
+		ps, err := ap.data.Purchases("WAR-1")
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
-		for _, iq := range s {
-			println(iq.Item.GTIN, "stock", iq.Stock, "safe", iq.SafeStock, "restock", iq.Restock)
-			for _, s := range iq.Suppliers {
-				println("supplier", s.Name)
-			}
+		for _, p := range ps {
+			println(p.ID, p.Status)
 		}
 	})
 
@@ -85,6 +94,7 @@ func (ap *application) routes() http.Handler {
 	mux.Handle("GET /items", identify.then(ap.itemsPage()))
 	mux.Handle("GET /items/json", identify.then(ap.items()))
 	mux.Handle("GET /items-by-supplier/json", identify.then(ap.itemsBySupplier()))
+	mux.Handle("GET /unsafe-stocks", identify.then(ap.unsafeStocksPage()))
 
 	// Serial
 	mux.Handle("GET /serials", identify.then(ap.serialsPage()))

@@ -1,0 +1,106 @@
+{{define "title"}}
+Unsafe stock
+{{end}}
+
+{{define "main"}}
+<style>
+	table,
+	thead,
+	tbody,
+	th,
+	td {
+		padding: 0;
+		text-align: center;
+	}
+
+	ul {
+		list-style-type: none;
+		/* Remove bullets */
+		padding: 0;
+		/* Remove padding */
+		margin: 0;
+		/* Remove margins */
+	}
+</style>
+
+<div class="container-fluid">
+	<div class="row p-3">
+		<div class="col">
+			<h3 class="d-inline">
+				<span id="receiveID" class="badge text-bg-danger">Hàng có lượng dưới ngưỡng an
+					toàn</span>
+			</h3>
+		</div>
+	</div>
+
+	<form class="was-validated" novalidate>
+		<!-- Begin warehouse -->
+		<div class="row">
+			<div class="col">
+				<label for="warehouse" class="form-label">Kho</label>
+				<input name="warehouse" id="warehouse" class="form-control"
+					value="{{.Account.Warehouse.ID}} / {{.Account.Warehouse.Name}}" disabled>
+			</div>
+		</div>
+		<!-- End warehouse -->
+
+		<!-- Begin items table -->
+		<div class="row mt-1">
+			<table id="itemTable" class="table table-striped align-middle">
+				<thead>
+					<th></th>
+					<th>Mặt hàng</th>
+					<th>Có (cái)</th>
+					<th>Cần (cái)</th>
+					<th>Nhập (cái)</th>
+					<th>Nhà cung cấp</th>
+				</thead>
+				<tbody id="itemList">
+					{{range .Page.UnsafeStocks}}
+					<tr>
+						<td><img height="100" src="/rec/{{.Item.ImgFSPath}}"
+								alt="/rec/{{.Item.ImgFSPath}}">
+						</td>
+						<td class="tdItem">
+							<ul>
+								<li>
+									<strong>GTIN:&nbsp;</strong>
+									<span class="liGTIN">{{.Item.GTIN}}</span>
+								</li>
+								<li>
+									<span class="liName">{{.Item.Name}}</span>
+								</li>
+							</ul>
+						</td>
+						<td>
+							<input type="number"
+								class="form-control bg-danger-subtle was-validated stock"
+								value="{{.Stock}}" required disabled>
+						</td>
+						<td>
+							<input type="number"
+								class="form-control bg-success-subtle was-validated safeStock"
+								value="{{.SafeStock}}" required disabled>
+						</td>
+						<td>
+							<input type="number"
+								class="form-control bg-warning-subtle was-validated restock"
+								value="{{.Restock}}" required disabled>
+						</td>
+						<td>
+							<select class="form-select" aria-label="Default select example" required>
+								{{range .Suppliers}}
+								<option value="{{.ID}}">{{.ID}} / {{.Name}}</option>
+								{{end}}
+							</select>
+						</td>
+					</tr>
+					{{end}}
+				</tbody>
+			</table>
+		</div>
+	</form>
+	<!-- End items table -->
+
+</div>
+{{end}}
