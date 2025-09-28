@@ -53,6 +53,7 @@ type ItemQuantity struct {
 	Item                `json:"item,omitempty,omitzero"`
 	Receive             `json:"receive,omitempty,omitzero"`
 	Export              `json:"export,omitempty,omitzero"`
+	Resupply            `json:"resupply,omitempty,omitzero"`
 }
 
 func (iq ItemQuantity) ExportItemDifference() int64 {
@@ -403,7 +404,7 @@ func (db *Data) StocksByWarehouse(warehouseID string) ([]ItemQuantity, error) {
 
 	for _, c := range currents {
 		for _, r := range resupplies {
-			if c.Item.GTIN == r.Item.GTIN {
+			if c.Item.GTIN == r.Item.GTIN && (r.Resupply.Status == AwaitingResponse || r.Resupply.Status == AwaitingExport) {
 				c.Quantity -= r.Quantity
 				break
 			}

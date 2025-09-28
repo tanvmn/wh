@@ -35,13 +35,14 @@ func (db *Data) ResupplyItemsQuantityByWarehouse(warehouseID string) ([]ItemQuan
 	,type||', '||brand||', màu '||color||', cỡ '||size||', '||characteristic
 	,item.img_fspath
 	,sum(ri.quantity)
+	,resupply.status
 	from resupply_item as ri
 	join item on item.gtin = ri.gtin
 	join resupply on resupply.id = ri.resupply_id
 	join store on store.id = resupply.store_id
 	where resupply.status != '%v'
 	and store.warehouse_id = $1
-	group by item.type, item.brand, item.color, item.size, item.characteristic, item.img_fspath, ri.gtin
+	group by item.type, item.brand, item.color, item.size, item.characteristic, item.img_fspath, ri.gtin, resupply.status
 	;`,
 		Declined,
 	)
@@ -69,6 +70,7 @@ func (db *Data) ResupplyItemsQuantityByWarehouse(warehouseID string) ([]ItemQuan
 			&iq.Item.Name,
 			&iq.Item.ImgFSPath,
 			&iq.Quantity,
+			&iq.Resupply.Status,
 		)
 		if err != nil {
 			return nil, err
