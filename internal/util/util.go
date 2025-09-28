@@ -2,6 +2,7 @@ package util
 
 import (
 	"slices"
+	"strings"
 	"time"
 )
 
@@ -76,4 +77,8 @@ func AnySlice[T comparable](vs ...T) []any {
 	}
 
 	return as
+}
+
+func Is01011000(time string) bool {
+	return strings.Contains(time, "1000-01-01") || strings.Contains(time, "01-01-1000")
 }

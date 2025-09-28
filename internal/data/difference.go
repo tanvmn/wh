@@ -32,6 +32,9 @@ func (db *Data) DifferenceActivityName(id string) string {
 }
 
 func (db *Data) doesReceiveProcessHasDifferences(rc *Receive) (bool, error) {
+	if util.Is01011000(rc.ActualAt) {
+		return false, nil
+	}
 	for _, iq := range rc.Items {
 		createdSerials := int64(len(iq.Serials)) // serials created by processing receive
 		ss, err := db.DifferenceSerialsByGTINOfPutawayReceive(rc.Purchase.Warehouse.ID, rc.ID, iq.Item.GTIN)
@@ -124,7 +127,7 @@ func (db *Data) DifferenceReceivePutaways(warehouseID string) (as []DifferenceAc
 		}
 	}
 
-	return as, err
+	return as, nil
 }
 
 func (db *Data) DifferenceExportPick(warehouseID string) (as []DifferenceActivity, err error) {
@@ -134,27 +137,67 @@ func (db *Data) DifferenceExportPick(warehouseID string) (as []DifferenceActivit
 	}
 
 	for _, e := range es {
-		for _, iq := range e.Items {
-			pickedQuantity := len(iq.Serials)
+		if !util.Is01011000(e.PickedAt) {
+			for _, iq := range e.Items {
+				pickedQuantity := len(iq.Serials)
 
-			if iq.Quantity != int64(pickedQuantity) {
-				ddmmyyyy24hmi, err := util.FormatRFC3339(e.PickedAt, util.DDMMYYYY24HMI)
-				if err != nil {
-					return nil, err
-				}
+				if iq.Quantity != int64(pickedQuantity) {
+					ddmmyyyy24hmi, err := util.FormatRFC3339(e.PickedAt, util.DDMMYYYY24HMI)
+					if err != nil {
+						return nil, err
+					}
 
-				ac := DifferenceActivity{
-					ID:      PickIDCode + e.ID[4:],
-					Name:    db.DifferenceActivityName(PutawayIDCode + e.ID[4:]),
-					At:      ddmmyyyy24hmi,
-					Account: &e.PickedBy,
-					Result:  fmt.Sprintf("%v / %v", pickedQuantity, iq.Quantity),
+					ac := DifferenceActivity{
+						ID:      PickIDCode + e.ID[4:],
+						Name:    db.DifferenceActivityName(PickIDCode + e.ID[4:]),
+						At:      ddmmyyyy24hmi,
+						Account: &e.PickedBy,
+						Result:  fmt.Sprintf("%v / %v", pickedQuantity, iq.Quantity),
+					}
+					as = append(as, ac)
 				}
-				as = append(as, ac)
 			}
 		}
 	}
-	return as, err
+	return as, nil
+}
+
+func (db *Data) DifferenceExportPack(warehouseID string) (as []DifferenceActivity, err error) {
+	es, err := db.ExportsByWarehouse(warehouseID)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, e := range es {
+		if !util.Is01011000(e.PackedAt) {
+			ps, err := db.Packages(e.ID)
+			if err != nil {
+				return nil, err
+			}
+
+			for _, p := range ps {
+				for _, iq := range p.Items {
+					if iq.Quantity != int64(len(iq.Serials)) {
+						ddmmyyyy24hmi, err := util.FormatRFC3339(e.PickedAt, util.DDMMYYYY24HMI)
+						if err != nil {
+							return nil, err
+						}
+
+						ac := DifferenceActivity{
+							ID:      PackIDCode + e.ID[4:],
+							Name:    db.DifferenceActivityName(PackIDCode + e.ID[4:]),
+							At:      ddmmyyyy24hmi,
+							Account: &e.PickedBy,
+							Result:  fmt.Sprintf("%v / %v", int64(len(iq.Serials)), iq.Quantity),
+						}
+						as = append(as, ac)
+					}
+				}
+			}
+		}
+	}
+
+	return as, nil
 }
 
 func (db *Data) DifferenceActivities(warehouseID string) (as []DifferenceActivity, err error) {
@@ -180,6 +223,11 @@ func (db *Data) DifferenceActivities(warehouseID string) (as []DifferenceActivit
 	as = append(as, picks...)
 
 	// Check for export of a warehouse that have differences in packing
+	packs, err := db.DifferenceExportPack(warehouseID)
+	if err != nil {
+		return nil, err
+	}
+	as = append(as, packs...)
 
 	return as, nil
 }

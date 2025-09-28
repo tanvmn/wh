@@ -419,7 +419,14 @@ func (ap *application) exportPackResultPage() http.Handler {
 
 func (ap *application) exportPackPromptPage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		err := ap.render(w, http.StatusOK, "export_pack_prompt", templData{})
+		t, err := ap.newTemplData(r)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		err = ap.render(w, http.StatusOK, "export_pack_prompt", t)
 		if err != nil {
 			ap.logger.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)

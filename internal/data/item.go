@@ -679,6 +679,23 @@ func (db *Data) StocksByAwaitingResponseOrAwaitingReceivePurchaseItems(warehouse
 	return iqs, nil
 }
 
+func (db *Data) AwaitingResponseAndAwaitingExportResupplyItems(warehouseID string) ([]ItemQuantity, error) {
+	rs, err := db.ResuppliesByWarehouse(warehouseID)
+	if err != nil {
+		return nil, err
+	}
+
+	var iqs []ItemQuantity
+
+	for _, r := range rs {
+		if r.Status == AwaitingResponse || r.Status == AwaitingExport {
+			iqs = append(iqs, r.Items...)
+		}
+	}
+
+	return iqs, nil
+}
+
 func (db *Data) UnsafeStocks(warehouseID string) ([]ItemQuantity, error) {
 	sf, err := db.SafeStocks(warehouseID)
 	if err != nil {
@@ -686,6 +703,11 @@ func (db *Data) UnsafeStocks(warehouseID string) ([]ItemQuantity, error) {
 	}
 
 	as, err := db.StocksByAwaitingResponseOrAwaitingReceivePurchaseItems(warehouseID)
+	if err != nil {
+		return nil, err
+	}
+
+	is, err := db.AwaitingResponseAndAwaitingExportResupplyItems(warehouseID)
 	if err != nil {
 		return nil, err
 	}
@@ -712,18 +734,33 @@ func (db *Data) UnsafeStocks(warehouseID string) ([]ItemQuantity, error) {
 				break
 			}
 		}
+		// this means that the item of safe stocks is not in the stocks of the warehouse,
+		// because this item has not been export
 		if sf[i].Stock == 0 {
 			sf[i].Restock += sf[i].SafeStock
 			println("unmatch with wh stocks", sf[i].Item.GTIN, "stock", sf[i].Stock, "restock", sf[i].Restock)
 		}
 	}
 
+	// Add the items in the purchases whose receives have not been processed
 	for i := range sf {
 		for _, iq := range as {
 			if sf[i].Item.GTIN == iq.Item.GTIN {
 				sf[i].Stock += iq.Quantity
-				sf[i].Restock += sf[i].SafeStock - iq.Quantity
+				sf[i].Restock -= iq.Quantity
 				println("match with awaiting stocks", sf[i].Item.GTIN, "stock", sf[i].Stock, "restock", sf[i].Restock)
+				break
+			}
+		}
+	}
+
+	// Minus the items in the resupply whose export have not been processed
+	for i := range sf {
+		for _, iq := range is {
+			if sf[i].Item.GTIN == iq.Item.GTIN {
+				sf[i].Stock -= iq.Quantity
+				sf[i].Restock += iq.Quantity
+				println("match with awaiting not stocks", sf[i].Item.GTIN, "stock", sf[i].Stock, "restock", sf[i].Restock)
 				break
 			}
 		}

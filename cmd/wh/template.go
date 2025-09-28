@@ -79,6 +79,8 @@ func differenceActivityURL(id string) string {
 		return fmt.Sprintf("%v/putaway/%v/result", domain, data.ReceiveIDCode+id[4:])
 	case data.PickIDCode:
 		return fmt.Sprintf("%v/export/%v/pick/result", domain, data.ExportIDCode+id[4:])
+	case data.PackIDCode:
+		return fmt.Sprintf("%v/export/%v/pack/result", domain, data.ExportIDCode+id[4:])
 	default:
 		return domain + "/health"
 	}

@@ -102,6 +102,9 @@ Lấy hàng
 			<table id="itemTable" class="table table-striped align-middle">
 				<thead>
 					<th>ID Giỏ</th>
+					<th>Kệ</th>
+					<th>Hàng</th>
+					<th>Cột</th>
 					<th></th>
 					<th>Hàng</th>
 					<th>Cần lấy (cái)</th>
@@ -112,6 +115,9 @@ Lấy hàng
 					{{range .Page.Picks}}
 					<tr>
 						<td class="binID">{{.PickBin.ID}}</td>
+						<td>{{.PickBin.Shelf}}</td>
+						<td>{{.PickBin.Row}}</td>
+						<td>{{.PickBin.Col}}</td>
 						<td>
 							<img height="100" src="/rec/{{.Item.ImgFSPath}}"
 								alt="/rec/{{.Item.ImgFSPath}}">

@@ -88,7 +88,8 @@ Unsafe stock
 								value="{{.Restock}}" required disabled>
 						</td>
 						<td>
-							<select class="form-select" aria-label="Default select example" required>
+							<select class="form-select supplier"
+								aria-label="Default select example" required>
 								{{range .Suppliers}}
 								<option value="{{.ID}}">{{.ID}} / {{.Name}}</option>
 								{{end}}
@@ -103,4 +104,28 @@ Unsafe stock
 	<!-- End items table -->
 
 </div>
+<script type="module">
+	import { domain, IDCode, Scanner } from "/static/js/util.js";
+
+	document.addEventListener('DOMContentLoaded', (e) => {
+		result();
+	});
+
+	function result() {
+		let obj = { items: [] };
+		document.querySelector('#itemList').querySelectorAll('tr').forEach((tr, idx) => {
+			let i = {
+				item: { gtin: tr.querySelector('.liGTIN').value },
+				stock: tr.querySelector('.stock').value,
+				restock: tr.querySelector('.restock').value,
+				safeStock: tr.querySelector('.safeStock').value,
+				supplier: { id: tr.querySelector('.supplier').value }
+			};
+
+			obj.items.push(i);
+		});
+		console.log(obj);
+		return obj;
+	}
+</script>
 {{end}}

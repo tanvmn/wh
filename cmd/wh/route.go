@@ -63,13 +63,27 @@ func (ap *application) routes() http.Handler {
 		// 		println(iq.Item.GTIN, "stock", iq.Stock, "restock", iq.Restock)
 		// }
 
-		ps, err := ap.data.Purchases("WAR-1")
+		es, err := ap.data.ExportsByWarehouse("WAR-1")
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
-		for _, p := range ps {
-			println(p.ID, p.Status)
+
+		for i := range es {
+			ps, err := ap.data.Packages(es[i].ID)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			es[i].Packages = ps
+
+			for _, p := range es[i].Packages {
+				println(es[i].ID)
+				println(p.NanoID)
+				for _, iq := range p.Items {
+					println(iq.Item.GTIN, iq.Quantity)
+				}
+			}
 		}
 	})
 

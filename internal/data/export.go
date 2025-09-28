@@ -33,7 +33,7 @@ func (e *Export) NeededPickQuantity() int64 {
 	for _, iq := range e.Items {
 		sum += iq.Quantity
 	}
-
+	
 	return sum
 }
 
