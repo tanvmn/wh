@@ -34,15 +34,31 @@ Unsafe stock
 	</div>
 
 	<form class="was-validated" novalidate>
-		<!-- Begin warehouse -->
+		<!-- Begin warehouse, expectedAt -->
 		<div class="row">
 			<div class="col">
 				<label for="warehouse" class="form-label">Kho</label>
 				<input name="warehouse" id="warehouse" class="form-control"
 					value="{{.Account.Warehouse.ID}} / {{.Account.Warehouse.Name}}" disabled>
 			</div>
+
+			<div class="col">
+				<label for="expectedAt" class="form-label">Dự kiến nhập</label>
+				<input type="datetime-local" name="expectedAt" id="expectedAt"
+					class="form-control was-validated" min="{{.MinTimestamp}}" required>
+			</div>
 		</div>
-		<!-- End warehouse -->
+		<!-- End warehouse, expectedAt -->
+
+		{{if (eq .Account.Role .Accountant)}}
+		<div class="row my-4">
+			<div class=" col-4 mx-auto">
+				<button class="btn btn-primary" type="submit" id="submitBtn">
+					Tạo yêu cầu nhập
+				</button>
+			</div>
+		</div>
+		{{end}}
 
 		<!-- Begin items table -->
 		<div class="row mt-1">
@@ -108,24 +124,64 @@ Unsafe stock
 	import { domain, IDCode, Scanner } from "/static/js/util.js";
 
 	document.addEventListener('DOMContentLoaded', (e) => {
-		result();
+		// Submit the unsafe restock in JSON to server
+		document.querySelector('form').addEventListener('submit', (e) => {
+			e.preventDefault();
+
+			if (!e.target.checkValidity()) {
+				return;
+			}
+
+			if (confirm('Bạn đã chắc về thông tin của đã chọn?')) {
+				request(result())
+			}
+		});
 	});
 
 	function result() {
 		let obj = { items: [] };
 		document.querySelector('#itemList').querySelectorAll('tr').forEach((tr, idx) => {
 			let i = {
-				item: { gtin: tr.querySelector('.liGTIN').value },
-				stock: tr.querySelector('.stock').value,
-				restock: tr.querySelector('.restock').value,
-				safeStock: tr.querySelector('.safeStock').value,
+				item: { gtin: tr.querySelector('.liGTIN').innerText },
+				stock: parseInt(tr.querySelector('.stock').value),
+				restock: parseInt(tr.querySelector('.restock').value),
+				safeStock: parseInt(tr.querySelector('.safeStock').value),
 				supplier: { id: tr.querySelector('.supplier').value }
 			};
 
 			obj.items.push(i);
 		});
+
+		obj.expectedAt = document.querySelector('#expectedAt').value;
+
 		console.log(obj);
 		return obj;
+	}
+
+	function request(obj) {
+		let ok = false;
+
+		fetch(domain + '/unsafe/purchases', {
+			method: 'POST',
+			body: JSON.stringify(obj),
+			headers: {
+				'Content-Type': 'application/json'
+			}
+		})
+			.then(res => {
+				ok = res.ok;
+				if (res.redirected) {
+					window.location.replace(res.url);
+				} else {
+					return res.text();
+				}
+			})
+			.then(msg => {
+				alert(msg);
+			})
+			.catch(err => {
+				alert(err);
+			});
 	}
 </script>
 {{end}}

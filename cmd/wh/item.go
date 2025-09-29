@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/tanNguyen2220022/wh/internal/data"
+	"github.com/tanNguyen2220022/wh/internal/util"
 )
 
 func (ap *application) name(i data.Item) string {
@@ -132,6 +133,10 @@ func (ap *application) unsafeStocksPage() http.Handler {
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
+		if len(s) == 0 {
+			http.Error(w, fmt.Sprintf("Kho %v hiện không có hàng dưới lượng an toàn", wID), http.StatusNotFound)
+			return
+		}
 
 		p := new(UnsafeStockPage)
 		p.UnsafeStocks = s
@@ -150,5 +155,70 @@ func (ap *application) unsafeStocksPage() http.Handler {
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
+	})
+}
+
+func (ap *application) addUnsafePurchases() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			ExpectedAt string              `json:"expectedAt,omitempty,omitzero"`
+			Items      []data.ItemQuantity `json:"items,omitempty,omitzero"`
+		}
+
+		err := ap.decodeJSON(w, r, &req)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			var mr *util.MalformedRequest
+			if errors.As(err, &mr) {
+				http.Error(w, mr.Msg, mr.Status)
+			} else {
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			}
+			return
+		}
+
+		wID, ok := r.Context().Value(authenticatedCtxWarehouseID).(string)
+		if !ok {
+			ap.logger.Error(fmt.Sprintf("%v, authenticatedCtxWarehouseID: %v", ErrConvertCtxVal, wID))
+		}
+
+		aID, ok := r.Context().Value(authenticatedCtxID).(string)
+		if !ok {
+			ap.logger.Error(fmt.Sprintf("%v; authenticatedCtxID: %v", ErrConvertCtxVal, aID))
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		// Get the distinct supplier ids
+		sups := []string{}
+		for _, iq := range req.Items {
+			sups = append(sups, iq.Supplier.ID)
+		}
+		sups = util.Set(sups...)
+
+		// Prepare the *data.Purchase and add
+		for _, s := range sups {
+			p := new(data.Purchase)
+			p.Warehouse.ID = wID
+			p.Account.ID = aID
+			p.Supplier.ID = s
+			p.ExpectedAt = req.ExpectedAt
+
+			for _, iq := range req.Items {
+				if iq.Supplier.ID == s {
+					iq.Quantity = iq.Restock
+					p.Items = append(p.Items, iq)
+				}
+			}
+
+			_, _, err = ap.data.AddPurchase(p)
+			if err != nil {
+				ap.logger.Error(err.Error())
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				return
+			}
+		}
+
+		http.Redirect(w, r, "/purchases", http.StatusSeeOther)
 	})
 }

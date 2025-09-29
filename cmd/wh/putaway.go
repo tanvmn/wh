@@ -99,9 +99,9 @@ func (ap *application) putawayPage() http.Handler {
 
 func (ap *application) putaway() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var rc data.Receive
+		var putawayResult data.Receive
 
-		err := ap.decodeJSON(w, r, &rc)
+		err := ap.decodeJSON(w, r, &putawayResult)
 		if err != nil {
 			ap.logger.Error(err.Error())
 
@@ -120,30 +120,30 @@ func (ap *application) putaway() http.Handler {
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
-		rc.PutawayAccount.ID = aID
+		putawayResult.PutawayAccount.ID = aID
 
-		err = ap.data.Putaway(&rc) // rc was used to catch JSON, NOT was queried from db
+		err = ap.data.Putaway(&putawayResult) // rc was used to catch JSON, NOT was queried from db
 		if err != nil {
 			ap.logger.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
-		err = ap.data.AddDifferenceSerials(&rc)
+		err = ap.data.AddPutawayDifferenceSerials(&putawayResult)
 		if err != nil {
 			ap.logger.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
-		err = ap.data.DelUnputawaySerials(&rc)
+		err = ap.data.DelUnputawaySerials(&putawayResult)
 		if err != nil {
 			ap.logger.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
-		http.Redirect(w, r, fmt.Sprintf("%v/putaway/%v/result", domain, rc.ID), http.StatusSeeOther)
+		http.Redirect(w, r, fmt.Sprintf("%v/putaway/%v/result", domain, putawayResult.ID), http.StatusSeeOther)
 	})
 }
 

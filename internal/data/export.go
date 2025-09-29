@@ -753,6 +753,7 @@ func (db *Data) PackExport(packResult *Export) error {
 	return nil
 }
 
+// ExportByPickedSerial return the export which associated the picked serial's nanoid passed in
 func (db *Data) ExportByPickedSerial(nanoID string) (*Export, error) {
 	stmt := `
 	select

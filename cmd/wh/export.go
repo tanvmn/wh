@@ -290,8 +290,15 @@ func (ap *application) exportPackPage() http.Handler {
 			}
 			return
 		}
+		// If the export is already packed
+		if !util.Is01011000(e.PackedAt) {
+			ap.logger.Error(fmt.Sprintf("Export %v is already packed at %v", e.ID, e.PackedAt))
+			http.Error(w, fmt.Sprintf("Phiếu nhập %v đã đóng gói lúc %v", e.ID, e.PackedAt), http.StatusBadRequest)
+			return
+		}
 		p.Export = e
 
+		// Get the calcualted packages
 		ps, err := ap.data.CalculatedPackages(id)
 		if err != nil {
 			ap.logger.Error(err.Error())
@@ -348,6 +355,7 @@ func (ap *application) packExport() http.Handler {
 			return
 		}
 
+		// Add the account that packed the export
 		aID, ok := r.Context().Value(authenticatedCtxID).(string)
 		if !ok {
 			ap.logger.Error(fmt.Sprintf("%v; authenticatedCtxID: %v", ErrConvertCtxVal, aID))
@@ -368,6 +376,22 @@ func (ap *application) packExport() http.Handler {
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
+
+		// // Add the picked but unpacked serials to difference_serial table
+		// err = ap.data.AddPackDifferenceSerials(packResult.ID)
+		// if err != nil {
+		// 	ap.logger.Error(err.Error())
+		// 	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		// 	return
+		// }
+
+		// // Del the picked but unpacked serials from serial table
+		// err = ap.data.DelUnpackedSerials(packResult.ID)
+		// if err != nil {
+		// 	ap.logger.Error(err.Error())
+		// 	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		// 	return
+		// }
 
 		http.Redirect(w, r, fmt.Sprintf("/export/%v/pack/result", packResult.ID), http.StatusSeeOther)
 	})

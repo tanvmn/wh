@@ -69,7 +69,7 @@ func (db *Data) PutawayBins(receiveID string) ([]PutAwayBin, error) {
 	return pbs, nil
 }
 
-func putaway(tx *sql.Tx, rc *Receive) error {
+func putaway(tx *sql.Tx, putawayResult *Receive) error {
 	stmt := `
 	update serial
 	set bin_id = $1 where nanoid = $2
@@ -78,7 +78,7 @@ func putaway(tx *sql.Tx, rc *Receive) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	for _, iq := range rc.Items {
+	for _, iq := range putawayResult.Items {
 		for _, s := range iq.Serials {
 			if len(s.Bin.ID) != 0 {
 				bI, err := id64(s.Bin.ID, BinIDCode)
@@ -97,7 +97,7 @@ func putaway(tx *sql.Tx, rc *Receive) error {
 	return nil
 }
 
-func setReceiveItemPutawayNote(tx *sql.Tx, rc *Receive) error {
+func setReceiveItemPutawayNote(tx *sql.Tx, putawayResult *Receive) error {
 	stmt := `
 	update receive_item
 	set putaway_note = $1 where purchase_id = $2 and receive_id = $3 and gtin = $4
@@ -106,13 +106,13 @@ func setReceiveItemPutawayNote(tx *sql.Tx, rc *Receive) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	for _, iq := range rc.Items {
+	for _, iq := range putawayResult.Items {
 		if len(iq.PutawayNote) != 0 {
-			pI, err := id64(rc.Purchase.ID, PurchaseIDCode)
+			pI, err := id64(putawayResult.Purchase.ID, PurchaseIDCode)
 			if err != nil {
 				return err
 			}
-			rI, err := id64(rc.ID, ReceiveIDCode)
+			rI, err := id64(putawayResult.ID, ReceiveIDCode)
 			if err != nil {
 				return err
 			}
@@ -142,7 +142,7 @@ func setReceivePutawayAt(tx *sql.Tx, receiveID string) error {
 	return nil
 }
 
-func setReceivePutawayBy(tx *sql.Tx, rc *Receive) error {
+func setReceivePutawayBy(tx *sql.Tx, putawayResult *Receive) error {
 	stmt := `
 	update receive set putaway_by = substring($1 from 5 for 1)::bigint where id = substring($2 from 5 for 1)::bigint
 	;`
@@ -150,7 +150,7 @@ func setReceivePutawayBy(tx *sql.Tx, rc *Receive) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_, err := tx.ExecContext(ctx, stmt, rc.PutawayAccount.ID, rc.ID)
+	_, err := tx.ExecContext(ctx, stmt, putawayResult.PutawayAccount.ID, putawayResult.ID)
 	if err != nil {
 		return err
 	}
@@ -158,29 +158,29 @@ func setReceivePutawayBy(tx *sql.Tx, rc *Receive) error {
 	return nil
 }
 
-func (db *Data) Putaway(rc *Receive) error {
+func (db *Data) Putaway(putawayResult *Receive) error {
 	tx, err := db.DB.Begin()
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
 
-	err = putaway(tx, rc)
+	err = putaway(tx, putawayResult)
 	if err != nil {
 		return err
 	}
 
-	err = setReceiveItemPutawayNote(tx, rc)
+	err = setReceiveItemPutawayNote(tx, putawayResult)
 	if err != nil {
 		return err
 	}
 
-	err = setReceivePutawayBy(tx, rc)
+	err = setReceivePutawayBy(tx, putawayResult)
 	if err != nil {
 		return err
 	}
 
-	err = setReceivePutawayAt(tx, rc.ID)
+	err = setReceivePutawayAt(tx, putawayResult.ID)
 	if err != nil {
 		return err
 	}

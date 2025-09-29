@@ -291,6 +291,9 @@ Tạo yêu cầu nhập
 				})
 				.then(data => {
 					if (!ok) alert(data);
+				})
+				.catch(err => {
+					alert(err);
 				});
 		}
 	});

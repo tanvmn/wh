@@ -332,3 +332,62 @@ func (db *Data) Packages(exportID string) ([]Package, error) {
 
 	return ps, nil
 }
+
+func (db *Data) PackageSerialsByExport(exportID string) ([]Serial, error) {
+	eI, err := id64(exportID, ExportIDCode)
+	if err != nil {
+		return nil, err
+	}
+
+	stmt := `
+	select
+	ps.serial_nanoid
+	,ps.gtin
+	,$1||package.export_id
+	from package_serial as ps
+	join package on package.nanoid = ps.package_nanoid
+	where package.export_id = $2
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var ss []Serial
+
+	rows, err := db.DB.QueryContext(ctx, stmt, ExportIDCode, eI)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if err2 := rows.Close(); err2 != nil {
+			panic(err2)
+		}
+	}()
+
+	for rows.Next() {
+		var s Serial
+
+		err = rows.Scan(
+			&s.NanoID,
+			&s.GTIN,
+			&s.Export.ID,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		e, err := db.Export(s.Export.ID)
+		if err != nil {
+			return nil, err
+		}
+		s.Export = *e
+
+		ss = append(ss, s)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return ss, nil
+}

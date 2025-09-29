@@ -9,17 +9,18 @@ import (
 
 // AddDiffrenceSerials takes a *Receive that WAS USED TO CATCH JSON from the putaway result
 // and add the difference serials if exist
-func (db *Data) AddDifferenceSerials(rc *Receive) error {
-	for _, iq := range rc.Items {
+func (db *Data) AddPutawayDifferenceSerials(putawayResult *Receive) error {
+	for _, iq := range putawayResult.Items {
 		for _, s := range iq.Serials {
 			if len(s.Bin.ID) == 0 && len(iq.PutawayNote) != 0 {
 				stmt := `
-				insert into difference_serial (nanoid, receive_tote, receive_id, purchase_id, gtin) values
+				insert into difference_serial (activity_id, nanoid, receive_tote, receive_id, purchase_id, gtin) values
 				($1
-				,substring($2 from 5 for 1)::bigint
+				,$2
 				,substring($3 from 5 for 1)::bigint
 				,substring($4 from 5 for 1)::bigint
-				,$5
+				,substring($5 from 5 for 1)::bigint
+				,$6
 				)
 				;`
 
@@ -27,6 +28,7 @@ func (db *Data) AddDifferenceSerials(rc *Receive) error {
 				defer cancel()
 
 				_, err := db.DB.ExecContext(ctx, stmt,
+					PutawayIDCode+putawayResult.ID[4:],
 					s.NanoID,
 					s.ReceiveTote.ID,
 					s.Receive.ID,
@@ -171,4 +173,69 @@ func (db *Data) DifferenceSerialsByGTINOfPutawayReceive(warehouseID, receiveID, 
 	}
 
 	return ss, nil
+}
+
+func addPackDifferenceSerials(tx *sql.Tx, exportID64 int64, unpackedSerials []Serial) error {
+	stmt := `
+	insert into difference_serial (activity_id, nanoid, receive_tote, receive_id, purchase_id, gtin) values
+	($1
+	,$2
+	,substring($3 from 5 for 1)::bigint
+	,substring($4 from 5 for 1)::bigint
+	,substring($5 from 5 for 1)::bigint
+	,$6
+	)
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	for _, s := range unpackedSerials {
+		_, err := tx.ExecContext(ctx, stmt,
+			fmt.Sprintf("%v%v", PackIDCode, exportID64),
+			s.NanoID,
+			s.ReceiveTote.ID,
+			s.Receive.ID,
+			s.Purchase.ID,
+			s.GTIN,
+		)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// AddPackDifferenceSerials adds the picked but unsuccessfully packed serials
+func (db *Data) AddPackDifferenceSerials(exportID string) error {
+	ss, err := db.UnpackedSerialsByExport(exportID)
+	if err != nil {
+		db.logger.Error(err.Error())
+		return err
+	}
+
+	eI, err := id64(exportID, ExportIDCode)
+	if err != nil {
+		return nil
+	}
+
+	tx, err := db.DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	err = addPackDifferenceSerials(tx, eI, ss)
+	if err != nil {
+		db.logger.Error(err.Error())
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

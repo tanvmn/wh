@@ -385,7 +385,7 @@ func (db *Data) SerialsByReceive(rc *Receive) error {
 	return nil
 }
 
-func delUnputawaySerials(tx *sql.Tx, rc *Receive) error {
+func delUnputawaySerials(tx *sql.Tx, putawayResult *Receive) error {
 	stmt := `
 	delete from serial where nanoid = $1
 	;`
@@ -393,7 +393,7 @@ func delUnputawaySerials(tx *sql.Tx, rc *Receive) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	for _, iq := range rc.Items {
+	for _, iq := range putawayResult.Items {
 		for _, s := range iq.Serials {
 			if len(s.Bin.ID) == 0 && len(iq.PutawayNote) != 0 {
 				_, err := tx.ExecContext(ctx, stmt, s.NanoID)
@@ -407,14 +407,14 @@ func delUnputawaySerials(tx *sql.Tx, rc *Receive) error {
 	return nil
 }
 
-func (db *Data) DelUnputawaySerials(rc *Receive) error {
+func (db *Data) DelUnputawaySerials(putawayResult *Receive) error {
 	tx, err := db.DB.Begin()
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
 
-	err = delUnputawaySerials(tx, rc)
+	err = delUnputawaySerials(tx, putawayResult)
 	if err != nil {
 		return err
 	}
@@ -478,13 +478,24 @@ func updateSerialAfterPick(tx *sql.Tx, pickResult *Export) error {
 	return nil
 }
 
+// SerialsByExportWrapper takes in a string exportID, parse that to i64 and passes it to SerialsByExport
+func (db *Data) SerialsByExportWrapper(exportID string) ([]Serial, error) {
+	eI, err := id64(exportID, ExportIDCode)
+	if err != nil {
+		return nil, err
+	}
+
+	return db.SerialsByExport(eI)
+}
+
+// SerialsByExport returns the serials that have not null export_id
 func (db *Data) SerialsByExport(exportID int64) ([]Serial, error) {
 	stmt := `
 	select
 	nanoid
 	,gtin
 	,$1||export_id
-	,$2||bin_Id
+	,$2||bin_id
 	from serial
 	where export_id = $3
 	;`
@@ -532,4 +543,163 @@ func (db *Data) SerialsByExport(exportID int64) ([]Serial, error) {
 	}
 
 	return ss, nil
+}
+
+func (db *Data) UnpackedSerialsByExport(exportID string) ([]Serial, error) {
+	ess, err := db.SerialsByExportWrapper(exportID)
+	if err != nil {
+		db.logger.Error(err.Error())
+		return nil, err
+	}
+
+	pss, err := db.PackageSerialsByExport(exportID)
+	if err != nil {
+		db.logger.Error(err.Error())
+		return nil, err
+	}
+
+	var ss []Serial
+
+	for _, es := range ess {
+		contained := false
+		for _, ps := range pss {
+			if es.NanoID == ps.NanoID {
+				contained = true
+				break
+			}
+		}
+
+		if contained {
+			contained = false
+			continue
+		} else {
+			s, err := db.Serial(es.NanoID)
+			if err != nil {
+				db.logger.Error(err.Error())
+				return nil, err
+			}
+			ss = append(ss, *s)
+		}
+	}
+
+	return ss, nil
+}
+
+func (db *Data) Serial(nanoID string) (*Serial, error) {
+	stmt := `
+	select
+	nanoid
+	,$1||receive_tote
+	,$1||pick_tote
+	,$2||bin_id
+	,$3||receive_id
+	,$4||purchase_id
+	,gtin
+	,$5||export_id
+	,$6||resupply_id
+	from serial
+	where nanoid = $7
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var (
+		s                                     Serial
+		pickTote, binID, exportID, resupplyID sql.NullString
+	)
+
+	err := db.DB.QueryRowContext(ctx, stmt, ToteIDCode, BinIDCode, ReceiveIDCode, PurchaseIDCode, ExportIDCode, ResupplyIDCode, nanoID).Scan(
+		&s.NanoID,
+		&s.ReceiveTote.ID,
+		&pickTote,
+		&binID,
+		&s.Receive.ID,
+		&s.Purchase.ID,
+		&s.GTIN,
+		&exportID,
+		&resupplyID,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if pickTote.Valid {
+		s.PickTote.ID = pickTote.String
+	}
+
+	if binID.Valid {
+		b, err := db.Bin(binID.String)
+		if err != nil {
+			return nil, err
+		}
+		s.Bin = *b
+	}
+
+	if exportID.Valid {
+		e, err := db.Export(exportID.String)
+		if err != nil {
+			return nil, err
+		}
+		s.Export = *e
+	}
+
+	if resupplyID.Valid {
+		r, err := db.Resupply(resupplyID.String)
+		if err != nil {
+			return nil, err
+		}
+		s.Resupply = *r
+	}
+
+	return &s, nil
+}
+
+func delSerial(tx *sql.Tx, nanoID string) error {
+	stmt := `
+	delete from serial where nanoid = $1
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err := tx.ExecContext(ctx, stmt, nanoID)
+	return err
+}
+
+func delUnpackedSerials(tx *sql.Tx, unpackedSerials []Serial) error {
+	for _, s := range unpackedSerials {
+		if err := delSerial(tx, s.NanoID); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (db *Data) DelUnpackedSerials(exportID string) error {
+	ss, err := db.UnpackedSerialsByExport(exportID)
+	if err != nil {
+		db.logger.Error(err.Error())
+		return err
+	}
+
+	tx, err := db.DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	err = delUnpackedSerials(tx, ss)
+	if err != nil {
+		db.logger.Error(err.Error())
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

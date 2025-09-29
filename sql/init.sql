@@ -322,6 +322,7 @@ create table if not exists serial (
 );
 
 create table if not exists difference_serial (
+	activity_id text not null,
 	nanoid text unique not null,
 	receive_tote bigint not null,
 	pick_tote bigint,
@@ -627,7 +628,8 @@ update export set picked_by = 3
 where id = 1
 ;
 
-update serial set pick_tote = 1
+update serial set
+pick_tote = 1
 ,export_id = 1
 ,resupply_id = 1
 where nanoid in (

@@ -54,6 +54,7 @@ type ItemQuantity struct {
 	Receive             `json:"receive,omitempty,omitzero"`
 	Export              `json:"export,omitempty,omitzero"`
 	Resupply            `json:"resupply,omitempty,omitzero"`
+	Supplier            `json:"supplier,omitempty,omitzero"`
 }
 
 func (iq ItemQuantity) ExportItemDifference() int64 {

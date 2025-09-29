@@ -63,27 +63,14 @@ func (ap *application) routes() http.Handler {
 		// 		println(iq.Item.GTIN, "stock", iq.Stock, "restock", iq.Restock)
 		// }
 
-		es, err := ap.data.ExportsByWarehouse("WAR-1")
+		is, err := ap.data.CurrentItemQuantitiesInBinsByWarehouse("WAR-1")
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
 
-		for i := range es {
-			ps, err := ap.data.Packages(es[i].ID)
-			if err != nil {
-				fmt.Println(err)
-				return
-			}
-			es[i].Packages = ps
-
-			for _, p := range es[i].Packages {
-				println(es[i].ID)
-				println(p.NanoID)
-				for _, iq := range p.Items {
-					println(iq.Item.GTIN, iq.Quantity)
-				}
-			}
+		for _, iq := range is {
+			println(iq.Item.GTIN, iq.Quantity)
 		}
 	})
 
@@ -108,7 +95,10 @@ func (ap *application) routes() http.Handler {
 	mux.Handle("GET /items", identify.then(ap.itemsPage()))
 	mux.Handle("GET /items/json", identify.then(ap.items()))
 	mux.Handle("GET /items-by-supplier/json", identify.then(ap.itemsBySupplier()))
+
+	// Unsafe
 	mux.Handle("GET /unsafe-stocks", identify.then(ap.unsafeStocksPage()))
+	mux.Handle("POST /unsafe/purchases", identify.then(ap.addUnsafePurchases()))
 
 	// Serial
 	mux.Handle("GET /serials", identify.then(ap.serialsPage()))
