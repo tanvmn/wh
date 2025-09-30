@@ -150,6 +150,17 @@
 	{{end}}
 	<!-- End Phiếu Xuất -->
 
+	<!-- Begin Kiểm -->
+	{{if .Account.Warehouse.ID}}
+	<button class="dropdown-btn-w3">Kiểm hàng
+		<i class="fa fa-caret-down"></i>
+	</button>
+	<div class="dropdown-container-w3">
+		<a id="inventoryAdd" href="{{.Domain}}/inventory-add">Thêm</a>
+	</div>
+	{{end}}
+	<!-- End Kiểm -->
+
 	{{if .Account.Warehouse.ID}}
 	<!-- Begin Chênh lệch -->
 	<a id="difference" href="{{.Domain}}/difference-activities">Chênh Lệch</a>

@@ -13,13 +13,14 @@ type Serial struct {
 	ReceiveTote Tote   `json:"receiveTote,omitempty,omitzero"`
 	PickTote    Tote   `json:"pickTote,omitempty,omitzero"`
 	Bin         `json:"bin,omitempty,omitzero"`
+	Item        `json:"item,omitempty,omitzero"`
 	Purchase    `json:"purchase,omitempty,omitzero"`
 	Receive     `json:"receive,omitempty,omitzero"`
 	Resupply    `json:"resupply,omitempty,omitzero"`
 	Export      `json:"export,omitempty,omitzero"`
 }
 
-// SerialsByGTINAndWarehouse returns the serials of a gtin in a warehouse
+// SerialsByGTINAndWarehouse returns both the put away and not put away serials of a gtin in a warehouse
 func (db *Data) SerialsByGTINAndWarehouse(gtin string, warehouseID string) ([]Serial, error) {
 	if len(gtin) < 5 {
 		return nil, fmt.Errorf("%w: %v", ErrNoItems, gtin)
@@ -702,4 +703,80 @@ func (db *Data) DelUnpackedSerials(exportID string) error {
 	}
 
 	return nil
+}
+
+func (db *Data) UnexportedSerials(warehouseID string) ([]Serial, error) {
+	wI, err := id64(warehouseID, WarehouseIDCode)
+	if err != nil {
+		return nil, err
+	}
+
+	stmt := `
+	select
+	serial.nanoid
+	from serial
+	join bin on bin.id = serial.bin_id
+	where serial.export_id is null
+	and bin.warehouse_id = $1
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	rows, err := db.DB.QueryContext(ctx, stmt, wI)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		err2 := rows.Close()
+		if err2 != nil {
+			panic(err2)
+		}
+	}()
+
+	var ss []Serial
+
+	for rows.Next() {
+		var (
+			s Serial
+		)
+
+		err = rows.Scan(
+			&s.NanoID,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		sp, err := db.Serial(s.NanoID)
+		if err != nil {
+			return nil, err
+		}
+		s = *sp
+
+		ss = append(ss, s)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return ss, nil
+}
+
+func (db *Data) UnexportedSerialsByGTINAndWarehouse(warehouseID, gtin string) ([]Serial, error) {
+	ss, err := db.UnexportedSerials(warehouseID)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []Serial
+
+	for _, s := range ss {
+		if s.GTIN == gtin {
+			result = append(result, s)
+		}
+	}
+
+	return result, nil
 }

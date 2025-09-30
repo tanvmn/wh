@@ -281,6 +281,16 @@ type ExportPackResultPage struct {
 	Packages []data.Package
 }
 
+// Inventory Add Page
+type InventoryAddPage struct {
+	Items []data.ItemQuantity
+}
+
+// Inventory Page
+type InventoryPage struct {
+	*data.Inventory
+}
+
 func (p *ExportPackResultPage) PackDifference(gtin string) int {
 	for _, p := range p.Packages {
 		for _, iq := range p.Items {

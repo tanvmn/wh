@@ -63,14 +63,14 @@ func (ap *application) routes() http.Handler {
 		// 		println(iq.Item.GTIN, "stock", iq.Stock, "restock", iq.Restock)
 		// }
 
-		is, err := ap.data.CurrentItemQuantitiesInBinsByWarehouse("WAR-1")
+		ss, err := ap.data.UnexportedSerialsByGTINAndWarehouse("WAR-1", "8888021200126")
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
 
-		for _, iq := range is {
-			println(iq.Item.GTIN, iq.Quantity)
+		for _, s := range ss {
+			println(s.NanoID, s.GTIN, s.Bin.ID)
 		}
 	})
 
@@ -162,6 +162,11 @@ func (ap *application) routes() http.Handler {
 	mux.Handle("POST /export", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.addExport()))
 	mux.Handle("POST /export/pick", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.pickExport()))
 	mux.Handle("POST /export/pack", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.packExport()))
+
+	// Inventory
+	mux.Handle("GET /inventory-add", append(identify, ap.permit(data.Accountant, data.Manager, data.Employee)).then(ap.addInventoryPage()))
+	mux.Handle("GET /inventory/{id}", append(identify, ap.permit(data.Accountant, data.Manager, data.Employee)).then(ap.inventoryPage()))
+	mux.Handle("POST /inventory", append(identify, ap.permit(data.Accountant, data.Manager, data.Employee)).then(ap.addInventory()))
 
 	// Difference Activities
 	mux.Handle("GET /difference-activities", append(identify, ap.permit(data.Manager, data.Employee)).then(ap.differenceActivitiesPage()))

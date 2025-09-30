@@ -1,0 +1,331 @@
+package data
+
+import (
+	"context"
+	"database/sql"
+	"errors"
+	"fmt"
+	"time"
+)
+
+type Inventory struct {
+	ID               string            `json:"id,omitempty,omitzero"`
+	CreatedAt        string            `json:"createdAt,omitempty,omitzero"`
+	ExpectedAt       string            `json:"expectedAt,omitempty,omitzero"`
+	StartedAt        string            `json:"startedAt,omitempty,omitzero"`
+	EndedAt          string            `json:"endedAt,omitempty,omitzero"`
+	Note             string            `json:"note,omitempty,omitzero"`
+	Balanced         bool              `json:"balanced,omitempty,omitzero"`
+	Version          int               `json:"version,omitempty,omitzero"`
+	Items            []ItemQuantity    `json:"items,omitempty,omitzero"`
+	InventorySerials []InventorySerial `json:"serials,omitempty,omitzero"`
+	Account          `json:"account,omitempty,omitzero"`
+}
+
+const (
+	InventoryUnchecked = "unchecked"
+	InventoryFound     = "THẤY"
+	InventoryNotFound  = "KHÔNG"
+)
+
+var (
+	ErrNoInventories = errors.New("no inventories found")
+)
+
+type InventorySerial struct {
+	Note      string `json:"note,omitempty,omitzero"`
+	Result    string `json:"result,omitempty,omitzero"`
+	Inventory `json:"inventory,omitempty,omitzero"`
+	Serial    `json:"serial,omitempty,omitzero"`
+}
+
+func addInventory(tx *sql.Tx, inventoryAddRequest *Inventory) (id string, err error) {
+	wI, err := id64(inventoryAddRequest.Warehouse.ID, WarehouseIDCode)
+	if err != nil {
+		return "", err
+	}
+	aI, err := id64(inventoryAddRequest.Account.ID, AccountIDCode)
+	if err != nil {
+		return "", err
+	}
+
+	stmt := `
+	insert into inventory (expected_at, warehouse_id, account_id) values
+	($1, $2, $3)
+	returning $4||id
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	err = tx.QueryRowContext(ctx, stmt, inventoryAddRequest.ExpectedAt, wI, aI, InventoryIDCode).Scan(&id)
+	if err != nil {
+		return "", err
+	}
+
+	return id, nil
+}
+
+func addInventorySerials(tx *sql.Tx, inventoryAddRequest *Inventory) error {
+	iI, err := id64(inventoryAddRequest.ID, InventoryIDCode)
+	if err != nil {
+		return err
+	}
+
+	stmt := `
+	insert into inventory_serial (serial, inventory_id) values 
+	($1, $2)
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	for _, is := range inventoryAddRequest.InventorySerials {
+		_, err := tx.ExecContext(ctx, stmt, is.Serial.NanoID, iI)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (db *Data) AddInventory(inventoryAddRequest *Inventory) (id string, err error) {
+	tx, err := db.DB.Begin()
+	if err != nil {
+		return "", err
+	}
+	defer tx.Rollback()
+
+	id, err = addInventory(tx, inventoryAddRequest)
+	if err != nil {
+		db.logger.Error(err.Error())
+		return "", err
+	}
+	inventoryAddRequest.ID = id
+
+	// Add the UnexportedSerialsByGTINAndWarehouse to each inventoryAddRequest's Item
+	for _, iq := range inventoryAddRequest.Items {
+		ss, err := db.UnexportedSerialsByGTINAndWarehouse(inventoryAddRequest.Warehouse.ID, iq.Item.GTIN)
+		if err != nil {
+			db.logger.Error(err.Error())
+			return "", err
+		}
+		for _, s := range ss {
+			var is InventorySerial
+			is.Serial = s
+			inventoryAddRequest.InventorySerials = append(inventoryAddRequest.InventorySerials, is)
+		}
+	}
+
+	err = addInventorySerials(tx, inventoryAddRequest)
+	if err != nil {
+		db.logger.Error(err.Error())
+		return "", err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return "", err
+	}
+
+	return id, nil
+}
+
+func (db *Data) InventoryItems(inventoryID string) ([]ItemQuantity, error) {
+	iI, err := id64(inventoryID, InventoryIDCode)
+	if err != nil {
+		db.logger.Error(err.Error())
+		return nil, err
+	}
+
+	stmt := `
+	select
+	distinct serial.gtin
+	from inventory_serial as isr
+	join serial on serial.nanoid = isr.serial
+	where inventory_id = $1
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var iqs []ItemQuantity
+
+	rows, err := db.DB.QueryContext(ctx, stmt, iI)
+	if err != nil {
+		db.logger.Error(err.Error())
+		return nil, err
+	}
+	defer func() {
+		err2 := rows.Close()
+		if err2 != nil {
+			panic(err2)
+		}
+	}()
+
+	for rows.Next() {
+		var iq ItemQuantity
+
+		err = rows.Scan(
+			&iq.Item.GTIN,
+		)
+		if err != nil {
+			db.logger.Error(err.Error())
+			return nil, err
+		}
+
+		i, err := db.Item(iq.Item.GTIN)
+		if err != nil {
+			db.logger.Error(err.Error())
+			return nil, err
+		}
+		iq.Item = *i
+
+		iqs = append(iqs, iq)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		db.logger.Error(err.Error())
+		return nil, err
+	}
+
+	return iqs, nil
+}
+
+func (db *Data) InventorySerials(inventoryID string) ([]InventorySerial, error) {
+	iI, err := id64(inventoryID, InventoryIDCode)
+	if err != nil {
+		db.logger.Error(err.Error())
+		return nil, err
+	}
+
+	stmt := `
+	select
+	serial
+	,result
+	,note
+	from inventory_serial
+	where inventory_id = $1
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	rows, err := db.DB.QueryContext(ctx, stmt, iI)
+	if err != nil {
+		db.logger.Error(err.Error())
+		return nil, err
+	}
+	defer func() {
+		err2 := rows.Close()
+		if err2 != nil {
+			panic(err2)
+		}
+	}()
+
+	var iss []InventorySerial
+
+	for rows.Next() {
+		var (
+			is InventorySerial
+		)
+
+		err = rows.Scan(
+			&is.Serial.NanoID,
+			&is.Result,
+			&is.Note,
+		)
+		if err != nil {
+			db.logger.Error(err.Error())
+			return nil, err
+		}
+
+		s, err := db.Serial(is.Serial.NanoID)
+		if err != nil {
+			db.logger.Error(err.Error())
+			return nil, err
+		}
+		is.Serial = *s
+		iss = append(iss, is)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		db.logger.Error(err.Error())
+		return nil, err
+	}
+
+	return iss, nil
+}
+
+func (db *Data) Inventory(id string) (*Inventory, error) {
+	iI, err := id64(id, InventoryIDCode)
+	if err != nil {
+		db.logger.Error(err.Error())
+		return nil, err
+	}
+
+	stmt := `
+	select
+	$1||id
+	,created_at
+	,expected_at
+	,started_at
+	,ended_at
+	,balanced
+	,$2||warehouse_id
+	,version
+	,note
+	,$3||account_id
+	from inventory
+	where id = $4
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	i := new(Inventory)
+
+	err = db.DB.QueryRowContext(ctx, stmt, InventoryIDCode, WarehouseIDCode, AccountIDCode, iI).Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.ExpectedAt,
+		&i.StartedAt,
+		&i.EndedAt,
+		&i.Balanced,
+		&i.Account.Warehouse.ID,
+		&i.Version,
+		&i.Note,
+		&i.Account.ID,
+	)
+	if err != nil {
+		db.logger.Error(err.Error())
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("%w; id: %v", ErrNoInventories, id)
+		}
+		return nil, err
+	}
+
+	a, err := db.Account(i.Account.ID)
+	if err != nil {
+		db.logger.Error(err.Error())
+		return nil, err
+	}
+	i.Account = *a
+
+	i.Items, err = db.InventoryItems(id)
+	if err != nil {
+		db.logger.Error(err.Error())
+		return nil, err
+	}
+
+	i.InventorySerials, err = db.InventorySerials(id)
+	if err != nil {
+		db.logger.Error(err.Error())
+		return nil, err
+	}
+
+	return i, nil
+}

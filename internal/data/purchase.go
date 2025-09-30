@@ -871,6 +871,7 @@ func (db *Data) AwaitingReponseOrAwaitingReceivePurchases(warehouseID string) ([
 
 	for _, p := range ps {
 		if p.Status == AwaitingResponse || p.Status == AwaitingReceive {
+			println("awaiting purchases", p.ID, p.Status)
 			result = append(result, p)
 		}
 	}

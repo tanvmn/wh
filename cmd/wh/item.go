@@ -211,6 +211,19 @@ func (ap *application) addUnsafePurchases() http.Handler {
 				}
 			}
 
+			// Check against warehouse capacity
+			enough, err := ap.data.CheckCapacity(p.Items, p.Warehouse.ID)
+			if err != nil {
+				ap.logger.Error(err.Error())
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				return
+			}
+			if !enough {
+				ap.logger.Error("Not enough capacity")
+				http.Error(w, fmt.Sprintf("Kho %v hiện không đủ sức chứa", p.Warehouse.ID), http.StatusUnprocessableEntity)
+				return
+			}
+
 			_, _, err = ap.data.AddPurchase(p)
 			if err != nil {
 				ap.logger.Error(err.Error())

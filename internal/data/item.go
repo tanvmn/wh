@@ -729,10 +729,11 @@ func (db *Data) UnsafeStocks(warehouseID string) ([]ItemQuantity, error) {
 	for i := range sf {
 		for _, iq2 := range s {
 			if sf[i].Item.GTIN == iq2.Item.GTIN {
+				println("current items in bin", iq2.Quantity, "safe stock", sf[i].SafeStock)
 				sf[i].Stock += iq2.Quantity
 				sf[i].Restock += sf[i].SafeStock - iq2.Quantity
 				println("match with wh stocks", sf[i].Item.GTIN, "stock", sf[i].Stock, "restock", sf[i].Restock)
-				break
+				// break
 			}
 		}
 		// this means that the item of safe stocks is not in the stocks of the warehouse,
@@ -743,26 +744,30 @@ func (db *Data) UnsafeStocks(warehouseID string) ([]ItemQuantity, error) {
 		}
 	}
 
+	println()
 	// Add the items in the purchases whose receives have not been processed
 	for i := range sf {
 		for _, iq := range as {
 			if sf[i].Item.GTIN == iq.Item.GTIN {
+				println("current items in awaiting purchases", iq.Quantity, "restock", sf[i].Restock)
 				sf[i].Stock += iq.Quantity
 				sf[i].Restock -= iq.Quantity
 				println("match with awaiting stocks", sf[i].Item.GTIN, "stock", sf[i].Stock, "restock", sf[i].Restock)
-				break
+				// break
 			}
 		}
 	}
 
+	println()
 	// Minus the items in the resupply whose export have not been processed
 	for i := range sf {
 		for _, iq := range is {
 			if sf[i].Item.GTIN == iq.Item.GTIN {
+				println("current items in unprocessed resupply", iq.Quantity, "restock", sf[i].Restock)
 				sf[i].Stock -= iq.Quantity
 				sf[i].Restock += iq.Quantity
 				println("match with awaiting not stocks", sf[i].Item.GTIN, "stock", sf[i].Stock, "restock", sf[i].Restock)
-				break
+				// break
 			}
 		}
 	}
@@ -783,6 +788,65 @@ func (db *Data) UnsafeStocks(warehouseID string) ([]ItemQuantity, error) {
 				}
 			}
 		}
+	}
+
+	return iqs, nil
+}
+
+// NotExportedStockItems returns the stored and not exported items of warehouse based on the serial table
+func (db *Data) NotExportedStockItems(warehouseID string) ([]ItemQuantity, error) {
+	wI, err := id64(warehouseID, WarehouseIDCode)
+	if err != nil {
+		db.logger.Error(err.Error())
+		return nil, err
+	}
+
+	stmt := `
+	select
+	distinct serial.gtin
+	from serial
+	join bin on bin.id = serial.bin_id
+	where serial.bin_id is not null
+	and (serial.export_id is null)
+	and bin.warehouse_id = $1
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	rows, err := db.DB.QueryContext(ctx, stmt, wI)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if err2 := rows.Close(); err2 != nil {
+			panic(err2)
+		}
+	}()
+
+	var iqs []ItemQuantity
+
+	for rows.Next() {
+		var iq ItemQuantity
+
+		err = rows.Scan(
+			&iq.Item.GTIN,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		i, err := db.Item(iq.Item.GTIN)
+		if err != nil {
+			return nil, err
+		}
+		iq.Item = *i
+
+		iqs = append(iqs, iq)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return iqs, nil

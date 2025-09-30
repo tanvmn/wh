@@ -62,6 +62,8 @@ drop table if exists difference_serial cascade;
 drop table if exists package cascade;
 drop table if exists package_item cascade;
 drop table if exists package_serial cascade;
+drop table if exists inventory cascade;
+drop table if exists inventory_serial cascade;
 
 
 create table if not exists warehouse (
@@ -105,21 +107,20 @@ create table if not exists inventory (
 	id bigserial not null,
 	created_at timestamp not null default now(),
 	expected_at timestamp not null,
-	started_at timestamp not null,
-	ended_at timestamp not null,
-	balanced boolean not null,
+	started_at timestamp not null default '1000-01-01',
+	ended_at timestamp not null default '1000-01-01',
+	balanced boolean not null default false,
 	warehouse_id bigint not null,
 	version integer not null default 1,
 	note text default 'none',
 	account_id bigint not null
 );
 
-create table if not exists inventory_item (
-	inventory_id bigint not null,
-	gtin text not null,
-	expected_quantity bigint not null,
-	counted_quantity bigint not null,
-	version integer not null default 1
+create table if not exists inventory_serial (
+	inventory_id bigint not null
+	,serial text not null
+	,result text not null default 'unchecked'
+	,note text not null default 'none'
 );
 
 create table if not exists account (
@@ -650,7 +651,7 @@ update resupply set status = 'KẾT THÚC' where id = 1;
 alter table warehouse add constraint pk_warehouse primary key(id);
 alter table transfer add constraint pk_transfer primary key(id);
 alter table inventory add constraint pk_inventory primary key(id);
-alter table inventory_item add constraint pk_inventory_item primary key(inventory_id, gtin);
+alter table inventory_serial add constraint pk_inventory_serial primary key(inventory_id, serial);
 alter table account add constraint pk_account primary key(id);
 alter table store add constraint pk_store primary key(id);
 alter table purchase add constraint pk_purchase primary key(id);
@@ -680,6 +681,9 @@ alter table transfer add constraint fk_transfer_account_id foreign key(account_i
 
 alter table inventory add constraint fk_inventory_warehouse_id foreign key(warehouse_id) references warehouse(id);
 alter table inventory add constraint fk_inventory_account_id foreign key(account_id) references account(id);
+
+alter table inventory_serial add constraint fk_inventory_serial_inventory foreign key(inventory_id) references inventory(id);
+alter table inventory_serial add constraint fk_inventory_serial_serial foreign key(serial) references serial(nanoid);
 
 alter table account add constraint fk_account_warehouse_id foreign key(warehouse_id) references warehouse(id);
 alter table account add constraint fk_account_store_id foreign key(store_id) references store(id);

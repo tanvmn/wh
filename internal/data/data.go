@@ -31,6 +31,7 @@ const (
 	PickIDCode      = "PIC-"
 	PackIDCode      = "PAC-"
 	PackageIDCode   = "PKG-"
+	InventoryIDCode = "INV-"
 )
 
 const (

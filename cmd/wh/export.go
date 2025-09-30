@@ -27,7 +27,7 @@ func (ap *application) addExport() http.Handler {
 			return
 		}
 
-		http.Error(w, exportID, http.StatusBadRequest)
+		http.Redirect(w, r, fmt.Sprintf("/export/%v", exportID), http.StatusSeeOther)
 	})
 }
 
