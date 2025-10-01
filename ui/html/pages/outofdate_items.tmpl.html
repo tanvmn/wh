@@ -1,5 +1,5 @@
 {{define "title"}}
-Yêu Cầu Xuất
+Hàng quá hạn
 {{end}}
 
 {{define "main"}}
@@ -14,58 +14,34 @@ Yêu Cầu Xuất
 
 <div class="container-fluid">
 	<h3 class="p-3">
-		Yêu cầu xuất của kho:&nbsp&nbsp
+		Hàng quá hạn kho:&nbsp&nbsp
 		<span id="warehouseName" class="badge text-bg-info">
-			{{if.Account.Store.ID}}{{.Account.Store.Warehouse.Name}}{{else}}{{.Account.Warehouse.Name}}{{end}}
+			{{.Account.Warehouse.Name}}
 		</span>
 	</h3>
 	<table id="dataTable" class="display compact">
 		<thead>
 			<tr>
-				<th>ID</th>
-				<th>Kho</th>
-				<th>Cửa hàng</th>
-				<th>Dự kiến xuất<br>(d-m-y h24:m)</th>
-				<th>Trạng thái</th>
-				<th>Tạo bởi</th>
-				<th>Tạo lúc<br>(d-m-y h24:m)</th>
+				<th></th>
+				<th>GTIN</th>
+				<th>Tên</th>
+				<th>Số lượng (cái)</th>
 				<th></th>
 			</tr>
 		</thead>
 		<tbody id="tbody">
 			{{$domain := .Domain}}
 			{{$account := .Account}}
-			{{$manager := .Manager}}
-			{{$exportIDCode := .ExportIDCode}}
-			{{range .Page.Resupplies}}
+			{{range .Page.Items}}
 			<tr>
-				<td>{{.ID}}</td>
+				<td><img src="/rec/{{.Item.ImgFSPath}}" alt="/rec/{{.Item.ImgFSPath}}" width="100"></td>
+				<td>{{.Item.GTIN}}</td>
+				<td>{{.Item.Name}}</td>
+				<td>{{len .Serials}}</td>
 				<td>
-					<strong>ID: </strong>{{.Account.Store.Warehouse.ID}}<br>
-					<strong>Tên: </strong>{{.Account.Store.Warehouse.Name}}<br>
-				</td>
-				<td>
-					<strong>ID: </strong>{{.Account.Store.ID}}<br>
-					<strong>Tên: </strong>{{.Account.Store.Name}}<br>
-				</td>
-				<td>{{.ExpectedAt}}</td>
-				<td>
-					<span class="badge text-bg-{{badgeBg .Status}}">
-						{{.Status}}
-					</span>
-				</td>
-				<td>
-					<strong>ID: </strong>{{.Account.ID}}<br>
-					<strong>Tên: </strong>{{.Account.Name}}<br>
-					<strong>CVụ: </strong>{{.Account.Role}}<br>
-				</td>
-				<td>{{.CreatedAt}}</td>
-				<td>
-					{{if (or (eq $account.Role $manager) (ne $account.Store.ID ""))}}
-					<a class="btn btn-sm btn-info" href="{{$domain}}/resupply/{{.ID}}">
-						Xem
+					<a class="btn btn-sm btn-info" href="{{$domain}}/serials/out-of-date?gtin={{.Item.GTIN}}">
+						Chi tiết
 					</a>
-					{{end}}
 				</td>
 			</tr>
 			{{end}}

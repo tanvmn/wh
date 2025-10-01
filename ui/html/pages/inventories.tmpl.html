@@ -37,8 +37,24 @@ Kiểm hàng
 			<tr>
 				<td>{{.ID}}</td>
 				<td>{{.ExpectedAt}}</td>
-				<td>{{.StartedAt}}</td>
-				<td>{{.EndedAt}}</td>
+				<td>
+					{{if (not01011000 .StartedAt)}}
+					{{.StartedAt}}
+					{{else}}
+					<span class="badge text-bg-secondary">
+						CHƯA BẮT ĐẦU
+					</span>
+					{{end}}
+				</td>
+				<td>
+					{{if (not01011000 .StartedAt)}}
+					{{.EndedAt}}
+					{{else}}
+					<span class="badge text-bg-dark">
+						CHƯA KẾT THÚC
+					</span>
+					{{end}}
+				</td>
 				<td>
 					<strong>ID: </strong>{{.Account.ID}}<br>
 					<strong>Tên: </strong>{{.Account.Name}}<br>
@@ -48,10 +64,12 @@ Kiểm hàng
 					<a class="btn btn-sm btn-info" href="{{$domain}}/inventory/{{.ID}}">
 						Xem
 					</a>
+					{{if (not01011000 .EndedAt)}}
 					<a class="btn btn-sm btn-success"
 						href="{{$domain}}/inventory/{{.ID}}/process/result">
 						Kết quả
 					</a>
+					{{end}}
 				</td>
 			</tr>
 			{{end}}

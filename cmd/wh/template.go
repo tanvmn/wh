@@ -310,6 +310,16 @@ type InventoryProcessResultPage struct {
 	*data.Inventory
 }
 
+// Out of date items
+type OutOfDateItemsPage struct{
+	Items []data.ItemQuantity
+}
+
+// Out of date items
+type OutOfDateSerialsPage struct{
+	Item *data.ItemQuantity
+}
+
 func (p *ExportPackResultPage) PackDifference(gtin string) int {
 	for _, p := range p.Packages {
 		for _, iq := range p.Items {

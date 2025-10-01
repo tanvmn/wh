@@ -853,6 +853,7 @@ func (db *Data) NotExportedStockItems(warehouseID string) ([]ItemQuantity, error
 	return iqs, nil
 }
 
+// OutOfDateItems returns the out of date items of a warehouse
 func (db *Data) OutOfDateItems(warehouseID string) ([]ItemQuantity, error) {
 	wI, err := id64(warehouseID, WarehouseIDCode)
 	if err != nil {
@@ -908,6 +909,13 @@ func (db *Data) OutOfDateItems(warehouseID string) ([]ItemQuantity, error) {
 			db.logger.Error(err.Error())
 			return nil, err
 		}
+
+		i, err := db.Item(iq.Item.GTIN)
+		if err != nil {
+			db.logger.Error(err.Error())
+			return nil, err
+		}
+		iq.Item = *i
 
 		ss, err := db.OutOfDateSerialsByGTIN(warehouseID, iq.Item.GTIN)
 		if err != nil {

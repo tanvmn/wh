@@ -59,7 +59,7 @@ func (ap *application) routes() http.Handler {
 		}
 
 		for _, iq := range iqs {
-			println(iq.Item.GTIN)
+			println(iq.Item.GTIN, iq.Item.Name, iq.Item.ImgFSPath, "quantity", len(iq.Serials))
 			for _, s := range iq.Serials {
 				println(s.NanoID, s.Bin.ID, s.Item.GTIN, s.Item.ImgFSPath, s.Receive.ID, s.Receive.ActualAt, "stored months", s.StoredMonths)
 			}
@@ -88,6 +88,7 @@ func (ap *application) routes() http.Handler {
 	mux.Handle("GET /items", identify.then(ap.itemsPage()))
 	mux.Handle("GET /items/json", identify.then(ap.items()))
 	mux.Handle("GET /items-by-supplier/json", identify.then(ap.itemsBySupplier()))
+	mux.Handle("GET /items/out-of-date", identify.then(ap.outOfDateItems()))
 
 	// Unsafe
 	mux.Handle("GET /unsafe-stocks", identify.then(ap.unsafeStocksPage()))
@@ -95,6 +96,7 @@ func (ap *application) routes() http.Handler {
 
 	// Serial
 	mux.Handle("GET /serials", identify.then(ap.serialsPage()))
+	mux.Handle("GET /serials/out-of-date", identify.then(ap.outOfDateSerialsPage()))
 
 	// Warehouse
 	mux.Handle("GET /totes/{warehouse}/unused/json", identify.then(ap.unusedTotes()))

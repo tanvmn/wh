@@ -1,0 +1,78 @@
+{{define "title"}}
+Serial hàng quá hạn
+{{end}}
+
+{{define "main"}}
+<link rel="stylesheet" href="https://cdn.datatables.net/2.3.2/css/dataTables.dataTables.css" />
+<style>
+	ul {
+		list-style-type: none;
+		margin: 0;
+		padding: 0;
+	}
+</style>
+
+<div class="container-fluid">
+	<h3 class="p-1">
+		Serial quá hạn của&nbsp&nbsp<i><strong>{{.Page.Item.GTIN}}</strong></i>
+		<img src="/rec/{{.Page.Item.ImgFSPath}}" alt="/rec/{{.Page.Item.ImgFSPath}}" height="100">
+	</h3>
+	<table id="dataTable" class="display compact">
+		<thead>
+			<tr>
+				<th>NanoID</th>
+				<th>ID giỏ</th>
+				<th>Kệ</th>
+				<th>Hàng</th>
+				<th>Cột</th>
+				<th>Nhập lúc<br>(d/m/y h24:m)</th>
+				<th>Hạn trữ (tháng)</th>
+				<th>Đã trữ (tháng)</th>
+			</tr>
+		</thead>
+		<tbody id="tbody">
+			{{$domain := .Domain}}
+			{{$account := .Account}}
+			{{range .Page.Item.Serials}}
+			<tr>
+				<td>{{.NanoID}}</td>
+				<td>{{.Bin.ID}}</td>
+				<td>{{.Bin.Shelf}}</td>
+				<td>{{.Bin.Row}}</td>
+				<td>{{.Bin.Col}}</td>
+				<td>{{.Receive.ActualAt}}</td>
+				<td>{{.Item.ShelfLife}}</td>
+				<td>{{.StoredMonths}}</td>
+			</tr>
+			{{end}}
+		</tbody>
+	</table>
+</div>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script src="https://cdn.datatables.net/2.3.2/js/dataTables.js"></script>
+<script type="module">
+	import { Scanner } from "../static/js/util.js";
+
+	function filterRow(table) {
+		return function (code) {
+			table.search(code);
+			table.draw();
+		};
+	}
+	document.addEventListener('DOMContentLoaded', () => {
+		let table = new DataTable('#dataTable', {
+			columnDefs: [
+				{
+					targets: '_all',
+					className: 'dt-center'
+				},
+			],
+			pageLength: 5,
+			lengthMenu: [5, 10, 25, 50, 75, 100],
+		});
+
+		Scanner.init(filterRow(table));
+	});
+</script>
+{{end}}

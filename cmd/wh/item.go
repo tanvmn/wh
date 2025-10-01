@@ -235,3 +235,37 @@ func (ap *application) addUnsafePurchases() http.Handler {
 		http.Redirect(w, r, "/purchases", http.StatusSeeOther)
 	})
 }
+
+func (ap *application) outOfDateItems() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		wID, ok := r.Context().Value(authenticatedCtxWarehouseID).(string)
+		if !ok {
+			ap.logger.Error(fmt.Sprintf("%v, authenticatedCtxWarehouseID: %v", ErrConvertCtxVal, wID))
+		}
+
+		is, err := ap.data.OutOfDateItems(wID)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		p := new(OutOfDateItemsPage)
+		p.Items = is
+
+		t, err := ap.newTemplData(r)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		t.Page = p
+
+		err = ap.render(w, http.StatusOK, "outofdate_items", t)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+	})
+}
