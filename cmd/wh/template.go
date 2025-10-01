@@ -18,43 +18,46 @@ import (
 )
 
 type templData struct {
-	Domain           string
-	CompanyName      string
-	MinTimestamp     string
-	Admin            string
-	Accountant       string
-	HeadAccountant   string
-	Manager          string
-	Employee         string
-	AccountIDCode    string
-	GTINIDCode       string
-	SerialIDCode     string
-	BinIDCode        string
-	ToteIDCode       string
-	BoxIDCode        string
-	StaffIDCode      string
-	WarehouseIDCode  string
-	StoreIDCode      string
-	SupplierIDCode   string
-	PurchaseIDCode   string
-	ReceiveIDCode    string
-	ResupplyIDCode   string
-	ExportIDCode     string
-	AwaitingResponse string
-	AwaitingReceive  string
-	AwaitingExport   string
-	Receiving        string
-	Ended            string
-	Declined         string
-	Items            []data.Item
-	ItemQuantitys    []data.ItemQuantity
-	Serials          []data.Serial
-	Warehouses       []data.Warehouse
-	Suppliers        []data.Supplier
-	Purchases        []data.Purchase
-	Receives         []data.Receive
-	PutawayBins      []data.PutAwayBin
-	Page             any
+	Domain             string
+	CompanyName        string
+	MinTimestamp       string
+	Admin              string
+	Accountant         string
+	HeadAccountant     string
+	Manager            string
+	Employee           string
+	AccountIDCode      string
+	GTINIDCode         string
+	SerialIDCode       string
+	BinIDCode          string
+	ToteIDCode         string
+	BoxIDCode          string
+	StaffIDCode        string
+	WarehouseIDCode    string
+	StoreIDCode        string
+	SupplierIDCode     string
+	PurchaseIDCode     string
+	ReceiveIDCode      string
+	ResupplyIDCode     string
+	ExportIDCode       string
+	AwaitingResponse   string
+	AwaitingReceive    string
+	AwaitingExport     string
+	Receiving          string
+	Ended              string
+	Declined           string
+	InventoryUnchecked string
+	InventoryFound     string
+	InventoryNotFound  string
+	Items              []data.Item
+	ItemQuantitys      []data.ItemQuantity
+	Serials            []data.Serial
+	Warehouses         []data.Warehouse
+	Suppliers          []data.Supplier
+	Purchases          []data.Purchase
+	Receives           []data.Receive
+	PutawayBins        []data.PutAwayBin
+	Page               any
 	data.Item
 	data.Purchase
 	data.Account
@@ -291,6 +294,12 @@ type InventoryPage struct {
 	*data.Inventory
 }
 
+// Inventory Process Page
+type InventoryProcessPage struct {
+	*data.Inventory
+	UncheckedInventorySerials []data.InventorySerial
+}
+
 func (p *ExportPackResultPage) PackDifference(gtin string) int {
 	for _, p := range p.Packages {
 		for _, iq := range p.Items {
@@ -387,37 +396,40 @@ func (ap *application) newTemplData(r *http.Request) (templData, error) {
 	}
 
 	return templData{
-		Domain:           domain,
-		CompanyName:      companyName,
-		Admin:            data.Admin,
-		Accountant:       data.Accountant,
-		HeadAccountant:   data.HeadAccountant,
-		Manager:          data.Manager,
-		Employee:         data.Employee,
-		AccountIDCode:    data.AccountIDCode,
-		GTINIDCode:       data.GTINIDCode,
-		SerialIDCode:     data.SerialIDCode,
-		BinIDCode:        data.BinIDCode,
-		ToteIDCode:       data.ToteIDCode,
-		BoxIDCode:        data.BoxIDCode,
-		StaffIDCode:      data.StaffIDCode,
-		WarehouseIDCode:  data.WarehouseIDCode,
-		StoreIDCode:      data.StoreIDCode,
-		SupplierIDCode:   data.SupplierIDCode,
-		PurchaseIDCode:   data.PurchaseIDCode,
-		ReceiveIDCode:    data.ReceiveIDCode,
-		ResupplyIDCode:   data.ResupplyIDCode,
-		ExportIDCode:     data.ExportIDCode,
-		AwaitingResponse: data.AwaitingResponse,
-		AwaitingReceive:  data.AwaitingReceive,
-		AwaitingExport:   data.AwaitingExport,
-		Receiving:        data.Receiving,
-		Ended:            data.Ended,
-		Declined:         data.Declined,
-		Account:          *ac,
-		Warehouses:       ws,
-		Suppliers:        ss,
-		MinTimestamp:     time.Now().Format(time.RFC3339)[:16],
+		Domain:             domain,
+		CompanyName:        companyName,
+		Admin:              data.Admin,
+		Accountant:         data.Accountant,
+		HeadAccountant:     data.HeadAccountant,
+		Manager:            data.Manager,
+		Employee:           data.Employee,
+		AccountIDCode:      data.AccountIDCode,
+		GTINIDCode:         data.GTINIDCode,
+		SerialIDCode:       data.SerialIDCode,
+		BinIDCode:          data.BinIDCode,
+		ToteIDCode:         data.ToteIDCode,
+		BoxIDCode:          data.BoxIDCode,
+		StaffIDCode:        data.StaffIDCode,
+		WarehouseIDCode:    data.WarehouseIDCode,
+		StoreIDCode:        data.StoreIDCode,
+		SupplierIDCode:     data.SupplierIDCode,
+		PurchaseIDCode:     data.PurchaseIDCode,
+		ReceiveIDCode:      data.ReceiveIDCode,
+		ResupplyIDCode:     data.ResupplyIDCode,
+		ExportIDCode:       data.ExportIDCode,
+		AwaitingResponse:   data.AwaitingResponse,
+		AwaitingReceive:    data.AwaitingReceive,
+		AwaitingExport:     data.AwaitingExport,
+		Receiving:          data.Receiving,
+		Ended:              data.Ended,
+		Declined:           data.Declined,
+		InventoryUnchecked: data.InventoryUnchecked,
+		InventoryFound:     data.InventoryFound,
+		InventoryNotFound:  data.InventoryNotFound,
+		Account:            *ac,
+		Warehouses:         ws,
+		Suppliers:          ss,
+		MinTimestamp:       time.Now().Format(time.RFC3339)[:16],
 	}, nil
 }
 

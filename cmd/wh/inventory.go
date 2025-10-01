@@ -66,11 +66,6 @@ func (ap *application) addInventory() http.Handler {
 			return
 		}
 
-		println(req.ExpectedAt)
-		for _, iq := range req.Items {
-			println(iq.Item.GTIN)
-		}
-
 		inventoryAddRequest := new(data.Inventory)
 		inventoryAddRequest.ExpectedAt = req.ExpectedAt
 
@@ -135,5 +130,84 @@ func (ap *application) inventoryPage() http.Handler {
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
+	})
+}
+
+func (ap *application) inventoryProcessPage() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		inventoryID := r.PathValue("id")
+
+		iss, err := ap.data.UncheckedInventorySerialsOf1RandomBin(inventoryID)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		// If there aren't any unchecked inventory serials (aka no unchecked bins) response 404
+		if len(iss) == 0 {
+			http.Error(w, "all bins checked", http.StatusNotFound)
+			return
+		}
+
+		i, err := ap.data.Inventory(inventoryID)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		if err = ap.data.UpdateInventoryStartedAt(inventoryID); err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		p := new(InventoryProcessPage)
+		p.Inventory = i
+		p.UncheckedInventorySerials = iss
+
+		t, err := ap.newTemplData(r)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		t.Page = p
+
+		err = ap.render(w, http.StatusOK, "inventory_process", t)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+	})
+}
+
+func (ap *application) processInventoryBinResult() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var inventoryBinResult data.Inventory
+
+		err := ap.decodeJSON(w, r, &inventoryBinResult)
+		if err != nil {
+			ap.logger.Error(err.Error())
+
+			var mr *util.MalformedRequest
+			if errors.As(err, &mr) {
+				http.Error(w, mr.Msg, mr.Status)
+			} else {
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			}
+			return
+		}
+
+		println(inventoryBinResult.ID)
+		for _, is := range inventoryBinResult.InventorySerials {
+			println(is.Serial.NanoID)
+			println(is.Result)
+			println(is.Note)
+			println()
+		}
+
+		http.Error(w, "success", http.StatusBadRequest)
 	})
 }

@@ -1,0 +1,243 @@
+{{define "title"}}
+Kiểm hàng
+{{end}}
+
+{{define "main"}}
+<style>
+	table,
+	thead,
+	tbody,
+	th,
+	td {
+		padding: 0;
+		text-align: center;
+	}
+
+	ul {
+		list-style-type: none;
+		margin: 0;
+		padding: 0;
+	}
+</style>
+
+<div class="container-fluid">
+	<div class="row p-3">
+		{{with .Page.Inventory}}
+		<div class="col-3">
+			<h3 class="d-inline">
+				Kiểm hàng ID:&nbsp&nbsp
+				<span id="inventoryID" class="badge text-bg-info">{{.ID}}</span>
+			</h3>
+		</div>
+		{{end}}
+	</div>
+
+	<form class="was-validated" novalidate>
+		<!-- Begin warehouse, expectedAt -->
+		<div class="row">
+			{{with .Page.Inventory}}
+			<div class="col">
+				<label for="warehouse" class="form-label">Kho</label>
+				<input name="warehouse" id="warehouse" class="form-control"
+					value="{{.Account.Warehouse.ID}} / {{.Account.Warehouse.Name}}" disabled>
+			</div>
+			{{end}}
+
+			<div class="col">
+				<label for="expectedAt" class="form-label">Dự kiến (mm/dd/yyyy)</label>
+				<input type="datetime-local" name="expectedAt" id="expectedAt" min="{{.MinTimestamp}}"
+					class="form-control was-validated"
+					value="{{slice .Page.Inventory.ExpectedAt 0 16}}" disabled required>
+				<div class="invalid-feedback">
+					Thời điểm phải từ hiện tại trở về sau
+				</div>
+			</div>
+		</div>
+		<!-- End warehouse, expectedAt -->
+
+		<div class="row my-4">
+			<div class="col-4 mx-auto">
+				<button class="btn btn-primary" type="submit" id="submitBtn">
+					Tiếp
+				</button>
+			</div>
+		</div>
+
+		<!-- Begin items pick table -->
+		<div class="row mt-1">
+			<table id="itemTable" class="table table-striped align-middle">
+				<thead>
+					<th></th>
+					<th>Hàng</th>
+					<th>Serial</th>
+					<th>ID Giỏ</th>
+					<th>Kệ</th>
+					<th>Hàng</th>
+					<th>Cột</th>
+					<th class="d-none">Ghi chú</th>
+					<th>Kết quả</th>
+				</thead>
+				<tbody id="itemList">
+					{{range .Page.UncheckedInventorySerials}}
+					<tr>
+						<td>
+							<img height="100" src="/rec/{{.Serial.Item.ImgFSPath}}"
+								alt="/rec/{{.Serial.Item.ImgFSPath}}">
+						</td>
+						<td>
+							<ul>
+								<li>
+									<b>GTIN: </b>
+									<span class="gtin">{{.Serial.Item.GTIN}}</span>
+								</li>
+								<li>{{.Serial.Item.Name}}</li>
+							</ul>
+						</td>
+						<td class="serial">{{.Serial.NanoID}}</td>
+						<td class="binID">{{.Serial.Bin.ID}}</td>
+						<td>{{.Serial.Bin.Shelf}}</td>
+						<td>{{.Serial.Bin.Row}}</td>
+						<td>{{.Serial.Bin.Col}}</td>
+						<td class="d-none"><textarea class="note"></textarea></td>
+						<td class="resultTD">
+							<span class="badge result"></span>
+						</td>
+					</tr>
+					{{end}}
+				</tbody>
+			</table>
+		</div>
+		<!-- End items pick table -->
+	</form>
+</div>
+<script type="module">
+	import { domain, IDCode, Status, Scanner } from "/static/js/util.js";
+
+	// updateSerialResult updates the result of a successfully scanned serial in the DOM
+	function updateSerialResult(serial, result) {
+		console.log('input', serial);
+		document.querySelector('#itemList').querySelectorAll('tr').forEach((tr, idx) => {
+			if (tr.querySelector('.serial').innerText === serial) {
+				tr.querySelector('.result').classList.remove('text-bg-success');
+				tr.querySelector('.result').classList.remove('text-bg-danger');
+				if (result === Status.InventoryFound) {
+					tr.querySelector('.result').classList.add('text-bg-success');
+					tr.querySelector('.result').innerText = Status.InventoryFound;
+				} else {
+					tr.querySelector('.result').classList.add('text-bg-danger');
+					tr.querySelector('.result').innerText = Status.InventoryNotFound;
+				}
+			}
+		});
+	}
+
+	// isSerial return true if the serial of input is within the serials in the DOM
+	function isSerial(input) {
+		for (let tr of document.querySelector('#itemList').querySelectorAll('tr')) {
+			if (tr.querySelector('.serial').innerText === input) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	function isChecked(serial) {
+		for (let tr of document.querySelector('#itemList').querySelectorAll('tr')) {
+			if (tr.querySelector('.serial').innerText === serial && tr.querySelector('.result').innerText === Status.InventoryFound) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	function process(input) {
+		let gtin = input.split(';')[0];
+		let serial = input.split(';')[1];
+
+		if (isSerial(serial)) {
+			if (!isChecked(serial)) {
+				updateSerialResult(serial, Status.InventoryFound);
+			} else {
+				alert(`${serial} ĐÃ KIỂM`);
+			}
+		} else {
+			alert(`${input} KHÔNG HỢP LỆ`);
+		}
+	}
+
+	function input() {
+		let o = {
+			id: document.querySelector('#inventoryID').innerText,
+			serials: [],
+		};
+
+		document.querySelector('#itemList').querySelectorAll('tr').forEach((tr, idx) => {
+			let s = {
+				serial: { nanoID: tr.querySelector('.serial').innerText },
+			};
+
+			if (tr.querySelector('.result').innerText === '') {
+				s.result = Status.InventoryNotFound;
+			} else {
+				s.result = tr.querySelector('.result').innerText;
+			}
+
+			if (tr.querySelector('.note').value === '') {
+				s.note = 'none';
+			}
+
+			o.serials.push(s);
+		});
+
+		console.log(JSON.stringify(o));
+		return o;
+	}
+
+	function request(obj) {
+		let ok = false;
+		fetch(domain + `/inventory/${document.querySelector('#inventoryID').innerText}/bin-result`, {
+			method: 'POST',
+			body: JSON.stringify(obj),
+			headers: {
+				'Content-Type': 'application/json'
+			}
+		})
+			.then(res => {
+				ok = res.ok;
+				if (res.redirected) {
+					window.location.replace(res.url);
+					return;
+				}
+				return res.text();
+			})
+			.then(data => {
+				if (!ok) alert(data);
+			});
+	}
+
+	document.addEventListener('DOMContentLoaded', function () {
+		// Initialize QR scanning
+		Scanner.init(process);
+
+
+		// Submit the purchase in JSON to server
+		document.querySelector('form').addEventListener('submit', (e) => {
+			e.preventDefault();
+
+			if (document.querySelector('#itemList').querySelectorAll('tr').length === 0) {
+				alert('Phải chọn ít nhất 1 mặt hàng');
+				return;
+			}
+			if (!e.target.checkValidity()) {
+				return;
+			}
+
+			if (confirm('Bạn đã chắc về thông tin của phiên kiểm hàng?')) {
+				// input();
+				request(input());
+			}
+		});
+
+	});
+</script>
+{{end}}

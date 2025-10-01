@@ -2,11 +2,16 @@ const domain = "http://localhost:4000";
 const itemImgFSPath = "item/img/";
 
 const Status = {
-  AwaitingResponse: "Chờ phản hồi",
-  AwaitingReceive: "Chờ nhập",
-  Receiving: "Đang nhập",
-  Ended: "Kết thúc",
-  Declined: "Từ chối",
+  AwaitingResponse: "CHỜ PHẢN HỒI",
+  AwaitingReceive: "CHỜ NHẬP",
+  Receiving: "ĐANG NHẬP",
+  AwaitingExport: "CHỜ XUẤT",
+  Exporting: "ĐANG XUẤT",
+  Ended: "KẾT THÚC",
+  Declined: "TỪ CHỐI",
+  InventoryUnchecked: "unchecked",
+  InventoryFound: "CÓ",
+  InventoryNotFound: "KHÔNG",
 };
 
 const IDCode = {
@@ -26,6 +31,8 @@ const IDCode = {
   ExportIDCode: "EXP-",
   TransferIDCode: "TRA-",
   VoucherIDCode: "VOU-",
+  InventoryIDCode: "INV-",
+  PackageIDCode: "PKG-",
 };
 
 class Scanner {

@@ -22,22 +22,22 @@ type Inventory struct {
 	Account          `json:"account,omitempty,omitzero"`
 }
 
-const (
-	InventoryUnchecked = "unchecked"
-	InventoryFound     = "THẤY"
-	InventoryNotFound  = "KHÔNG"
-)
-
-var (
-	ErrNoInventories = errors.New("no inventories found")
-)
-
 type InventorySerial struct {
 	Note      string `json:"note,omitempty,omitzero"`
 	Result    string `json:"result,omitempty,omitzero"`
 	Inventory `json:"inventory,omitempty,omitzero"`
 	Serial    `json:"serial,omitempty,omitzero"`
 }
+
+const (
+	InventoryUnchecked = "unchecked"
+	InventoryFound     = "CÓ"
+	InventoryNotFound  = "KHÔNG"
+)
+
+var (
+	ErrNoInventories = errors.New("no inventories found")
+)
 
 func addInventory(tx *sql.Tx, inventoryAddRequest *Inventory) (id string, err error) {
 	wI, err := id64(inventoryAddRequest.Warehouse.ID, WarehouseIDCode)
@@ -97,6 +97,7 @@ func (db *Data) AddInventory(inventoryAddRequest *Inventory) (id string, err err
 	}
 	defer tx.Rollback()
 
+	// Remember to assign the newly created inventory id (string) before calling addInventorySerial
 	id, err = addInventory(tx, inventoryAddRequest)
 	if err != nil {
 		db.logger.Error(err.Error())
@@ -328,4 +329,137 @@ func (db *Data) Inventory(id string) (*Inventory, error) {
 	}
 
 	return i, nil
+}
+
+// UncheckedInventorySerials returns an inventory's unchecked serials
+func (db *Data) UncheckedInventorySerials(inventoryID string) ([]InventorySerial, error) {
+	iss, err := db.InventorySerials(inventoryID)
+	if err != nil {
+		db.logger.Error(err.Error())
+		return nil, err
+	}
+
+	var result []InventorySerial
+
+	for _, is := range iss {
+		if is.Result == InventoryUnchecked {
+			result = append(result, is)
+		}
+	}
+
+	return result, nil
+}
+
+func (db *Data) UncheckedBinByInventory(inventoryID string) (*Bin, error) {
+	iI, err := id64(inventoryID, InventoryIDCode)
+	if err != nil {
+		db.logger.Error(err.Error())
+		return nil, err
+	}
+
+	stmt := `
+	select
+	distinct $1||serial.bin_id
+	from inventory_serial as isr
+	join serial on serial.nanoid = isr.serial
+	where isr.result = $2
+	and inventory_id = $3
+	limit 1
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	b := new(Bin)
+
+	err = db.DB.QueryRowContext(ctx, stmt, BinIDCode, InventoryUnchecked, iI).Scan(
+		&b.ID,
+	)
+	if err != nil {
+		db.logger.Error(err.Error())
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	b, err = db.Bin(b.ID)
+	if err != nil {
+		db.logger.Error(err.Error())
+		return nil, err
+	}
+
+	return b, nil
+}
+
+func (db *Data) UncheckedInventorySerialsOf1RandomBin(inventoryID string) ([]InventorySerial, error) {
+	iss, err := db.UncheckedInventorySerials(inventoryID)
+	if err != nil {
+		db.logger.Error(err.Error())
+		return nil, err
+	}
+
+	b, err := db.UncheckedBinByInventory(inventoryID)
+	if err != nil {
+		db.logger.Error(err.Error())
+		return nil, err
+	}
+	if b == nil {
+		return nil, nil
+	}
+
+	var result []InventorySerial
+
+	for _, is := range iss {
+		if is.Serial.Bin.ID == b.ID {
+			result = append(result, is)
+		}
+	}
+
+	return result, nil
+}
+
+func updateInventoryStartedAt(tx *sql.Tx, inventoryID64 int64) error {
+	stmt := `
+	update inventory set started_at = now()
+	where id = $1
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err := tx.ExecContext(ctx, stmt, inventoryID64)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (db *Data) UpdateInventoryStartedAt(inventoryID string) error {
+	iI, err := id64(inventoryID, InventoryIDCode)
+	if err != nil {
+		return err
+	}
+
+	tx, err := db.DB.Begin()
+	if err != nil {
+		db.logger.Error(err.Error())
+		return err
+	}
+	defer tx.Rollback()
+
+	err = updateInventoryStartedAt(tx, iI)
+	if err != nil {
+		db.logger.Error(err.Error())
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		db.logger.Error(err.Error())
+		return err
+	}
+
+	return nil
 }

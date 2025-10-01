@@ -622,6 +622,7 @@ func (db *Data) Serial(nanoID string) (*Serial, error) {
 		&resupplyID,
 	)
 	if err != nil {
+		db.logger.Error(err.Error())
 		return nil, err
 	}
 
@@ -632,6 +633,7 @@ func (db *Data) Serial(nanoID string) (*Serial, error) {
 	if binID.Valid {
 		b, err := db.Bin(binID.String)
 		if err != nil {
+			db.logger.Error(err.Error())
 			return nil, err
 		}
 		s.Bin = *b
@@ -640,6 +642,7 @@ func (db *Data) Serial(nanoID string) (*Serial, error) {
 	if exportID.Valid {
 		e, err := db.Export(exportID.String)
 		if err != nil {
+			db.logger.Error(err.Error())
 			return nil, err
 		}
 		s.Export = *e
@@ -648,10 +651,18 @@ func (db *Data) Serial(nanoID string) (*Serial, error) {
 	if resupplyID.Valid {
 		r, err := db.Resupply(resupplyID.String)
 		if err != nil {
+			db.logger.Error(err.Error())
 			return nil, err
 		}
 		s.Resupply = *r
 	}
+
+	i, err := db.Item(s.GTIN)
+	if err != nil {
+		db.logger.Error(err.Error())
+		return nil, err
+	}
+	s.Item = *i
 
 	return &s, nil
 }
