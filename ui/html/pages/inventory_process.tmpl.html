@@ -212,6 +212,9 @@ Kiểm hàng
 			})
 			.then(data => {
 				if (!ok) alert(data);
+			})
+			.catch(err => {
+				alert(err);
 			});
 	}
 

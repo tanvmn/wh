@@ -51,32 +51,19 @@ func (ap *application) routes() http.Handler {
 		// 	return
 		// }
 
-		// s, err := ap.data.UnsafeStocks("WAR-1")
-		// if err != nil {
-		// 	fmt.Println(err)
-		// 	return
-		// }
-
-		// println()
-		// println("unsafe stock")
-		// for _, iq := range s {
-		// 		println(iq.Item.GTIN, "stock", iq.Stock, "restock", iq.Restock)
-		// }
-
-		iss, err := ap.data.UncheckedInventorySerialsOf1RandomBin("INV-1")
+		iqs, err := ap.data.OutOfDateItems("WAR-1")
 		if err != nil {
 			fmt.Println(err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		if len(iss) == 0 {
-			http.Error(w, "all bins checked", http.StatusNotFound)
-			return
-		}
-
-		for _, is := range iss {
-			println(is.Serial.NanoID, is.Serial.Bin.ID, is.Serial.Item.GTIN, is.Serial.Item.ImgFSPath)
+		for _, iq := range iqs {
+			println(iq.Item.GTIN)
+			for _, s := range iq.Serials {
+				println(s.NanoID, s.Bin.ID, s.Item.GTIN, s.Item.ImgFSPath, s.Receive.ID, s.Receive.ActualAt, "stored months", s.StoredMonths)
+			}
+			println()
 		}
 	})
 
@@ -171,8 +158,10 @@ func (ap *application) routes() http.Handler {
 
 	// Inventory
 	mux.Handle("GET /inventory-add", append(identify, ap.permit(data.Accountant, data.Manager, data.Employee)).then(ap.addInventoryPage()))
+	mux.Handle("GET /inventories", append(identify, ap.permit(data.Accountant, data.Manager, data.Employee)).then(ap.inventoriesPage()))
 	mux.Handle("GET /inventory/{id}", append(identify, ap.permit(data.Accountant, data.Manager, data.Employee)).then(ap.inventoryPage()))
 	mux.Handle("GET /inventory/{id}/process", append(identify, ap.permit(data.Accountant, data.Manager, data.Employee)).then(ap.inventoryProcessPage()))
+	mux.Handle("GET /inventory/{id}/process/result", append(identify, ap.permit(data.Accountant, data.Manager, data.Employee)).then(ap.inventoryProcessResultPage()))
 	mux.Handle("POST /inventory", append(identify, ap.permit(data.Accountant, data.Manager, data.Employee)).then(ap.addInventory()))
 	mux.Handle("POST /inventory/{id}/bin-result", append(identify, ap.permit(data.Accountant, data.Manager, data.Employee)).then(ap.processInventoryBinResult()))
 

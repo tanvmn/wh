@@ -39,6 +39,42 @@ var (
 	ErrNoInventories = errors.New("no inventories found")
 )
 
+func (i *Inventory) SerialsByGTIN(gtin string) []InventorySerial {
+	var iss []InventorySerial
+
+	for _, is := range i.InventorySerials {
+		if is.Serial.Item.GTIN == gtin {
+			iss = append(iss, is)
+		}
+	}
+
+	return iss
+}
+
+func (i *Inventory) FoundSerialsByGTIN(gtin string) []InventorySerial {
+	var iss []InventorySerial
+
+	for _, is := range i.InventorySerials {
+		if is.Serial.Item.GTIN == gtin && is.Result == InventoryFound {
+			iss = append(iss, is)
+		}
+	}
+
+	return iss
+}
+
+func (i *Inventory) NotFoundSerialsByGTIN(gtin string) []InventorySerial {
+	var iss []InventorySerial
+
+	for _, is := range i.InventorySerials {
+		if is.Serial.Item.GTIN == gtin && is.Result == InventoryNotFound {
+			iss = append(iss, is)
+		}
+	}
+
+	return iss
+}
+
 func addInventory(tx *sql.Tx, inventoryAddRequest *Inventory) (id string, err error) {
 	wI, err := id64(inventoryAddRequest.Warehouse.ID, WarehouseIDCode)
 	if err != nil {
@@ -127,6 +163,7 @@ func (db *Data) AddInventory(inventoryAddRequest *Inventory) (id string, err err
 
 	err = tx.Commit()
 	if err != nil {
+		db.logger.Error(err.Error())
 		return "", err
 	}
 
@@ -376,10 +413,11 @@ func (db *Data) UncheckedBinByInventory(inventoryID string) (*Bin, error) {
 		&b.ID,
 	)
 	if err != nil {
-		db.logger.Error(err.Error())
 		if errors.Is(err, sql.ErrNoRows) {
+			db.logger.Error(fmt.Sprintf("no more unprocessed bin for inventory %v", inventoryID))
 			return nil, nil
 		}
+		db.logger.Error(err.Error())
 		return nil, err
 	}
 
@@ -462,4 +500,153 @@ func (db *Data) UpdateInventoryStartedAt(inventoryID string) error {
 	}
 
 	return nil
+}
+
+func updateAfterInventoryBinProcessing(tx *sql.Tx, binProcessingResult *Inventory) error {
+	iI, err := id64(binProcessingResult.ID, InventoryIDCode)
+	if err != nil {
+		return err
+	}
+
+	stmt := `
+	update inventory_serial set
+	result = $1
+	,note = $2
+	where serial = $3
+	and inventory_id = $4
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	for _, is := range binProcessingResult.InventorySerials {
+		_, err = tx.ExecContext(ctx, stmt, is.Result, is.Note, is.Serial.NanoID, iI)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (db *Data) UpdateAfterInventoryBinProcessing(binProcessingResult *Inventory) error {
+	tx, err := db.DB.Begin()
+	if err != nil {
+		db.logger.Error(err.Error())
+		return err
+	}
+	defer tx.Rollback()
+
+	err = updateAfterInventoryBinProcessing(tx, binProcessingResult)
+	if err != nil {
+		db.logger.Error(err.Error())
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		db.logger.Error(err.Error())
+		return err
+	}
+
+	return nil
+}
+
+func updateInventoryEndedAt(tx *sql.Tx, inventoryID64 int64) error {
+	stmt := `
+	update inventory set ended_at = now()
+	where id = $1
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err := tx.ExecContext(ctx, stmt, inventoryID64)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (db *Data) UpdateInventoryEndedAt(inventoryID string) error {
+	iI, err := id64(inventoryID, InventoryIDCode)
+	if err != nil {
+		return err
+	}
+
+	tx, err := db.DB.Begin()
+	if err != nil {
+		db.logger.Error(err.Error())
+		return err
+	}
+	defer tx.Rollback()
+
+	err = updateInventoryEndedAt(tx, iI)
+	if err != nil {
+		db.logger.Error(err.Error())
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		db.logger.Error(err.Error())
+		return err
+	}
+
+	return nil
+}
+
+func (db *Data) Inventories(warehouseID string) ([]Inventory, error) {
+	wI, err := id64(warehouseID, WarehouseIDCode)
+	if err != nil {
+		db.logger.Error(err.Error())
+		return nil, err
+	}
+
+	stmt := `
+	select
+	$1||id
+	from inventory
+	where warehouse_id = $2
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	rows, err := db.DB.QueryContext(ctx, stmt, InventoryIDCode, wI)
+	if err != nil {
+		db.logger.Error(err.Error())
+		return nil, err
+	}
+
+	var is []Inventory
+
+	for rows.Next() {
+		i := new(Inventory)
+
+		err = rows.Scan(
+			&i.ID,
+		)
+		if err != nil {
+			db.logger.Error(err.Error())
+			return nil, err
+		}
+
+		i, err := db.Inventory(i.ID)
+		if err != nil {
+			db.logger.Error(err.Error())
+			return nil, err
+		}
+
+		is = append(is, *i)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		db.logger.Error(err.Error())
+		return nil, err
+	}
+
+	return is, nil
 }

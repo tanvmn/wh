@@ -8,16 +8,22 @@ import (
 )
 
 type Serial struct {
-	NanoID      string `json:"nanoID,omitempty,omitzero"`
-	GTIN        string `json:"gtin,omitempty,omitzero"`
-	ReceiveTote Tote   `json:"receiveTote,omitempty,omitzero"`
-	PickTote    Tote   `json:"pickTote,omitempty,omitzero"`
-	Bin         `json:"bin,omitempty,omitzero"`
-	Item        `json:"item,omitempty,omitzero"`
-	Purchase    `json:"purchase,omitempty,omitzero"`
-	Receive     `json:"receive,omitempty,omitzero"`
-	Resupply    `json:"resupply,omitempty,omitzero"`
-	Export      `json:"export,omitempty,omitzero"`
+	NanoID       string `json:"nanoID,omitempty,omitzero"`
+	GTIN         string `json:"gtin,omitempty,omitzero"`
+	StoredMonths int    `json:"storedMonths,omitempty,omitzero"`
+	ReceiveTote  Tote   `json:"receiveTote,omitempty,omitzero"`
+	PickTote     Tote   `json:"pickTote,omitempty,omitzero"`
+	Bin          `json:"bin,omitempty,omitzero"`
+	Item         `json:"item,omitempty,omitzero"`
+	Purchase     `json:"purchase,omitempty,omitzero"`
+	Receive      `json:"receive,omitempty,omitzero"`
+	Resupply     `json:"resupply,omitempty,omitzero"`
+	Export       `json:"export,omitempty,omitzero"`
+}
+
+type OutOfDateSerial struct {
+	StoredMonths int `json:"storedMonths,omitempty,omitzero"`
+	Serial       `json:"serial,omitempty,omitzero"`
 }
 
 // SerialsByGTINAndWarehouse returns both the put away and not put away serials of a gtin in a warehouse
@@ -785,6 +791,104 @@ func (db *Data) UnexportedSerialsByGTINAndWarehouse(warehouseID, gtin string) ([
 
 	for _, s := range ss {
 		if s.GTIN == gtin {
+			result = append(result, s)
+		}
+	}
+
+	return result, nil
+}
+
+// OutOfDateSerials returns a warehouse's serials which have been passed shelf life
+func (db *Data) OutOfDateSerials(warehouseID string) ([]Serial, error) {
+	wI, err := id64(warehouseID, WarehouseIDCode)
+	if err != nil {
+		db.logger.Error(err.Error())
+		return nil, err
+	}
+
+	stmt := `
+	select
+	serial.nanoid
+	,$1||serial.receive_id
+	,serial.gtin
+	,((extract (epoch from (now() - receive.actual_at)::interval)) / (86400*30))::integer as stored_months
+	from serial
+	join receive on receive.id = serial.receive_id
+	join item on item.gtin = serial.gtin
+	join bin on bin.id = serial.bin_id
+	where (extract (epoch from (now() - receive.actual_at)::interval)) / (86400*30) >= item.shelf_life
+	and bin.warehouse_id = $2
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	rows, err := db.DB.QueryContext(ctx, stmt, ReceiveIDCode, wI)
+	if err != nil {
+		db.logger.Error(err.Error())
+		return nil, err
+	}
+	defer func() {
+		err2 := rows.Close()
+		if err2 != nil {
+			panic(err2)
+		}
+	}()
+
+	var ss []Serial
+
+	for rows.Next() {
+		s := new(Serial)
+		storedMonths := 0
+
+		err = rows.Scan(
+			&s.NanoID,
+			&s.Receive.ID,
+			&s.Item.GTIN,
+			&storedMonths,
+		)
+		if err != nil {
+			db.logger.Error(err.Error())
+			return nil, err
+		}
+
+		s, err := db.Serial(s.NanoID)
+		if err != nil {
+			db.logger.Error(err.Error())
+			return nil, err
+		}
+		s.StoredMonths = storedMonths
+
+		r, err := db.Receive(s.Receive.ID)
+		if err != nil {
+			db.logger.Error(err.Error())
+			return nil, err
+		}
+		s.Receive = *r
+
+		ss = append(ss, *s)
+	}
+
+	if err = rows.Close(); err != nil {
+		db.logger.Error(err.Error())
+		return nil, err
+	}
+
+	return ss, nil
+}
+
+// OutOfDateSerialsByGTIN filters result of OutOfDateSerials by gtin
+func (db *Data) OutOfDateSerialsByGTIN(warehouseID, gtin string) ([]Serial, error) {
+	ss, err := db.OutOfDateSerials(warehouseID)
+	if err != nil {
+		db.logger.Error(err.Error())
+		return nil, err
+	}
+
+	var result []Serial
+
+	for _, s := range ss {
+		if s.Item.GTIN == gtin {
 			result = append(result, s)
 		}
 	}

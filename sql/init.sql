@@ -555,11 +555,11 @@ insert into account (role, bdate, name, phone, password_hash, store_id) values
 ('Nhân viên', date 'now()' - interval '19 years', 'nv kho', '0000000006', '$2a$12$sPDZCZEc01jKDxKNDhZgquKZH.4R0TtMn/9sCdnE0OJnrMMcnXPJy', 1)
 ;
 
+-- begin/ insert data from making a purchase to putting away the coresponding receives
 insert into purchase (warehouse_id, account_id, supplier_id, expected_at, status) values
 (1, 4, 1, timestamp 'now()' + interval '1 day', 'CHỜ PHẢN HỒI')
 ;
 
--- insert data from making a purchase to putting away the coresponding receives
 insert into purchase_item (purchase_id, gtin, quantity) values
 (1, '619659115906', 5)
 ,(1, '8888021200126', 5)
@@ -590,7 +590,7 @@ insert into serial (nanoid, gtin, purchase_id, receive_id, receive_tote) values
 ;
 update purchase set status = 'KẾT THÚC' where id = 1;
 
-update receive set putaway_by = 3, putaway_at = timestamp 'now()' + interval '1 day';
+update receive set putaway_by = 3, putaway_at = timestamp 'now()' + interval '1 day' where id = 1;
 update serial set bin_id = 1
 where nanoid in (
 	'SER-ddEHD2fL3pynUGK4FZSUA'
@@ -604,8 +604,53 @@ where nanoid in (
 	,'SER-bR4nemcPjES_9RoR2OU5D'
 	,'SER-QDVSSh0u3BeNh4fdq4Jtv'
 );
+-- end/ insert data from making a purchase to putting away the coresponding receives
 
--- add resupply ,export, pick export
+-- begin/ insert OUT OF DATE data from making a purchase to putting away the coresponding receives
+insert into purchase (warehouse_id, account_id, supplier_id, expected_at, status) values
+(1, 4, 2, timestamp '2023-01-01' + interval '1 day', 'CHỜ PHẢN HỒI')
+;
+
+insert into purchase_item (purchase_id, gtin, quantity) values
+(2, '4983435764166', 2)
+,(2, '8936134272407', 2)
+;
+
+insert into receive (purchase_id, account_id, expected_at, voucher_id) values
+(2, 4, timestamp '2023-01-01' + interval '1 day', 'VOU-001')
+;
+
+insert into receive_item (purchase_id, receive_id, gtin, quantity) values
+(2, 2, '4983435764166', 2)
+,(2, 2, '8936134272407', 2)
+;
+update purchase set status = 'CHỜ NHẬP' where id = 2;
+
+--NQW5vrGo6FFcO-iOl9Eu2
+--0qfVw995gkeV2bnUZdMJS
+--RHtfROpepYRFawn2AUVGp
+--IJWfZV9Kciem0mI5-sz-d
+
+update receive set processed_by = 3, actual_at = timestamp '2023-01-01' + interval '1 day' where id = 2;
+insert into serial (nanoid, gtin, purchase_id, receive_id, receive_tote) values
+('SER-NQW5vrGo6FFcO-iOl9Eu2', '4983435764166', 2, 2, 5)
+,('SER-0qfVw995gkeV2bnUZdMJS', '4983435764166', 2, 2, 5)
+,('SER-RHtfROpepYRFawn2AUVGp', '8936134272407', 2, 2, 5)
+,('SER-IJWfZV9Kciem0mI5-sz-d', '8936134272407', 2, 2, 5)
+;
+update purchase set status = 'KẾT THÚC' where id = 2;
+
+update receive set putaway_by = 3, putaway_at = timestamp '2023-01-01' + interval '2 day' where id = 2;
+update serial set bin_id = 2
+where nanoid in (
+	'SER-NQW5vrGo6FFcO-iOl9Eu2'
+	,'SER-0qfVw995gkeV2bnUZdMJS' 
+	,'SER-RHtfROpepYRFawn2AUVGp'
+	,'SER-IJWfZV9Kciem0mI5-sz-d'
+);
+-- end/ insert OUT OF DATE data from making a purchase to putting away the coresponding receives
+
+-- begin/ add resupply ,export, pick export
 insert into resupply (created_at, expected_at, account_id, store_id) values
 (now(), timestamp 'now()' + interval '1 day', 7, 1)
 ;
@@ -624,7 +669,8 @@ insert into export_item (export_id, resupply_id, gtin, quantity) values
 
 update resupply set status = 'CHỜ XUẤT' where id = 1;
 
-update export set picked_by = 3
+update export set
+picked_by = 3
 ,picked_at = now()
 where id = 1
 ;
@@ -646,6 +692,7 @@ and gtin = '8888021200126'
 ;
 
 update resupply set status = 'KẾT THÚC' where id = 1;
+-- end/ add resupply ,export, pick export
 
 
 alter table warehouse add constraint pk_warehouse primary key(id);

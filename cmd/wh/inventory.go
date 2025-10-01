@@ -133,9 +133,64 @@ func (ap *application) inventoryPage() http.Handler {
 	})
 }
 
+// func (ap *application) writeAnotherInventoryBinProcessPage(w http.ResponseWriter, r *http.Request, inventoryID string) {
+// 	iss, err := ap.data.UncheckedInventorySerialsOf1RandomBin(inventoryID)
+// 	if err != nil {
+// 		ap.logger.Error(err.Error())
+// 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+// 		return
+// 	}
+// 	// If there aren't any unchecked inventory serials (aka no unchecked bins) response 404
+// 	if len(iss) == 0 {
+// 		err = ap.data.UpdateInventoryEndedAt(inventoryID)
+// 		if err != nil {
+// 			ap.logger.Error(err.Error())
+// 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+// 			return
+// 		}
+
+// 		http.Redirect(w, r, fmt.Sprintf("/inventory/%v/process/result", inventoryID), http.StatusSeeOther)
+// 		return
+// 	}
+
+// 	i, err := ap.data.Inventory(inventoryID)
+// 	if err != nil {
+// 		ap.logger.Error(err.Error())
+// 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+// 		return
+// 	}
+
+// 	if err = ap.data.UpdateInventoryStartedAt(inventoryID); err != nil {
+// 		ap.logger.Error(err.Error())
+// 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+// 		return
+// 	}
+
+// 	p := new(InventoryProcessPage)
+// 	p.Inventory = i
+// 	p.UncheckedInventorySerials = iss
+
+// 	t, err := ap.newTemplData(r)
+// 	if err != nil {
+// 		ap.logger.Error(err.Error())
+// 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+// 		return
+// 	}
+// 	t.Page = p
+
+// 	err = ap.render(w, http.StatusOK, "inventory_process", t)
+// 	if err != nil {
+// 		ap.logger.Error(err.Error())
+// 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+// 		return
+// 	}
+// }
+
 func (ap *application) inventoryProcessPage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		inventoryID := r.PathValue("id")
+
+		// ap.writeAnotherInventoryBinProcessPage(w, r, inventoryID)
 
 		iss, err := ap.data.UncheckedInventorySerialsOf1RandomBin(inventoryID)
 		if err != nil {
@@ -145,7 +200,14 @@ func (ap *application) inventoryProcessPage() http.Handler {
 		}
 		// If there aren't any unchecked inventory serials (aka no unchecked bins) response 404
 		if len(iss) == 0 {
-			http.Error(w, "all bins checked", http.StatusNotFound)
+			err = ap.data.UpdateInventoryEndedAt(inventoryID)
+			if err != nil {
+				ap.logger.Error(err.Error())
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				return
+			}
+
+			http.Redirect(w, r, fmt.Sprintf("/inventory/%v/process/result", inventoryID), http.StatusSeeOther)
 			return
 		}
 
@@ -208,6 +270,105 @@ func (ap *application) processInventoryBinResult() http.Handler {
 			println()
 		}
 
-		http.Error(w, "success", http.StatusBadRequest)
+		err = ap.data.UpdateAfterInventoryBinProcessing(&inventoryBinResult)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		// ap.writeAnotherInventoryBinProcessPage(w, r, inventoryBinResult.ID)
+		http.Redirect(w, r, fmt.Sprintf("/inventory/%v/process", inventoryBinResult.ID), http.StatusSeeOther)
+	})
+}
+
+func (ap *application) inventoryProcessResultPage() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		inventoryID := r.PathValue("id")
+
+		i, err := ap.data.Inventory(inventoryID)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		p := new(InventoryProcessPage)
+		p.Inventory = i
+
+		t, err := ap.newTemplData(r)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		t.Page = p
+
+		err = ap.render(w, http.StatusOK, "inventory_process_result", t)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+	})
+}
+
+func (ap *application) inventoriesPage() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		wID, ok := r.Context().Value(authenticatedCtxWarehouseID).(string)
+		if !ok {
+			ap.logger.Error(fmt.Sprintf("%v, authenticatedCtxWarehouseID: %v", ErrConvertCtxVal, wID))
+		}
+
+		is, err := ap.data.Inventories(wID)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		for i := range is {
+			t, err := util.FormatRFC3339(is[i].ExpectedAt, util.DDMMYYYY24HMI)
+			if err != nil {
+				ap.logger.Error(err.Error())
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				return
+			}
+			is[i].ExpectedAt = t
+
+			t, err = util.FormatRFC3339(is[i].StartedAt, util.DDMMYYYY24HMI)
+			if err != nil {
+				ap.logger.Error(err.Error())
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				return
+			}
+			is[i].StartedAt = t
+
+			t, err = util.FormatRFC3339(is[i].EndedAt, util.DDMMYYYY24HMI)
+			if err != nil {
+				ap.logger.Error(err.Error())
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				return
+			}
+			is[i].EndedAt = t
+		}
+
+		p := new(InventoriesPage)
+		p.Inventories = is
+
+		t, err := ap.newTemplData(r)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		t.Page = p
+
+		err = ap.render(w, http.StatusOK, "inventories", t)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
 	})
 }

@@ -294,10 +294,20 @@ type InventoryPage struct {
 	*data.Inventory
 }
 
+// Inventories Page
+type InventoriesPage struct {
+	Inventories []data.Inventory
+}
+
 // Inventory Process Page
 type InventoryProcessPage struct {
 	*data.Inventory
 	UncheckedInventorySerials []data.InventorySerial
+}
+
+// Inventory Process Page
+type InventoryProcessResultPage struct {
+	*data.Inventory
 }
 
 func (p *ExportPackResultPage) PackDifference(gtin string) int {

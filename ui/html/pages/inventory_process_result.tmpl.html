@@ -19,25 +19,10 @@ Kiểm hàng
 		{{with .Page.Inventory}}
 		<div class="col-3">
 			<h3 class="d-inline">
-				Kiểm hàng ID:&nbsp&nbsp
+				Kết quả kiểm hàng ID:&nbsp&nbsp
 				<span id="inventoryID" class="badge text-bg-info">{{.ID}}</span>
 			</h3>
 		</div>
-
-		{{if (notProcessed .StartedAt)}}
-		<div class="col-2">
-			<a href="/inventory/{{.ID}}/process" id="startInventoryBtn" class="btn btn-primary ms-5">
-				<strong>Kiểm</strong>
-			</a>
-		</div>
-		{{end}}
-		{{if (not01011000 .EndedAt)}}
-		<div class="col-2">
-			<a href="/inventory/{{.ID}}/process/result" id="inventoryResultBtn" class="btn btn-success ms-5">
-				<strong>Kết quả</strong>
-			</a>
-		</div>
-		{{end}}
 		{{end}}
 	</div>
 
@@ -53,38 +38,19 @@ Kiểm hàng
 			{{end}}
 
 			<div class="col">
-				<label for="expectedAt" class="form-label">Dự kiến (mm/dd/yyyy)</label>
-				<input type="datetime-local" name="expectedAt" id="expectedAt" min="{{.MinTimestamp}}"
+				<label for="expectedAt" class="form-label">Bắt đầu (mm/dd/yyyy)</label>
+				<input type="datetime-local" id="startedAt" min="{{.MinTimestamp}}"
 					class="form-control was-validated"
-					value="{{slice .Page.Inventory.ExpectedAt 0 16}}" disabled required>
-				<div class="invalid-feedback">
-					Thời điểm phải từ hiện tại trở về sau
-				</div>
+					value="{{slice .Page.Inventory.StartedAt 0 16}}" disabled required>
+			</div>
+			<div class="col">
+				<label for="expectedAt" class="form-label">Kết thúc (mm/dd/yyyy)</label>
+				<input type="datetime-local" id="endedAt" min="{{.MinTimestamp}}"
+					class="form-control was-validated"
+					value="{{slice .Page.Inventory.EndedAt 0 16}}" disabled required>
 			</div>
 		</div>
 		<!-- End warehouse, expectedAt -->
-
-		<div class="row my-4 d-none">
-			<div class="col-4 mx-auto">
-				<button class="btn btn-primary" type="submit" id="submitBtn">
-					Sửa phiên kiểm hàng
-				</button>
-			</div>
-		</div>
-
-		<!-- Begin items pick and datalist -->
-		<div class="row mt-3 d-none" id="itemInput">
-			<input onclick="this.value = ''" onblur="this.value = ''" list="itemOpts" id="itemPick"
-				placeholder="Tìm hàng...">
-			<datalist id="itemOpts">
-				{{range .Page.Items}}
-				<option value="{{.Item.GTIN}};/rec/{{.Item.ImgFSPath}};{{.Item.Name}}">
-					{{.Item.GTIN}} / {{.Item.Name}}
-				</option>
-				{{end}}
-			</datalist>
-		</div>
-		<!-- End items pick and datalist -->
 
 		<!-- Begin items pick table -->
 		<div class="row mt-1">
@@ -93,9 +59,12 @@ Kiểm hàng
 					<th></th>
 					<th>GTIN</th>
 					<th>Tên</th>
-					<!-- <th></th> -->
+					<th>Mong đợi</th>
+					<th>Có</th>
+					<th>Lệch</th>
 				</thead>
 				<tbody id="itemList">
+					{{$i := .Page.Inventory}}
 					{{range .Page.Inventory.Items}}
 					<tr>
 						<td>
@@ -104,6 +73,17 @@ Kiểm hàng
 						</td>
 						<td class="tdGTIN">{{.Item.GTIN}}</td>
 						<td class="tdName">{{.Item.Name}}</td>
+						<td class="expected">{{len ($i.SerialsByGTIN .Item.GTIN)}}</td>
+						<td>
+							<span class="found badge text-bg-success p-2">{{len
+								($i.FoundSerialsByGTIN .Item.GTIN)}}
+							</span>
+						</td>
+						<td>
+							<span class="notFound badge text-bg-warning p-2">{{len
+								($i.NotFoundSerialsByGTIN .Item.GTIN)}}
+							</span>
+						</td>
 					</tr>
 					{{end}}
 				</tbody>
@@ -112,7 +92,7 @@ Kiểm hàng
 		<!-- End items pick table -->
 	</form>
 </div>
-<script type="module">
+<!-- <script type="module">
 	import { domain, IDCode, Scanner } from "/static/js/util.js";
 
 	// After getting items (above), begin others task from this point
@@ -248,5 +228,5 @@ Kiểm hàng
 		});
 
 	});
-</script>
+</script> -->
 {{end}}

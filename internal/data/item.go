@@ -42,6 +42,7 @@ type ItemQuantity struct {
 	Restock             int64                     `json:"restock,omitempty,omitzero"`
 	SafeStock           int64                     `json:"safeStock,omitempty,omitzero"`
 	Stock               int64                     `json:"stock,omitempty,omitzero"`
+	StoredMonths        int                       `json:"storedMonths,omitempty,omitzero"`
 	Note                string                    `json:"note,omitempty,omitzero"`
 	PutawayNote         string                    `json:"putawayNote,omitempty,omitzero"`
 	PackNote            string                    `json:"packNote,omitempty,omitzero"`
@@ -846,6 +847,80 @@ func (db *Data) NotExportedStockItems(warehouseID string) ([]ItemQuantity, error
 	}
 
 	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return iqs, nil
+}
+
+func (db *Data) OutOfDateItems(warehouseID string) ([]ItemQuantity, error) {
+	wI, err := id64(warehouseID, WarehouseIDCode)
+	if err != nil {
+		db.logger.Error(err.Error())
+		return nil, err
+	}
+
+	stmt := `
+	select
+	distinct gtin
+	,stored_months
+	from
+	(
+	select
+	serial.nanoid
+	,$1||serial.receive_id
+	,serial.gtin
+	,((extract (epoch from (now() - receive.actual_at)::interval)) / (86400*30))::integer as stored_months
+	from serial
+	join receive on receive.id = serial.receive_id
+	join item on item.gtin = serial.gtin
+	join bin on bin.id = serial.bin_id
+	where (extract (epoch from (now() - receive.actual_at)::interval)) / (86400*30) >= item.shelf_life
+	and bin.warehouse_id = $2
+	) as outofdate_serial
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	rows, err := db.DB.QueryContext(ctx, stmt, ReceiveIDCode, wI)
+	if err != nil {
+		db.logger.Error(err.Error())
+		return nil, err
+	}
+	defer func() {
+		err2 := rows.Close()
+		if err2 != nil {
+			panic(err2)
+		}
+	}()
+
+	var iqs []ItemQuantity
+
+	for rows.Next() {
+		var iq ItemQuantity
+
+		err = rows.Scan(
+			&iq.Item.GTIN,
+			&iq.StoredMonths,
+		)
+		if err != nil {
+			db.logger.Error(err.Error())
+			return nil, err
+		}
+
+		ss, err := db.OutOfDateSerialsByGTIN(warehouseID, iq.Item.GTIN)
+		if err != nil {
+			db.logger.Error(err.Error())
+			return nil, err
+		}
+		iq.Serials = ss
+
+		iqs = append(iqs, iq)
+	}
+
+	if err = rows.Close(); err != nil {
+		db.logger.Error(err.Error())
 		return nil, err
 	}
 
