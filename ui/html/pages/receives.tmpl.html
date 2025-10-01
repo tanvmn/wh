@@ -76,14 +76,12 @@ Các Phiếu nhập
 				</td>
 				<td>{{.CreatedAt}}</td>
 				<td>
-					<a class="btn btn-sm btn-info" href="{{$domain}}/receive/{{.ID}}"
-						target="_blank">
+					<a class="btn btn-sm btn-info" href="{{$domain}}/receive/{{.ID}}">
 						Xem
 					</a>
 					{{if (and (or (eq $account $manager) (eq $account $employee)) (notProcessed
 					.ActualAt))}}
-					<a class="btn btn-sm btn-secondary" href="{{$domain}}/receive/{{.ID}}/process"
-						target="_blank">
+					<a class="btn btn-sm btn-secondary" href="{{$domain}}/receive/{{.ID}}/process">
 						Xử lý
 					</a>
 					{{end}}
@@ -92,11 +90,10 @@ Các Phiếu nhập
 					{{if (and (and $isManagerOrEmployeeOrAccountant (not01011000 .PutawayAt)) (not
 					(notProcessed .ActualAt)))}}
 					<a class="btn btn-sm btn-success"
-						href="{{$domain}}/receive/{{.ID}}/process/result" target="_blank">
+						href="{{$domain}}/receive/{{.ID}}/process/result">
 						KQuả nhập
 					</a>
-					<a class="btn btn-sm btn-dark" href="{{$domain}}/putaway/{{.ID}}/result"
-						target="_blank">
+					<a class="btn btn-sm btn-dark" href="{{$domain}}/putaway/{{.ID}}/result">
 						KQuả cất
 					</a>
 					{{end}}
