@@ -98,8 +98,7 @@ var (
 	weight,
 	type||', '||brand||', màu '||color||', cỡ '||size||', '||characteristic,
 	'%v'||supplier_item.supplier_id
-	from
-	item
+	from item
 	join supplier_item on supplier_item.gtin = item.gtin`, SupplierIDCode)
 )
 
@@ -141,7 +140,7 @@ func (db *Data) Item(gtin string) (*Item, error) {
 func (db *Data) Items(gtins ...string) ([]Item, error) {
 	stmt := selectItemsStmt
 	if len(gtins) != 0 {
-		stmt += "\nwhere gtin in " + Range(int64(len(gtins)))
+		stmt += "\nwhere item.gtin in " + Range(int64(len(gtins)))
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -496,7 +495,7 @@ func (db *Data) DailyConsumptions(warehouseID string) ([]ItemQuantity, error) {
 	ei.gtin,
 	case
 		when extract(epoch from (max(export.packed_at) - min(export.packed_at))::interval)/86400 < 1 then sum(ei.quantity)
-		else sum(ei.quantity) / extract(epoch from (max(export.packed_at) - min(export.packed_at))::interval)/86400
+		else (sum(ei.quantity) / extract(epoch from (max(export.packed_at) - min(export.packed_at))::interval)/86400)::bigint
 	end
 	from export_item as ei
 	join export on export.id = ei.export_id
@@ -614,11 +613,13 @@ func (db *Data) RestockDays(warehouseID string) ([]ItemQuantity, error) {
 func (db *Data) SafeStocks(warehouseID string) ([]ItemQuantity, error) {
 	dc, err := db.DailyConsumptions(warehouseID)
 	if err != nil {
+		db.logger.Error(err.Error())
 		return nil, err
 	}
 
 	rd, err := db.RestockDays(warehouseID)
 	if err != nil {
+		db.logger.Error(err.Error())
 		return nil, err
 	}
 
@@ -631,6 +632,7 @@ func (db *Data) SafeStocks(warehouseID string) ([]ItemQuantity, error) {
 				var iq ItemQuantity
 				i, err := db.Item(iq1.Item.GTIN)
 				if err != nil {
+					db.logger.Error(err.Error())
 					return nil, err
 				}
 				iq.Item = *i
@@ -701,26 +703,31 @@ func (db *Data) AwaitingResponseAndAwaitingExportResupplyItems(warehouseID strin
 func (db *Data) UnsafeStocks(warehouseID string) ([]ItemQuantity, error) {
 	sf, err := db.SafeStocks(warehouseID)
 	if err != nil {
+		db.logger.Error(err.Error())
 		return nil, err
 	}
 
 	as, err := db.StocksByAwaitingResponseOrAwaitingReceivePurchaseItems(warehouseID)
 	if err != nil {
+		db.logger.Error(err.Error())
 		return nil, err
 	}
 
 	is, err := db.AwaitingResponseAndAwaitingExportResupplyItems(warehouseID)
 	if err != nil {
+		db.logger.Error(err.Error())
 		return nil, err
 	}
 
 	s, err := db.CurrentItemQuantitiesInBinsByWarehouse(warehouseID)
 	if err != nil {
+		db.logger.Error(err.Error())
 		return nil, err
 	}
 
 	sp, err := db.Suppliers()
 	if err != nil {
+		db.logger.Error(err.Error())
 		return nil, err
 	}
 
@@ -933,4 +940,54 @@ func (db *Data) OutOfDateItems(warehouseID string) ([]ItemQuantity, error) {
 	}
 
 	return iqs, nil
+}
+
+func (db *Data) AllItems() ([]Item, error) {
+	stmt := `
+	select
+	gtin
+	from item
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	rows, err := db.DB.QueryContext(ctx, stmt)
+	if err != nil {
+		db.logger.Error(err.Error())
+		return nil, err
+	}
+	defer func() {
+		err2 := rows.Close()
+		if err2 != nil {
+			panic(err2)
+		}
+	}()
+
+	var is []Item
+	for rows.Next() {
+		i := new(Item)
+
+		err = rows.Scan(
+			&i.GTIN,
+		)
+		if err != nil {
+			db.logger.Error(err.Error())
+			return nil, err
+		}
+
+		i, err = db.Item(i.GTIN)
+		if err != nil {
+			db.logger.Error(err.Error())
+			return nil, err
+		}
+
+		is = append(is, *i)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return is, nil
 }

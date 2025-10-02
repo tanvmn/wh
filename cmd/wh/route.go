@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/tanNguyen2220022/wh/internal/data"
@@ -51,17 +50,17 @@ func (ap *application) routes() http.Handler {
 		// 	return
 		// }
 
-		iqs, err := ap.data.OutOfDateItems("WAR-1")
+		ss, err := ap.data.Suppliers()
 		if err != nil {
-			fmt.Println(err)
+			ap.logger.Error(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		for _, iq := range iqs {
-			println(iq.Item.GTIN, iq.Item.Name, iq.Item.ImgFSPath, "quantity", len(iq.Serials))
-			for _, s := range iq.Serials {
-				println(s.NanoID, s.Bin.ID, s.Item.GTIN, s.Item.ImgFSPath, s.Receive.ID, s.Receive.ActualAt, "stored months", s.StoredMonths)
+		for _, s := range ss {
+			println(s.ID, s.Name, s.Address, s.Email, s.Phone)
+			for _, i := range s.Items {
+				println(i.GTIN, i.Name)
 			}
 			println()
 		}
@@ -89,6 +88,12 @@ func (ap *application) routes() http.Handler {
 	mux.Handle("GET /items/json", identify.then(ap.items()))
 	mux.Handle("GET /items-by-supplier/json", identify.then(ap.itemsBySupplier()))
 	mux.Handle("GET /items/out-of-date", identify.then(ap.outOfDateItems()))
+
+	// Supplier
+	mux.Handle("GET /supplier/add", append(identify, ap.permit(data.Accountant, data.Manager, data.Employee)).then(ap.addSupplierPage()))
+	mux.Handle("GET /supplier/{id}", append(identify, ap.permit(data.Accountant, data.Manager, data.Employee)).then(ap.supplierPage()))
+	mux.Handle("GET /suppliers", append(identify, ap.permit(data.Accountant, data.Manager, data.Employee)).then(ap.suppliersPage()))
+	mux.Handle("POST /supplier/add", append(identify, ap.permit(data.Accountant, data.Manager, data.Employee)).then(ap.addSupplier()))
 
 	// Unsafe
 	mux.Handle("GET /unsafe-stocks", identify.then(ap.unsafeStocksPage()))

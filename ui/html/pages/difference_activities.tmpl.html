@@ -20,7 +20,7 @@ Chênh lệch
 
 <div class="container-fluid">
 	<h3 class="p-3">
-		<span class="badge text-bg-info">Các Hoạt Động Có Lượng Chênh Lệch</span>
+		<span class="badge text-bg-warning">Các Hoạt Động Có Lượng Chênh Lệch</span>
 	</h3>
 	<table id="differencesTable" class="display compact">
 		<thead>
@@ -29,7 +29,7 @@ Chênh lệch
 				<th>Hoạt động</th>
 				<th>Cần / Thực tế</th>
 				<th>Thực Hiện</th>
-				<th>Lúc<br>(dd-mm-yyyy hh24:mi)</th>
+				<th>Lúc<br>(d-m-y h24:m)</th>
 				<th></th>
 			</tr>
 		</thead>
@@ -45,8 +45,8 @@ Chênh lệch
 					</h4>
 				</td>
 				<td>
-					<span class="badge text-bg-{{differenceActivityBadgeBg .ID}}" data-bs-toggle="tooltip"
-						data-bs-placement="top"
+					<span class="badge text-bg-{{differenceActivityBadgeBg .ID}}"
+						data-bs-toggle="tooltip" data-bs-placement="top"
 						data-bs-title="Có thể có chênh lệch ở từng mặt hàng">
 						{{.Result}}
 					</span>
@@ -55,10 +55,12 @@ Chênh lệch
 					<ul>
 						<li><b>ID: </b>{{.Account.ID}}</li>
 						<li><b>Tên: </b>{{.Account.Name}}</li>
+						<li><b>CVụ: </b>{{.Account.Role}}</li>
 					</ul>
 				</td>
 				<td>{{.At}}</td>
-				<td><a class="btn btn-{{differenceActivityBadgeBg .ID}}" href="{{differenceActivityURL .ID}}">Xem</a></td>
+				<td><a class="btn btn-{{differenceActivityBadgeBg .ID}}"
+						href="{{differenceActivityURL .ID}}">Xem</a></td>
 			</tr>
 			{{end}}
 		</tbody>
@@ -84,7 +86,7 @@ Chênh lệch
 					className: 'dt-center'
 				},
 			],
-			pageLength: 5,
+			pageLength: 10,
 			lengthMenu: [5, 10, 25, 50, 75, 100],
 		});
 

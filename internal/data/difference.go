@@ -26,6 +26,8 @@ func (db *Data) DifferenceActivityName(id string) string {
 		return "Lấy hàng"
 	case PackIDCode:
 		return "Đóng gói"
+	case InventoryIDCode:
+		return "Kiểm hàng"
 	default:
 		return "none"
 	}
@@ -200,6 +202,42 @@ func (db *Data) DifferenceExportPack(warehouseID string) (as []DifferenceActivit
 	return as, nil
 }
 
+func (db *Data) DifferenceInventory(warehouseID string) (as []DifferenceActivity, err error) {
+	is, err := db.Inventories(warehouseID)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, i := range is {
+		if i.HasDifference() {
+			ddmmyyyy24hmi, err := util.FormatRFC3339(i.EndedAt, util.DDMMYYYY24HMI)
+			if err != nil {
+				return nil, err
+			}
+
+			var need, got int
+
+			for _, s := range i.InventorySerials {
+				need++
+				if s.Result == InventoryFound {
+					got++
+				}
+			}
+
+			ac := DifferenceActivity{
+				ID:      i.ID,
+				Name:    db.DifferenceActivityName(i.ID),
+				At:      ddmmyyyy24hmi,
+				Account: &i.Account,
+				Result:  fmt.Sprintf("%v / %v", need, got),
+			}
+			as = append(as, ac)
+		}
+	}
+
+	return as, nil
+}
+
 func (db *Data) DifferenceActivities(warehouseID string) (as []DifferenceActivity, err error) {
 	// Check for receives of a warehouse that have expected receive quantity different from actual receive quantity
 	processes, err := db.DifferenceReceiveProcesses(warehouseID)
@@ -228,6 +266,13 @@ func (db *Data) DifferenceActivities(warehouseID string) (as []DifferenceActivit
 		return nil, err
 	}
 	as = append(as, packs...)
+
+	// Check for a warehouse's inventories that have differences
+	inventories, err := db.DifferenceInventory(warehouseID)
+	if err != nil {
+		return nil, err
+	}
+	as = append(as, inventories...)
 
 	return as, nil
 }

@@ -19,7 +19,7 @@ Yêu cầu nhập
 			<span id="warehouseName" class="badge text-bg-info">{{.Account.Warehouse.Name}}</span>
 		</h3>
 
-		<a class="btn btn-dark ms-4" href="{{.Domain}}/add-purchase" target="_blank">
+		<a class="btn btn-dark ms-4" href="{{.Domain}}/add-purchase">
 			<strong>+</strong>
 		</a>
 	</div>
@@ -67,19 +67,17 @@ Yêu cầu nhập
 				</td>
 				<td>{{.CreatedAt}}</td>
 				<td>
-					<a class="btn btn-sm btn-info" href="{{$domain}}/purchase/{{.ID}}"
-						target="_blank">
+					<a class="btn btn-sm btn-info" href="{{$domain}}/purchase/{{.ID}}">
 						Xem
 					</a>
 					{{if (and (and $notEnded $notDeclined) (ne 0 (len .UnreceivedItems)))}}
 					<a class="btn btn-sm btn-dark ms-2"
-						href="{{$domain}}/add-receive?purchase={{.ID}}" target="_blank">
+						href="{{$domain}}/add-receive?purchase={{.ID}}">
 						+ Phiếu nhập
 					</a>
 					{{end}}
 					<a class="btn btn-sm btn-success ms-2"
-						href="{{$domain}}/receives-by-purchase/{{.ID}}"
-						target="_blank">
+						href="{{$domain}}/receives-by-purchase/{{.ID}}">
 						Các phiếu nhập
 					</a>
 				</td>

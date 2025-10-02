@@ -299,14 +299,22 @@ Nhập hàng
 	}
 
 	function missingNotes() {
-		document.querySelector('#itemList').querySelectorAll('tr').forEach((tr, idx) => {
+		for (let tr of document.querySelector('#itemList').querySelectorAll('tr')) {
 			if (tr.querySelector('.expectedQuantity').value !== tr.querySelector('.actualQuantity').value && tr.querySelector('.itemNote').value === '') {
-				gtin = tr.querySelector('.tdGTIN').innerText;
-				name = tr.querySelector('.tdName').innerText;
+				let gtin = tr.querySelector('.tdGTIN').innerText;
+				let name = tr.querySelector('.tdName').innerText;
 				alert(`${gtin} - ${name} phải có ghi chú`);
 				return true;
 			}
-		});
+		}
+		// document.querySelector('#itemList').querySelectorAll('tr').forEach((tr, idx) => {
+		// 	if (tr.querySelector('.expectedQuantity').value !== tr.querySelector('.actualQuantity').value && tr.querySelector('.itemNote').value === '') {
+		// 		let gtin = tr.querySelector('.tdGTIN').innerText;
+		// 		let name = tr.querySelector('.tdName').innerText;
+		// 		alert(`${gtin} - ${name} phải có ghi chú`);
+		// 		return true;
+		// 	}
+		// });
 
 		return false;
 	}

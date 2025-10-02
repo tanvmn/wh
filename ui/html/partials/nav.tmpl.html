@@ -100,6 +100,16 @@
 	</div>
 	<!-- End Hàng -->
 
+	<!-- Begin NCC -->
+	<button class="dropdown-btn-w3">Nhà cung cấp
+		<i class="fa fa-caret-down"></i>
+	</button>
+	<div class="dropdown-container-w3">
+		<a id="addSupplier" href="{{.Domain}}/supplier/add">Thêm</a>
+		<a id="suppliersPage" href="{{.Domain}}/suppliers">Xem</a>
+	</div>
+	<!-- End NCC -->
+
 	<!-- Begin Yêu cầu nhập -->
 	{{if not (or (eq .Account.Role .Manager) (eq .Account.Role .Employee))}}
 	<button class="dropdown-btn-w3">Ycầu Nhập
@@ -164,9 +174,11 @@
 	<!-- End Kiểm -->
 
 	{{if .Account.Warehouse.ID}}
+	{{if (ne .Account.Role .Accountant)}}
 	<!-- Begin Chênh lệch -->
 	<a id="difference" href="{{.Domain}}/difference-activities">Chênh Lệch</a>
 	<!-- End Chênh lệch -->
+	 {{end}}
 
 	<!-- Begin Unsafe -->
 	<a id="unsafeStocks" href="{{.Domain}}/unsafe-stocks">Hàng dưới lượng an toàn</a>

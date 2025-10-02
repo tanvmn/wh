@@ -18,39 +18,27 @@
 	<table id="itemsTable" class="display compact">
 		<thead>
 			<tr>
-				<!-- <th><a href="{{.Domain}}" class="btn btn-sm btn-primary"><strong>Thêm</strong></a></th> -->
-				<th></th>
-				<th>GTIN</th>
-				<th>Brand</th>
-				<th>Loại</th>
-				<th>Màu</th>
-				<th>Size</th>
-				<th>Chất liệu</th>
-				<th>Đặc điểm</th>
-				<th>Còn<br>(Cái)</th>
-				<th>Giá</th>
-				<th>Hạn trữ<br>(tháng)</th>
+				<th>ID</th>
+				<th>Tên</th>
+				<th>Địa chỉ</th>
+				<th>Điện thoại</th>
+				<th>Email</th>
 				<th></th>
 			</tr>
 		</thead>
 		<tbody id="tbody">
 			{{$domain := .Domain}}
-			{{range .Items}}
+			{{range .Page.Suppliers}}
 			<tr>
-				<td><img src="/rec/{{.ImgFSPath}}" alt="/rec/{{.ImgFSPath}}" width="100"></td>
-				<td>{{.GTIN}}</td>
-				<td>{{.Brand}}</td>
-				<td>{{.Type}}</td>
-				<td>{{.Color}}</td>
-				<td>{{.Size}}</td>
-				<td>{{.Material}}</td>
-				<td>{{.Characteristic}}</td>
+				<td>{{.ID}}</td>
+				<td>{{.Name}}</td>
+				<td>{{.Address}}</td>
+				<td>{{.Phone}}</td>
+				<td>{{.Email}}</td>
 				<td>
-					<h3><span class="badge text-bg-success">{{.Stock}}</span></h3>
-				</td>
-				<td class="price">{{.Price}}</td>
-				<td>{{.ShelfLife}}</td>
-				<td><a class="btn btn-sm btn-info" href="{{$domain}}/serials?gtin={{.GTIN}}">Serials</a>
+					<a class="btn btn-sm btn-info" href="{{$domain}}/supplier/{{.ID}}">
+						Chi tiết
+					</a>
 				</td>
 			</tr>
 			{{end}}
@@ -68,12 +56,6 @@
 			table.search(code);
 			table.draw();
 		};
-	}
-
-	function formatVND() {
-		document.querySelectorAll('.price').forEach((p, idx) => {
-			p.innerText = new Intl.NumberFormat("de-DE", { style: "currency", currency: "VND" }).format(parseInt(p.innerText));
-		});
 	}
 
 	document.addEventListener('DOMContentLoaded', () => {
@@ -96,5 +78,5 @@
 {{end}}
 
 {{define "title"}}
-Hàng
+Nhà cung cấp
 {{end}}

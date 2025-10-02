@@ -50,12 +50,77 @@ func (db *Data) Supplier(id string) (*Supplier, error) {
 		&sp.Email,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
+		db.logger.Error(err.Error())
 		return nil, fmt.Errorf("%w: %v", ErrNoSuppliers, id)
 	} else if err != nil {
+		db.logger.Error(err.Error())
+		return nil, err
+	}
+
+	sp.Items, err = db.SupplierItems(sp.ID)
+	if err != nil {
+		db.logger.Error(err.Error())
 		return nil, err
 	}
 
 	return &sp, nil
+}
+
+func (db *Data) SupplierItems(supplierID string) ([]Item, error) {
+	sI, err := id64(supplierID, SupplierIDCode)
+	if err != nil {
+		db.logger.Error(err.Error())
+		return nil, err
+	}
+
+	stmt := `
+	select
+	gtin
+	from supplier_item
+	where supplier_id = $1
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	rows, err := db.DB.QueryContext(ctx, stmt, sI)
+	if err != nil {
+		db.logger.Error(err.Error())
+		return nil, err
+	}
+	defer func() {
+		if err2 := rows.Close(); err2 != nil {
+			panic(err2)
+		}
+	}()
+
+	var is []Item
+
+	for rows.Next() {
+		i := new(Item)
+
+		err = rows.Scan(
+			&i.GTIN,
+		)
+		if err != nil {
+			db.logger.Error(err.Error())
+			return nil, err
+		}
+
+		i, err = db.Item(i.GTIN)
+		if err != nil {
+			db.logger.Error(err.Error())
+			return nil, err
+		}
+
+		is = append(is, *i)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return is, nil
 }
 
 func (db *Data) Suppliers() ([]Supplier, error) {
@@ -119,4 +184,75 @@ func (db *Data) Suppliers() ([]Supplier, error) {
 	}
 
 	return ss, nil
+}
+
+func addSupplier(tx *sql.Tx, input *Supplier) (id string, err error) {
+	stmt := `
+	insert into supplier (name, address, phone, email) values
+	($1, $2, $3, $4)
+	returning $5||id
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	err = tx.QueryRowContext(ctx, stmt, input.Name, input.Address, input.Phone, input.Email, SupplierIDCode).Scan(
+		&id,
+	)
+	if err != nil {
+		return "", err
+	}
+
+	return id, nil
+}
+
+func addSupplierItems(tx *sql.Tx, input *Supplier) error {
+	sI, err := id64(input.ID, SupplierIDCode)
+	if err != nil {
+		return err
+	}
+
+	stmt := `
+	insert into supplier_item (supplier_id, gtin) values
+	($1, $2)
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	for _, i := range input.Items {
+		_, err := tx.ExecContext(ctx, stmt, sI, i.GTIN)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (db *Data) AddSupplier(input *Supplier) (id string, err error) {
+	tx, err := db.DB.Begin()
+	if err != nil {
+		db.logger.Error(err.Error())
+		return "", err
+	}
+	defer tx.Rollback()
+
+	input.ID, err = addSupplier(tx, input)
+	if err != nil {
+		db.logger.Error(err.Error())
+		return "", err
+	}
+
+	err = addSupplierItems(tx, input)
+	if err != nil {
+		db.logger.Error(err.Error())
+		return "", err
+	}
+
+	if err = tx.Commit(); err != nil {
+		return "", err
+	}
+
+	return input.ID, nil
 }

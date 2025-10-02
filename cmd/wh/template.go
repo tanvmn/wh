@@ -84,6 +84,8 @@ func differenceActivityURL(id string) string {
 		return fmt.Sprintf("%v/export/%v/pick/result", domain, data.ExportIDCode+id[4:])
 	case data.PackIDCode:
 		return fmt.Sprintf("%v/export/%v/pack/result", domain, data.ExportIDCode+id[4:])
+	case data.InventoryIDCode:
+		return fmt.Sprintf("%v/inventory/%v/process/result", domain, id)
 	default:
 		return domain + "/health"
 	}
@@ -99,6 +101,8 @@ func differenceActivityBadgeBg(idCode string) string {
 		return "dark"
 	case data.PackIDCode:
 		return "danger"
+	case data.InventoryIDCode:
+		return "info"
 	default:
 		return "primary"
 	}
@@ -318,6 +322,21 @@ type OutOfDateItemsPage struct{
 // Out of date items
 type OutOfDateSerialsPage struct{
 	Item *data.ItemQuantity
+}
+
+// Supplier Add Page
+type SupplierAddPage struct {
+	Items []data.Item
+}
+
+// Supplier Page
+type SupplierPage struct {
+	*data.Supplier
+}
+
+// Suppliers Page
+type SuppliersPage struct {
+	Suppliers []data.Supplier
 }
 
 func (p *ExportPackResultPage) PackDifference(gtin string) int {

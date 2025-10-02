@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/tanNguyen2220022/wh/internal/util"
 )
 
 type Inventory struct {
@@ -649,4 +651,18 @@ func (db *Data) Inventories(warehouseID string) ([]Inventory, error) {
 	}
 
 	return is, nil
+}
+
+func (i *Inventory) HasDifference() bool {
+	if util.Is01011000(i.EndedAt) {
+		return false
+	}
+
+	for _, is := range i.InventorySerials {
+		if is.Result == InventoryNotFound {
+			return true
+		}
+	}
+
+	return false
 }

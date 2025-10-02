@@ -1,0 +1,264 @@
+{{define "title"}}
+Nhà cung cấp
+{{end}}
+
+{{define "main"}}
+<style>
+	table,
+	thead,
+	tbody,
+	th,
+	td {
+		padding: 0;
+		text-align: center;
+	}
+
+	ul {
+		list-style-type: none;
+		margin: 0;
+		padding: 0;
+	}
+</style>
+
+<div class="container-fluid">
+	<div class="row p-3">
+		{{with .Page.Supplier}}
+		<h3 class="d-inline">
+			Nhà cung cấp ID:&nbsp&nbsp
+			<span id="supplierID" class="badge text-bg-info">{{.ID}}</span>
+		</h3>
+		{{end}}
+	</div>
+
+	<form class="was-validated" novalidate>
+		<!-- Begin warehouse, expectedAt -->
+		<div class="row">
+			{{with .Page.Supplier}}
+			<div class="col">
+				<label for="name" class="form-label">Tên</label>
+				<input type="text" name="name" id="name" class="form-control" value="{{.Name}}" required
+					disabled>
+				<div class="invalid-feedback">
+					Không thể trống
+				</div>
+			</div>
+
+			<div class="col">
+				<label for="phone" class="form-label">Điện thoại</label>
+				<input type="tel" name="phone" id="phone" class="form-control" minlength="10"
+					maxlength="12" required value="{{.Phone}}" disabled>
+				<div class="invalid-feedback">
+					Min 10, Max 12 số
+				</div>
+			</div>
+
+			<div class="col">
+				<label for="email" class="form-label">Email</label>
+				<input type="email" name="email" id="email" class="form-control" required
+					value="{{.Email}}" disabled>
+				<div class="invalid-feedback">
+					Không thể trống
+				</div>
+			</div>
+
+			<div class="col">
+				<label for="address" class="form-label">Địa chỉ</label>
+				<textarea class="form-control" name="address" id="address" required
+					disabled>{{.Address}}</textarea>
+				<div class="invalid-feedback">
+					Không thể trống
+				</div>
+			</div>
+			{{end}}
+		</div>
+		<!-- End warehouse, expectedAt -->
+
+		<div class="row my-4 d-none">
+			<div class="col-4 mx-auto">
+				<button class="btn btn-primary" type="submit" id="submitBtn">
+					Thêm nhà cung cấp
+				</button>
+			</div>
+		</div>
+
+		<!-- Begin items pick and datalist -->
+		<div class="row mt-3 d-none" id="itemInput">
+			<input onclick="this.value = ''" onblur="this.value = ''" list="itemOpts" id="itemPick"
+				placeholder="Tìm hàng...">
+			<datalist id="itemOpts">
+				{{range .Page.Items}}
+				<option value="{{.GTIN}};/rec/{{.ImgFSPath}};{{.Name}}">
+					{{.GTIN}} / {{.Name}}
+				</option>
+				{{end}}
+			</datalist>
+		</div>
+		<!-- End items pick and datalist -->
+
+		<!-- Begin items pick table -->
+		<div class="row mt-1">
+			<table id="itemTable" class="table table-striped align-middle">
+				<thead>
+					<th></th>
+					<th>GTIN</th>
+					<th>Tên</th>
+					<th></th>
+				</thead>
+				<tbody id="itemList">
+					{{range .Page.Supplier.Items}}
+					<tr>
+						<td><img height="90" src="/rec/{{.ImgFSPath}}"
+								alt="/rec/{{.ImgFSPath}}"></td>
+						<td class='gtin'>{{.GTIN}}</td>
+						<td>{{.Name}}</td>
+						<td><button class="btn btn-danger delete d-none">X</button></td>
+					</tr>
+					{{end}}
+				</tbody>
+			</table>
+		</div>
+		<!-- End items pick table -->
+	</form>
+</div>
+<script type="module">
+	import { domain, IDCode, Scanner } from "/static/js/util.js";
+
+	// After getting items (above), begin others task from this point
+	document.addEventListener('DOMContentLoaded', function () {
+		// Initialize QR scanning
+		Scanner.init(addItem);
+
+		// Populate the table of chosen items based on the selection of item
+		document.querySelector('#itemPick').addEventListener('input', (e) => {
+			addItem(e.target.value);
+			console.log(e.target.value);
+			// e.target.value = '';
+		});
+
+		// Delete row in table of chosen items and repopulate the options of items
+		document.querySelector('#itemTable').addEventListener('click', (e) => {
+			delTR(e);
+		});
+
+		function addItem(input) {
+			document.querySelector('#itemOpts').querySelectorAll('option').forEach((o, i) => {
+				if (o.value === input) {
+					let split = o.value.split(';');
+					let gtin = split[0];
+					let img = split[1];
+					let name = split[2];
+
+					let tr = document.createElement('tr');
+					tr.innerHTML = `
+								<td><img height="90" src="${img}" alt="${img}"></td>
+								<td class='gtin'>${gtin}</td>
+								<td>${name}</td>
+								<td><button class="btn btn-danger delete">X</button></td>
+								`;
+
+					document.querySelector('#itemList').appendChild(tr);
+
+					delOpt(o.value);
+				}
+			});
+
+		}
+
+		function delOpt(value) {
+			document.querySelector('#itemOpts').querySelectorAll('option').forEach((o, i) => {
+				if (o.value === value) {
+					o.remove();
+				}
+			});
+		}
+
+		function delTR(e) {
+			if (e.target.classList.contains('delete')) {
+				let existed = false;
+				let gtin = e.target.parentElement.parentElement.firstElementChild.nextElementSibling.innerText;
+				let img = e.target.parentElement.parentElement.firstElementChild.querySelector('img').src.split(domain)[1];
+				let name = e.target.parentElement.parentElement.firstElementChild.nextElementSibling.nextElementSibling.innerText;
+				let value = `${gtin};${img};${name}`;
+				console.log(value);
+
+				document.querySelector('#itemOpts').querySelectorAll('option').forEach((o, i) => {
+					if (o.value === value) {
+						existed = true;
+					}
+				});
+
+				if (!existed) {
+					let op = document.createElement('option');
+					op.value = value;
+					op.innerText = `${gtin} / ${name}`;
+
+					document.querySelector('#itemOpts').appendChild(op);
+				}
+
+				e.target.parentElement.parentElement.remove();
+			}
+		}
+
+		function input() {
+			let o = {
+				name: document.querySelector('#name').value,
+				phone: document.querySelector('#phone').value,
+				address: document.querySelector('#address').value,
+				email: document.querySelector('#email').value,
+				items: [],
+			};
+
+			document.querySelector('#itemList').querySelectorAll('tr').forEach((tr, idx) => {
+				let it = { gtin: tr.querySelector('.gtin').innerText };
+				o.items.push(it);
+			});
+
+			console.log(JSON.stringify(o));
+			return o;
+		}
+
+		function request(obj) {
+			let ok = false;
+			fetch(domain + '/supplier/add', {
+				method: 'POST',
+				body: JSON.stringify(obj),
+				headers: {
+					'Content-Type': 'application/json'
+				}
+			})
+				.then(res => {
+					ok = res.ok;
+					if (res.redirected) {
+						window.location.replace(res.url);
+						return;
+					}
+					return res.text();
+				})
+				.then(data => {
+					if (!ok) alert(data);
+				})
+				.catch(err => {
+					alert(err);
+				});
+		}
+
+		// Submit the purchase in JSON to server
+		document.querySelector('form').addEventListener('submit', (e) => {
+			e.preventDefault();
+
+			if (document.querySelector('#itemList').querySelectorAll('tr').length === 0) {
+				alert('Phải chọn ít nhất 1 mặt hàng');
+				return;
+			}
+			if (!e.target.checkValidity()) {
+				return;
+			}
+
+			if (confirm('Bạn đã chắc về thông tin của phiên kiểm hàng?')) {
+				request(input());
+			}
+		});
+
+	});
+</script>
+{{end}}

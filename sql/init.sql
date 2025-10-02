@@ -566,8 +566,8 @@ insert into bin (warehouse_id, shelf, row, col, capacity) values
 ;
 
 insert into supplier (name, address, phone, email) values
-('NCC 1', 'địa chỉ NCC 1', '000001000', 'tan.Nguyen2220022@hcmut.edu.vn'),
-('NCC 2', 'địa chỉ NCC 2', '000001001', 'tan.Nguyen2220022@hcmut.edu.vn')
+('NCC 1', 'địa chỉ NCC 1', '000001000', 'tan.nguyen2220022@hcmut.edu.vn'),
+('NCC 2', 'địa chỉ NCC 2', '000001001', 'tan.nguyen2220022@hcmut.edu.vn')
 ;
 
 -- insert into item (gtin, characteristic, volume, weight, brand, material, color, size, price, type, shelf_life, img_fspath) values
@@ -678,11 +678,6 @@ insert into receive_item (purchase_id, receive_id, gtin, quantity) values
 ;
 update purchase set status = 'CHỜ NHẬP' where id = 2;
 
---NQW5vrGo6FFcO-iOl9Eu2
---0qfVw995gkeV2bnUZdMJS
---RHtfROpepYRFawn2AUVGp
---IJWfZV9Kciem0mI5-sz-d
-
 update receive set processed_by = 3, actual_at = timestamp '2023-01-01' + interval '1 day' where id = 2;
 insert into serial (nanoid, gtin, purchase_id, receive_id, receive_tote) values
 ('SER-NQW5vrGo6FFcO-iOl9Eu2', '4983435764166', 2, 2, 5)
@@ -708,7 +703,8 @@ insert into resupply (created_at, expected_at, account_id, store_id) values
 ;
 
 insert into resupply_item (resupply_id, gtin, quantity) values
-(1, 8888021200126, 3)
+(1, 8888021200126, 1)
+,(1, 619659115906, 1)
 ;
 
 insert into export (account_id, created_at, expected_at, voucher_id, resupply_id) values
@@ -716,7 +712,8 @@ insert into export (account_id, created_at, expected_at, voucher_id, resupply_id
 ;
 
 insert into export_item (export_id, resupply_id, gtin, quantity) values
-(1, 1, 8888021200126, 3)
+(1, 1, 8888021200126, 1)
+,(1, 1, 619659115906, 1)
 ;
 
 update resupply set status = 'CHỜ XUẤT' where id = 1;
@@ -727,21 +724,22 @@ picked_by = 3
 where id = 1
 ;
 
+--SER-rMiGVGZIj4uVYePjnSZwW;619659115906
 update serial set
 pick_tote = 1
 ,export_id = 1
 ,resupply_id = 1
 where nanoid in (
 	'SER-G9jVbMaf5kMkjj_AbYwS-'
-	,'SER-Ij2czMsg9ApYZI8kggcxL'
+	,'SER-rMiGVGZIj4uVYePjnSZwW'
 )
 ;
 
-update export_item set pick_note = 'khong tim thay 1'
-where export_id = 1
-and resupply_id = 1
-and gtin = '8888021200126'
-;
+-- update export_item set pick_note = 'khong tim thay 1'
+-- where export_id = 1
+-- and resupply_id = 1
+-- and gtin = '8888021200126'
+-- ;
 
 update resupply set status = 'KẾT THÚC' where id = 1;
 -- end/ add resupply ,export, pick export
