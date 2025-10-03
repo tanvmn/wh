@@ -87,12 +87,14 @@ Các Phiếu nhập
 					{{end}}
 					{{$isManagerOrEmployeeOrAccountant := (or (or (eq $account $manager) (eq
 					$account $employee)) (eq $account $accountant))}}
-					{{if (and (and $isManagerOrEmployeeOrAccountant (not01011000 .PutawayAt)) (not
-					(notProcessed .ActualAt)))}}
+					{{if (not (notProcessed .ActualAt))}}
 					<a class="btn btn-sm btn-success"
 						href="{{$domain}}/receive/{{.ID}}/process/result">
 						KQuả nhập
 					</a>
+					{{end}}
+					{{if (and (and $isManagerOrEmployeeOrAccountant (not01011000 .PutawayAt)) (not
+					(notProcessed .ActualAt)))}}
 					<a class="btn btn-sm btn-dark" href="{{$domain}}/putaway/{{.ID}}/result">
 						KQuả cất
 					</a>

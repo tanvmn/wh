@@ -495,7 +495,7 @@ func (db *Data) DailyConsumptions(warehouseID string) ([]ItemQuantity, error) {
 	ei.gtin,
 	case
 		when extract(epoch from (max(export.packed_at) - min(export.packed_at))::interval)/86400 < 1 then sum(ei.quantity)
-		else (sum(ei.quantity) / extract(epoch from (max(export.packed_at) - min(export.packed_at))::interval)/86400)::bigint
+		else ceil(sum(ei.quantity) / extract(epoch from (max(export.packed_at) - min(export.packed_at))::interval)/86400)
 	end
 	from export_item as ei
 	join export on export.id = ei.export_id
@@ -616,6 +616,10 @@ func (db *Data) SafeStocks(warehouseID string) ([]ItemQuantity, error) {
 		db.logger.Error(err.Error())
 		return nil, err
 	}
+	println("daily consumption")
+	for _, iq := range dc {
+		println(iq.Item.GTIN, iq.Quantity)
+	}
 
 	rd, err := db.RestockDays(warehouseID)
 	if err != nil {
@@ -713,11 +717,11 @@ func (db *Data) UnsafeStocks(warehouseID string) ([]ItemQuantity, error) {
 		return nil, err
 	}
 
-	is, err := db.AwaitingResponseAndAwaitingExportResupplyItems(warehouseID)
-	if err != nil {
-		db.logger.Error(err.Error())
-		return nil, err
-	}
+	// is, err := db.AwaitingResponseAndAwaitingExportResupplyItems(warehouseID)
+	// if err != nil {
+	// 	db.logger.Error(err.Error())
+	// 	return nil, err
+	// }
 
 	s, err := db.CurrentItemQuantitiesInBinsByWarehouse(warehouseID)
 	if err != nil {
@@ -766,19 +770,19 @@ func (db *Data) UnsafeStocks(warehouseID string) ([]ItemQuantity, error) {
 		}
 	}
 
-	println()
-	// Minus the items in the resupply whose export have not been processed
-	for i := range sf {
-		for _, iq := range is {
-			if sf[i].Item.GTIN == iq.Item.GTIN {
-				println("current items in unprocessed resupply", iq.Quantity, "restock", sf[i].Restock)
-				sf[i].Stock -= iq.Quantity
-				sf[i].Restock += iq.Quantity
-				println("match with awaiting not stocks", sf[i].Item.GTIN, "stock", sf[i].Stock, "restock", sf[i].Restock)
-				// break
-			}
-		}
-	}
+	// println()
+	// // Minus the items in the resupply whose export have not been processed
+	// for i := range sf {
+	// 	for _, iq := range is {
+	// 		if sf[i].Item.GTIN == iq.Item.GTIN {
+	// 			println("current items in unprocessed resupply", iq.Quantity, "restock", sf[i].Restock)
+	// 			sf[i].Stock -= iq.Quantity
+	// 			sf[i].Restock += iq.Quantity
+	// 			println("match with awaiting not stocks", sf[i].Item.GTIN, "stock", sf[i].Stock, "restock", sf[i].Restock)
+	// 			// break
+	// 		}
+	// 	}
+	// }
 
 	// Add the calculated safe stock that > 0
 	for _, iq := range sf {
