@@ -595,13 +595,15 @@ insert into supplier_item (supplier_id, gtin) values
 ;
 
 insert into account (role, bdate, name, phone, password_hash, warehouse_id) values
-('Admin', date 'now()' - interval '19 years', 'admin', '0000000001', '$2a$12$sPDZCZEc01jKDxKNDhZgquKZH.4R0TtMn/9sCdnE0OJnrMMcnXPJy', null),
+('Admin', date 'now()' - interval '19 years', 'admin', '0000000001', '$2a$12$sPDZCZEc01jKDxKNDhZgquKZH.4R0TtMn/9sCdnE0OJnrMMcnXPJy', 1),
 ('Kế toán trưởng', date 'now()' - interval '19 years', 'ktt', '0000000002', '$2a$12$sPDZCZEc01jKDxKNDhZgquKZH.4R0TtMn/9sCdnE0OJnrMMcnXPJy', null),
 ('Thủ kho', date 'now()' - interval '19 years', 'tk', '0000000003', '$2a$12$sPDZCZEc01jKDxKNDhZgquKZH.4R0TtMn/9sCdnE0OJnrMMcnXPJy', 1),
 ('Kế toán', date 'now()' - interval '19 years', 'kt', '0000000004', '$2a$12$sPDZCZEc01jKDxKNDhZgquKZH.4R0TtMn/9sCdnE0OJnrMMcnXPJy', 1),
 ('Nhân viên', date 'now()' - interval '19 years', 'nv', '0000000005', '$2a$12$sPDZCZEc01jKDxKNDhZgquKZH.4R0TtMn/9sCdnE0OJnrMMcnXPJy', 1),
 ('Nhân viên', date 'now()' - interval '19 years', 'nv', '0000000007', '$2a$12$sPDZCZEc01jKDxKNDhZgquKZH.4R0TtMn/9sCdnE0OJnrMMcnXPJy', 1)
 ;
+
+update account set store_id = 1 where role = 'Admin';
 
 insert into account (role, bdate, name, phone, password_hash, store_id) values
 ('Nhân viên', date 'now()' - interval '19 years', 'nv kho', '0000000006', '$2a$12$sPDZCZEc01jKDxKNDhZgquKZH.4R0TtMn/9sCdnE0OJnrMMcnXPJy', 1)

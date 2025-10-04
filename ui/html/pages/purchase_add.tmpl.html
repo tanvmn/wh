@@ -29,18 +29,11 @@ Tạo yêu cầu nhập
 			<div class="col">
 				<label for="warehouse" class="form-label">Kho</label>
 				<select name="warehouse" id="warehouse" class="form-select" required {{$isAccountant
-					:=eq .Account.Role .Accountant}} {{if $isAccountant}} disabled {{end}}>
-					{{if not $isAccountant}}
-					{{range .Warehouses}}
-					<option value="{{.ID}} / Kho {{.Name}}">
-						{{.ID}} / Kho {{.Name}}</option>
-					{{end}}
-					{{else}}
+					:=eq .Account.Role .Accountant}} disabled>
 					<option selected
 						value="{{.Account.Warehouse.ID}} / Kho {{.Account.Warehouse.Name}}">
 						{{.Account.Warehouse.ID}} / Kho {{.Account.Warehouse.Name}}
 					</option>
-					{{end}}
 				</select>
 				<div class="invalid-feedback">
 					Bắt buộc chọn

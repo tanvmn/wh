@@ -128,7 +128,7 @@
 	</button>
 	<div class="dropdown-container-w3">
 		<a id="receives" href="{{.Domain}}/receives">Xem</a>
-		{{if (or (eq .Account.Role .Manager) (eq .Account.Role .Employee))}}
+		{{if (or (or (eq .Account.Role .Manager) (eq .Account.Role .Employee) (eq .Account.Role .Admin)))}}
 		<a id="putaway" href="{{.Domain}}/putaway-prompt">Cất Hàng</a>
 		{{end}}
 	</div>

@@ -18,6 +18,8 @@ Phiếu nhập
 	{{$account := .Account.Role}}
 	{{$manager := .Manager}}
 	{{$employee := .Employee}}
+	{{$admin := .Admin}}
+	{{$isManagerOrEmployeeOrAdmin := (or (or (eq $account $manager) (eq $account $employee)) (eq $account $admin))}}
 	{{with .Receive}}
 	<div class="row p-3">
 		<div class="col-3">
@@ -34,7 +36,15 @@ Phiếu nhập
 			<input class="form-check-input" type="checkbox" name="setReceive" id="setReceive">
 
 		</div>
+		{{end}}
 
+		{{if $isManagerOrEmployeeOrAdmin}}
+		<div class="col-1">
+			<a id="processReceiveBtn" href="/receive/{{.ID}}/process" class="btn btn-secondary ms-5"><strong>Xử lý</strong></a>
+		</div>
+		{{end}}
+
+		{{if (and (notProcessed .ActualAt) (and (ne $account $manager) (ne $account $employee)))}}
 		<div class="col-1">
 			<button id="delReceiveBtn" class="btn btn-danger ms-5"><strong>Xóa</strong></button>
 		</div>

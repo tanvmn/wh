@@ -40,6 +40,7 @@ Các Phiếu nhập
 			{{$manager := .Manager}}
 			{{$employee := .Employee}}
 			{{$accountant := .Accountant}}
+			{{$admin := .Admin}}
 			{{range .Receives}}
 			{{$ended := (ne $endedStatus .Status)}}
 			{{$declined := (ne $declinedStatus .Status)}}
@@ -79,21 +80,22 @@ Các Phiếu nhập
 					<a class="btn btn-sm btn-info" href="{{$domain}}/receive/{{.ID}}">
 						Xem
 					</a>
-					{{if (and (or (eq $account $manager) (eq $account $employee)) (notProcessed
+					{{if (and (or (or (eq $account $manager) (eq $account $employee)) (eq $account
+					$admin)) (notProcessed
 					.ActualAt))}}
 					<a class="btn btn-sm btn-secondary" href="{{$domain}}/receive/{{.ID}}/process">
 						Xử lý
 					</a>
 					{{end}}
-					{{$isManagerOrEmployeeOrAccountant := (or (or (eq $account $manager) (eq
-					$account $employee)) (eq $account $accountant))}}
+					{{$isManagerOrEmployeeOrAccountantOrAdmin := (or (or (or (eq $account $manager) (eq
+					$account $employee)) (eq $account $accountant)) (eq $account $admin))}}
 					{{if (not (notProcessed .ActualAt))}}
 					<a class="btn btn-sm btn-success"
 						href="{{$domain}}/receive/{{.ID}}/process/result">
 						KQuả nhập
 					</a>
 					{{end}}
-					{{if (and (and $isManagerOrEmployeeOrAccountant (not01011000 .PutawayAt)) (not
+					{{if (and (and $isManagerOrEmployeeOrAccountantOrAdmin (not01011000 .PutawayAt)) (not
 					(notProcessed .ActualAt)))}}
 					<a class="btn btn-sm btn-dark" href="{{$domain}}/putaway/{{.ID}}/result">
 						KQuả cất
