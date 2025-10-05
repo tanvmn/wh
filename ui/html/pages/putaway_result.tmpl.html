@@ -108,19 +108,19 @@ Cất hàng
 						<td>
 							<input type="number"
 								class="form-control was-validated neededQuantity"
-								value="{{.NeededPutawayQuantity}}" required disabled>
+								value="{{.NeededPutawayQuantity}}" required readonly>
 						</td>
 						<td>
 							<input type="number"
 								class="form-control was-validated bg-success-subtle putawayQuantity"
 								value="{{.SuccessfullyPutawayQuantity}}" required
-								disabled>
+								readonly>
 						</td>
 						<td>
 							<input type="number"
 								class="form-control was-validated bg-warning-subtle notPutawayQuantity"
 								value="{{.UnsuccessfullyPutawayQuantity}}" required
-								disabled>
+								readonly>
 						</td>
 						<td>
 							<textarea readonly>{{.PutawayNote}}</textarea>
