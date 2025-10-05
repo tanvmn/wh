@@ -50,19 +50,20 @@ func (ap *application) routes() http.Handler {
 		// 	return
 		// }
 
-		ss, err := ap.data.Suppliers()
+		rec, err := ap.data.Receive("REC-3")
 		if err != nil {
 			ap.logger.Error(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		for _, s := range ss {
-			println(s.ID, s.Name, s.Address, s.Email, s.Phone)
-			for _, i := range s.Items {
-				println(i.GTIN, i.Name)
+		println(rec.ID)
+		for _, iq := range rec.Items {
+			println(iq.Item.GTIN, iq.Quantity)
+
+			for _, s := range iq.Serials {
+				println(s.NanoID, s.GTIN)
 			}
-			println()
 		}
 	})
 

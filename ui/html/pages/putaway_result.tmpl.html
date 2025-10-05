@@ -77,22 +77,20 @@ Cất hàng
 		<div class="row mt-1">
 			<table id="itemTable" class="table table-striped align-middle">
 				<thead>
-					<th>ID Giỏ</th>
+					<!-- <th>ID Giỏ</th>
 					<th>Kệ</th>
 					<th>Hàng</th>
-					<th>Cột</th>
+					<th>Cột</th> -->
 					<th></th>
-					<th>Mặt hàng</th>
+					<th>Hàng</th>
+					<th>Cần cất (cái)</th>
 					<th>Đã cất (cái)</th>
+					<th>Lệch (cái)</th>
 					<th>Ghi chú</th>
 				</thead>
 				<tbody id="itemList">
-					{{range .Page.TRs}}
+					{{range .Page.Receive.Items}}
 					<tr>
-						<td class="binID">{{.Bin.ID}}</td>
-						<td>{{.Bin.Shelf}}</td>
-						<td>{{.Bin.Row}}</td>
-						<td>{{.Bin.Col}}</td>
 						<td><img height="100" src="/rec/{{.Item.ImgFSPath}}"
 								alt="/rec/{{.Item.ImgFSPath}}">
 						</td>
@@ -108,16 +106,24 @@ Cất hàng
 							</ul>
 						</td>
 						<td>
-							{{$bg := ""}}
-							{{if (eq .Bin.Shelf 0)}} {{$bg = "warning"}} {{else}} {{$bg =
-							"success"}} {{end}}
 							<input type="number"
-								class="form-control was-validated bg-{{$bg}}-subtle actualQuantity"
-								value="{{.Quantity}}" required readonly>
+								class="form-control was-validated neededQuantity"
+								value="{{.NeededPutawayQuantity}}" required disabled>
 						</td>
 						<td>
-							<textarea
-								readonly>{{if (eq .Bin.ID "")}} {{.Note}} {{end}}</textarea>
+							<input type="number"
+								class="form-control was-validated bg-success-subtle putawayQuantity"
+								value="{{.SuccessfullyPutawayQuantity}}" required
+								disabled>
+						</td>
+						<td>
+							<input type="number"
+								class="form-control was-validated bg-warning-subtle notPutawayQuantity"
+								value="{{.UnsuccessfullyPutawayQuantity}}" required
+								disabled>
+						</td>
+						<td>
+							<textarea readonly>{{.PutawayNote}}</textarea>
 						</td>
 					</tr>
 					{{end}}
@@ -127,19 +133,19 @@ Cất hàng
 	</form>
 	<!-- End items pick table -->
 
-	<div class="d-none" id="serials">
+	<!-- <div class="d-none" id="serials">
 		{{range .Page.Receive.Items}}
 		{{range .Serials}}
 		<input type="text" id="{{.GTIN}};{{.NanoID}}" value="{{.GTIN}};{{.NanoID}}">
 		{{end}}
 		{{end}}
-	</div>
+	</div> -->
 </div>
 <script>
-	document.addEventListener('DOMContentLoaded', () => {
-		document.querySelector('#itemList').querySelectorAll('tr').forEach((tr, idx) => {
-			tr.querySelector('.diffQuantity').value = tr.querySelector('.actualQuantity').value - tr.querySelector('.expectedQuantity').value;
-		});
-	})
+	// document.addEventListener('DOMContentLoaded', () => {
+	// 	document.querySelector('#itemList').querySelectorAll('tr').forEach((tr, idx) => {
+	// 		tr.querySelector('.diffQuantity').value = tr.querySelector('.actualQuantity').value - tr.querySelector('.expectedQuantity').value;
+	// 	});
+	// })
 </script>
 {{end}}

@@ -3,6 +3,7 @@ package data
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"time"
 )
 
@@ -210,4 +211,62 @@ func (db *Data) PutawaySerialsByReceive(rc *Receive) ([]Serial, error) {
 	}
 
 	return ss, nil
+}
+
+func (db *Data) SuccessfullyPutawayQuantityByGTINAndReceive(receiveID, gtin string) (int64, error) {
+	rI, err := id64(receiveID, ReceiveIDCode)
+	if err != nil {
+		return 0, err
+	}
+
+	stmt := `
+	select
+	count(*)
+	from serial
+	where receive_id = $1
+	and gtin = $2
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var quantity int64
+
+	err = db.DB.QueryRowContext(ctx, stmt, rI, gtin).Scan(
+		&quantity,
+	)
+	if err != nil {
+		return 0, err
+	}
+
+	return quantity, nil
+}
+
+func (db *Data) UnsuccessfullyPutawayQuantityByGTINAndReceive(receiveID, gtin string) (int64, error) {
+	rI, err := id64(receiveID, ReceiveIDCode)
+	if err != nil {
+		return 0, err
+	}
+
+	stmt := `
+	select
+	count(*)
+	from difference_serial
+	where activity_id = $1
+	and gtin = $2
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var quantity int64
+
+	err = db.DB.QueryRowContext(ctx, stmt, fmt.Sprintf("%v%v", PutawayIDCode, rI), gtin).Scan(
+		&quantity,
+	)
+	if err != nil {
+		return 0, err
+	}
+
+	return quantity, nil
 }

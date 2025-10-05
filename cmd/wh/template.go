@@ -118,6 +118,7 @@ type PutawayResultPageTR struct {
 	Note     string
 	*data.Bin
 	*data.Item
+	*data.Receive
 }
 type PutawayResultPage struct {
 	*data.Receive

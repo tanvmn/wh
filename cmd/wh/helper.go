@@ -21,9 +21,7 @@ const (
 	itemImgPathFS = "item/img/"
 )
 
-var (
-	ErrConvertCtxVal = errors.New("cannnot convert context value to desired type")
-)
+var ErrConvertCtxVal = errors.New("cannnot convert context value to desired type")
 
 func (ap *application) render(
 	w http.ResponseWriter,

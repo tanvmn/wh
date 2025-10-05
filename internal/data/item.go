@@ -33,29 +33,32 @@ type Item struct {
 }
 
 type ItemQuantity struct {
-	Quantity            int64                     `json:"quantity,omitempty,omitzero"`
-	ActualQuantity      int64                     `json:"actualQuantity,omitempty,omitzero"`
-	MaxReceiveQuantity  int64                     `json:"maxReceiveQuantity,omitempty,omitzero"`
-	MaxResupplyQuantity int64                     `json:"maxResupplyQuantity,omitempty,omitzero"`
-	DailyConsumption    int64                     `json:"dailyConsumption,omitempty,omitzero"`
-	RestockDays         int64                     `json:"restockDays,omitempty,omitzero"`
-	Restock             int64                     `json:"restock,omitempty,omitzero"`
-	SafeStock           int64                     `json:"safeStock,omitempty,omitzero"`
-	Stock               int64                     `json:"stock,omitempty,omitzero"`
-	StoredMonths        int                       `json:"storedMonths,omitempty,omitzero"`
-	Note                string                    `json:"note,omitempty,omitzero"`
-	PutawayNote         string                    `json:"putawayNote,omitempty,omitzero"`
-	PackNote            string                    `json:"packNote,omitempty,omitzero"`
-	PickNote            string                    `json:"pickNote,omitempty,omitzero"`
-	PickBin             Bin                       `json:"bin,omitempty,omitzero"`
-	Serials             []Serial                  `json:"serials,omitempty,omitzero"`
-	Suppliers           []Supplier                `json:"suppliers,omitempty,omitzero"`
-	Putaway             map[string][]ItemQuantity `json:"putaway,omitempty,omitzero"`
-	Item                `json:"item,omitempty,omitzero"`
-	Receive             `json:"receive,omitempty,omitzero"`
-	Export              `json:"export,omitempty,omitzero"`
-	Resupply            `json:"resupply,omitempty,omitzero"`
-	Supplier            `json:"supplier,omitempty,omitzero"`
+	Quantity                      int64                     `json:"quantity,omitempty,omitzero"`
+	ActualQuantity                int64                     `json:"actualQuantity,omitempty,omitzero"`
+	MaxReceiveQuantity            int64                     `json:"maxReceiveQuantity,omitempty,omitzero"`
+	MaxResupplyQuantity           int64                     `json:"maxResupplyQuantity,omitempty,omitzero"`
+	DailyConsumption              int64                     `json:"dailyConsumption,omitempty,omitzero"`
+	RestockDays                   int64                     `json:"restockDays,omitempty,omitzero"`
+	Restock                       int64                     `json:"restock,omitempty,omitzero"`
+	SafeStock                     int64                     `json:"safeStock,omitempty,omitzero"`
+	Stock                         int64                     `json:"stock,omitempty,omitzero"`
+	SuccessfullyPutawayQuantity   int64                     `json:"successfullyPutawayQuantity,omitempty,omitzero"`
+	UnsuccessfullyPutawayQuantity int64                     `json:"unsuccessfullyPutawayQuantity,omitempty,omitzero"`
+	NeededPutawayQuantity         int64                     `json:"neededPutawayQuantity,omitempty,omitzero"`
+	StoredMonths                  int                       `json:"storedMonths,omitempty,omitzero"`
+	Note                          string                    `json:"note,omitempty,omitzero"`
+	PutawayNote                   string                    `json:"putawayNote,omitempty,omitzero"`
+	PackNote                      string                    `json:"packNote,omitempty,omitzero"`
+	PickNote                      string                    `json:"pickNote,omitempty,omitzero"`
+	PickBin                       Bin                       `json:"bin,omitempty,omitzero"`
+	Serials                       []Serial                  `json:"serials,omitempty,omitzero"`
+	Suppliers                     []Supplier                `json:"suppliers,omitempty,omitzero"`
+	Putaway                       map[string][]ItemQuantity `json:"putaway,omitempty,omitzero"`
+	Item                          `json:"item,omitempty,omitzero"`
+	Receive                       `json:"receive,omitempty,omitzero"`
+	Export                        `json:"export,omitempty,omitzero"`
+	Resupply                      `json:"resupply,omitempty,omitzero"`
+	Supplier                      `json:"supplier,omitempty,omitzero"`
 }
 
 func (iq ItemQuantity) ExportItemDifference() int64 {

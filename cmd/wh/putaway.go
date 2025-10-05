@@ -151,19 +151,43 @@ func (ap *application) putawayResultPage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("receive")
 
-		rc, err := ap.data.Receive(id)
+		rec, err := ap.data.Receive(id)
 		if err != nil {
 			ap.logger.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
-		p, err := ap.newPutawayResultPageByReceive(rc)
-		if err != nil {
-			ap.logger.Error(err.Error())
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-			return
+		// p, err := ap.newPutawayResultPageByReceive(rc)
+		// if err != nil {
+		// 	ap.logger.Error(err.Error())
+		// 	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		// 	return
+		// }
+
+		for i := range rec.Items {
+			it := &rec.Items[i]
+			putaway, err := ap.data.SuccessfullyPutawayQuantityByGTINAndReceive(rec.ID, it.Item.GTIN)
+			if err != nil {
+				ap.logger.Error(err.Error())
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				return
+			}
+			it.SuccessfullyPutawayQuantity = putaway
+
+			notPutaway, err := ap.data.UnsuccessfullyPutawayQuantityByGTINAndReceive(rec.ID, it.Item.GTIN)
+			if err != nil {
+				ap.logger.Error(err.Error())
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				return
+			}
+			it.UnsuccessfullyPutawayQuantity = notPutaway
+
+			it.NeededPutawayQuantity = putaway + notPutaway
 		}
+
+		p := new(PutawayResultPage)
+		p.Receive = rec
 
 		td, err := ap.newTemplData(r)
 		if err != nil {
