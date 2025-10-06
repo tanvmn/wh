@@ -49,6 +49,30 @@ type templData struct {
 	InventoryUnchecked string
 	InventoryFound     string
 	InventoryNotFound  string
+	Cotton             string
+	Linen              string
+	Polyester          string
+	Silk               string
+	Wool               string
+	Rayon              string
+	Denim              string
+	S                  string
+	M                  string
+	L                  string
+	XL                 string
+	XXL                string
+	Red                string
+	Orange             string
+	Yellow             string
+	Green              string
+	Blue               string
+	Indigo             string
+	Purple             string
+	Black              string
+	White              string
+	Grey               string
+	Brown              string
+	Pink               string
 	Items              []data.Item
 	ItemQuantitys      []data.ItemQuantity
 	Serials            []data.Serial
@@ -62,6 +86,13 @@ type templData struct {
 	data.Purchase
 	data.Account
 	data.Receive
+	// Cotton     = "Cotton"
+	// Linen      = "Linen"
+	// Polyester  = "Polyester"
+	// Silk       = "Silk"
+	// Wool       = "Wool"
+	// Rayon      = "Cotton"
+	// Denim      = "Denim"
 }
 
 type PutawayPage struct {
@@ -316,12 +347,12 @@ type InventoryProcessResultPage struct {
 }
 
 // Out of date items
-type OutOfDateItemsPage struct{
+type OutOfDateItemsPage struct {
 	Items []data.ItemQuantity
 }
 
 // Out of date items
-type OutOfDateSerialsPage struct{
+type OutOfDateSerialsPage struct {
 	Item *data.ItemQuantity
 }
 
@@ -466,6 +497,30 @@ func (ap *application) newTemplData(r *http.Request) (templData, error) {
 		InventoryUnchecked: data.InventoryUnchecked,
 		InventoryFound:     data.InventoryFound,
 		InventoryNotFound:  data.InventoryNotFound,
+		Cotton:             data.Cotton,
+		Linen:              data.Linen,
+		Polyester:          data.Polyester,
+		Silk:               data.Silk,
+		Wool:               data.Wool,
+		Rayon:              data.Rayon,
+		Denim:              data.Denim,
+		S:                  data.S,
+		M:                  data.M,
+		L:                  data.L,
+		XL:                 data.XL,
+		XXL:                data.XXL,
+		Red:                data.Red,
+		Orange:             data.Orange,
+		Yellow:             data.Yellow,
+		Green:              data.Green,
+		Blue:               data.Blue,
+		Indigo:             data.Indigo,
+		Purple:             data.Purple,
+		Black:              data.Black,
+		White:              data.White,
+		Grey:               data.Grey,
+		Brown:              data.Brown,
+		Pink:               data.Pink,
 		Account:            *ac,
 		Warehouses:         ws,
 		Suppliers:          ss,

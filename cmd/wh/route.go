@@ -89,6 +89,7 @@ func (ap *application) routes() http.Handler {
 	mux.Handle("GET /items/json", identify.then(ap.items()))
 	mux.Handle("GET /items-by-supplier/json", identify.then(ap.itemsBySupplier()))
 	mux.Handle("GET /items/out-of-date", identify.then(ap.outOfDateItems()))
+	mux.Handle("GET /item/add", identify.then(ap.itemAddPage()))
 
 	// Supplier
 	mux.Handle("GET /supplier/add", append(identify, ap.permit(data.Accountant, data.Manager, data.Employee)).then(ap.addSupplierPage()))

@@ -28,7 +28,7 @@
 				<th>Chất liệu</th>
 				<th>Đặc điểm</th>
 				<th>Còn<br>(Cái)</th>
-				<th>Giá</th>
+				<!-- <th>Giá</th> -->
 				<th>Hạn trữ<br>(tháng)</th>
 				<th></th>
 			</tr>
@@ -48,7 +48,7 @@
 				<td>
 					<h3><span class="badge text-bg-success">{{.Stock}}</span></h3>
 				</td>
-				<td class="price">{{.Price}}</td>
+				<!-- <td class="price">{{.Price}}</td> -->
 				<td>{{.ShelfLife}}</td>
 				<td><a class="btn btn-sm btn-info" href="{{$domain}}/serials?gtin={{.GTIN}}">Serials</a>
 				</td>
@@ -88,7 +88,7 @@
 			lengthMenu: [5, 10, 25, 50, 75, 100],
 		});
 
-		formatVND();
+		// formatVND();
 
 		Scanner.init(filterItem(table));
 	});

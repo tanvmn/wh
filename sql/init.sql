@@ -170,7 +170,7 @@ create table if not exists purchase_item (
 );
 
 drop type if exists material cascade;
-create type material as enum ('Cotton', 'Linen', 'Polyester');
+create type material as enum ('Cotton', 'Linen', 'Polyester', 'Silk', 'Wool', 'Rayon', 'Denim');
 
 drop type if exists size cascade;
 create type size as enum ('S', 'M', 'L', 'XL', 'XXL');
@@ -179,7 +179,7 @@ drop type if exists color cascade;
 create type color as enum ('Đỏ', 'Cam', 'Vàng', 'Lục', 'Lam', 'Chàm', 'Tím', 'Đen', 'Nâu', 'Xám', 'Trắng', 'Hồng');
 
 drop type if exists brand cascade;
-create type brand as enum ('Gucci', 'GAP', 'Navy', 'Viettien', 'Pierre', 'H&M', 'Zara');
+-- create type brand as enum ('Gucci', 'GAP', 'Navy', 'Viettien', 'Pierre', 'H&M', 'Zara');
 
 drop type if exists item_type cascade;
 drop type if exists type cascade;
@@ -202,11 +202,11 @@ create table if not exists item (
 	characteristic text not null,
 	volume real not null,
 	weight bigint not null,
-	brand brand not null,
+	brand text not null,
 	material material not null,
 	color color not null,
 	size size not null,
-	price real not null,
+	price real not null default -1,
 	currency text not null default 'VND',
 	shelf_life bigint not null,		-- months
 	img_fspath text not null,

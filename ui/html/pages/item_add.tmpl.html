@@ -1,0 +1,204 @@
+{{define "title"}}
+Tạo hàng
+{{end}}
+
+{{define "main"}}
+<style>
+	table,
+	thead,
+	tbody,
+	th,
+	td {
+		padding: 0;
+		text-align: center;
+	}
+
+	ul {
+		list-style-type: none;
+		margin: 0;
+		padding: 0;
+	}
+</style>
+
+<div class="container-fluid">
+	<div class="row p-3">
+		<h3 class="d-inline">
+			<span class="badge text-bg-info">Tạo hàng</span>
+		</h3>
+	</div>
+
+	<form class="was-validated" method="post" action="" novalidate>
+		<!-- Begin warehouse, supplier, expectedAt -->
+		<div class="row">
+			<div class="col-9">
+				<div class="row">
+					<div class="col">
+						<label for="gtin" class="form-label"><strong>GTIN</strong></label>
+						&nbsp;&nbsp;
+						<button class="btn btn-dark" id="generateGTIN">Tạo</button>
+						<input type="text" name="gtin" id="gtin"
+							class="form-control was-validated" required>
+						<div class="invalid-feedback">
+							Không thể trống
+						</div>
+					</div>
+
+					<div class="col">
+						<label for="shelfLife" class="form-label">
+							<strong>Hạn trữ (tháng)</strong>
+						</label>
+						<input type="number" name="shelfLife" id="shelfLife" min="1" max="7"
+							class="form-control was-validated" required>
+						<div class="invalid-feedback">
+							Min 1, Max 7
+						</div>
+					</div>
+				</div>
+
+				<div class="row">
+					<div class="col">
+						<label for="volume" class="form-label">
+							<strong>Thể tích (cm3)</strong>
+						</label>
+						<input type="number" name="volume" id="volume" min="280" max="2800"
+							class="form-control was-validated" required>
+						<div class="invalid-feedback">
+							Min 280, Max 2800
+						</div>
+					</div>
+
+					<div class="col">
+						<label for="weight" class="form-label">
+							<strong>Khối lượng (gram)</strong>
+						</label>
+						<input type="number" name="weight" id="weight" min="60" max="460"
+							class="form-control was-validated" required>
+						<div class="invalid-feedback">
+							Min 60, Max 460
+						</div>
+					</div>
+
+					<div class="col">
+						<label for="brand" class="form-label">
+							<strong>Thương hiệu</strong>
+						</label>
+						<input type="text" name="brand" id="brand"
+							class="form-control was-validated" required>
+						<div class="invalid-feedback">
+							Không thể trống
+						</div>
+					</div>
+				</div>
+
+				<div class="row">
+					<div class="col">
+						<label for="material" class="form-label">
+							<strong>Chất liệu</strong>
+						</label>
+						<select class="form-select was-validated" name="material" id="material"
+							required>
+							<option class="d-none" value="" selected></option>
+							<option value="{{.Cotton}}">{{.Cotton}}</option>
+							<option value="{{.Polyester}}">{{.Polyester}}</option>
+							<option value="{{.Silk}}">{{.Silk}}</option>
+							<option value="{{.Wool}}">{{.Wool}}</option>
+							<option value="{{.Linen}}">{{.Linen}}</option>
+							<option value="{{.Rayon}}">{{.Rayon}}</option>
+							<option value="{{.Denim}}">{{.Denim}}</option>
+						</select>
+						<div class="invalid-feedback">
+							Không thể trống
+						</div>
+					</div>
+
+					<div class="col">
+						<label for="color" class="form-label"><strong>Màu</strong></label>
+						<select class="form-select was-validated" name="color" id="color"
+							required>
+							<option class="d-none" value="" selected></option>
+							<option value="{{.Red}}">{{.Red}}</option>
+							<option value="{{.Orange}}">{{.Orange}}</option>
+							<option value="{{.Yellow}}">{{.Yellow}}</option>
+							<option value="{{.Green}}">{{.Green}}</option>
+							<option value="{{.Blue}}">{{.Blue}}</option>
+							<option value="{{.Indigo}}">{{.Indigo}}</option>
+							<option value="{{.Purple}}">{{.Purple}}</option>
+							<option value="{{.Black}}">{{.Black}}</option>
+							<option value="{{.Grey}}">{{.Grey}}</option>
+							<option value="{{.White}}">{{.White}}</option>
+							<option value="{{.Pink}}">{{.Pink}}</option>
+							<option value="{{.Brown}}">{{.Brown}}</option>
+						</select>
+						<div class="invalid-feedback">
+							Không thể trống
+						</div>
+					</div>
+
+					<div class="col">
+						<label for="size" class="form-label"><strong>Cỡ</strong></label>
+						<select class="form-select was-validated" name="size" id="size"
+							required>
+							<option class="d-none" value="" selected></option>
+							<option value="{{.S}}">{{.S}}</option>
+							<option value="{{.M}}">{{.M}}</option>
+							<option value="{{.L}}">{{.L}}</option>
+							<option value="{{.XL}}">{{.XL}}</option>
+							<option value="{{.XXL}}">{{.XXL}}</option>
+						</select>
+						<div class="invalid-feedback">
+							Không thể trống
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="col">
+				<div class="row">
+					<label for="img" class="form-label"><strong>Hình</strong></label>
+					<input type="file" name="img" id="img" class="form-control was-validated"
+						accept="image/jpeg, image/jpg, image/png" required>
+					<div class="invalid-feedback">
+						Không thể trống
+					</div>
+				</div>
+				<div class="row">
+					<img src="" class="img-thumbnail" alt="img">
+				</div>
+			</div>
+		</div>
+
+		<!-- End warehouse, supplier, expectedAt -->
+
+		<div class="row my-4" id="submitBtn">
+			<div class="col-4 mx-auto">
+				<button class="btn btn-primary" type="submit" id="submitBtn">
+					Tạo hàng
+				</button>
+			</div>
+		</div>
+	</form>
+</div>
+<script type="module">
+	import { domain, IDCode, Scanner } from "/static/js/util.js";
+
+	// After getting items (above), begin others task from this point
+	document.addEventListener('DOMContentLoaded', function () {
+		// Initialize QR scanning
+		// Scanner.init(addItem);
+
+		// Submit the purchase in JSON to server
+		document.querySelector('form').addEventListener('submit', (e) => {
+			e.preventDefault();
+
+			if (!e.target.checkValidity()) {
+				return;
+			}
+
+			// if (confirm('Bạn đã chắc về thông tin của yêu cầu nhập?')) {
+			// 	request(input());
+			// }
+		});
+
+	});
+</script>
+{{end}}
