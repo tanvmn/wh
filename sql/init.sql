@@ -188,10 +188,12 @@ create type type as enum (
 'Áo thun',
 'Áo len',
 'Áo jean',
+'Áo da',
 'Áo khoác',
-'Quần tây',
 'Quần jean',
+'Quần tây',
 'Quần thun',
+'Quần da',
 'Váy',
 'Đầm',
 'Onesie'

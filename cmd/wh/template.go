@@ -77,12 +77,15 @@ type templData struct {
 	TShirt             string
 	JeanShirt          string
 	WoolShirt          string
+	DenimShirt         string
 	Jacket             string
 	Jeans              string
 	Trousers           string
 	Sweatpants         string
+	Denimpants         string
 	Skirt              string
 	Dress              string
+	Onesie             string
 	Items              []data.Item
 	ItemQuantitys      []data.ItemQuantity
 	Serials            []data.Serial
@@ -400,6 +403,7 @@ type UnsafeStockPage struct {
 
 // Item Add Page
 type ItemAddPage struct {
+	Suppliers []data.Supplier
 	Items []data.Item
 }
 
@@ -536,16 +540,19 @@ func (ap *application) newTemplData(r *http.Request) (templData, error) {
 		Grey:               data.Grey,
 		Brown:              data.Brown,
 		Pink:               data.Pink,
-		Shirt:              "Áo sơmi",
-		TShirt:             "Áo thun",
-		JeanShirt:          "Áo jean",
-		WoolShirt:          "Áo len",
-		Jacket:             "Áo khoác",
-		Jeans:              "Quần jean",
-		Trousers:           "Quần tây",
-		Sweatpants:         "Quần thun",
-		Skirt:              "Váy",
-		Dress:              "Đầm",
+		Shirt:              data.Shirt,
+		TShirt:             data.TShirt,
+		JeanShirt:          data.JeanShirt,
+		WoolShirt:          data.WoolShirt,
+		DenimShirt:         data.DenimShirt,
+		Jacket:             data.Jacket,
+		Jeans:              data.Jeans,
+		Trousers:           data.Trousers,
+		Sweatpants:         data.Sweatpants,
+		Denimpants:         data.Denimpants,
+		Skirt:              data.Skirt,
+		Dress:              data.Dress,
+		Onesie:             data.Onesie,
 		Account:            *ac,
 		Warehouses:         ws,
 		Suppliers:          ss,

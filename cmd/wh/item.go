@@ -4,6 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/tanNguyen2220022/wh/internal/data"
 	"github.com/tanNguyen2220022/wh/internal/util"
@@ -278,10 +283,18 @@ func (ap *application) itemAddPage() http.Handler {
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
-		
+
+		ss, err := ap.data.Suppliers()
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
 		p := new(ItemAddPage)
-		p.Items= is
-		
+		p.Items = is
+		p.Suppliers = ss
+
 		t, err := ap.newTemplData(r)
 		if err != nil {
 			ap.logger.Error(err.Error())
@@ -301,10 +314,100 @@ func (ap *application) itemAddPage() http.Handler {
 
 func (ap *application) addItem() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if err := r.ParseForm(); err != nil {
+		if err := r.ParseMultipartForm(16 << 20); err != nil {
 			ap.logger.Error(err.Error())
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+
+		file, fheader, err := r.FormFile("img")
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		defer func() {
+			if err2 := file.Close(); err2 != nil {
+				panic(err2)
+			}
+		}()
+
+		// read the bytes from form file to a buf and use that to detect the content
+		buf := make([]byte, fheader.Size)
+		_, err = file.Read(buf)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		ftype := strings.Split(http.DetectContentType(buf), "/")[1]
+
+		// create the image file
+		path := filepath.Join(".", "rec", "item", "img", fmt.Sprintf("%v.%v", r.PostForm.Get("gtin"), ftype))
+		fOut, err := os.Create(path)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		defer func() {
+			if err3 := fOut.Close(); err3 != nil {
+				panic(err3)
+			}
+		}()
+
+		_, err = fOut.Write(buf)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		// initialize an *Item for adding to db
+		i := new(data.Item)
+		i.GTIN = r.PostForm.Get("gtin")
+		i.Type = r.PostForm.Get("type")
+
+		i.Volume, err = strconv.ParseFloat(r.PostForm.Get("volume"), 64)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		f64, err := strconv.ParseFloat(r.PostForm.Get("weight"), 64)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		i.Weight = int64(f64)
+
+		i.Brand = r.PostForm.Get("brand")
+		i.Material = r.PostForm.Get("material")
+		i.Color = r.PostForm.Get("color")
+		i.Size = r.PostForm.Get("size")
+
+		f64, err = strconv.ParseFloat(r.PostForm.Get("shelfLife"), 64)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		i.ShelfLife = int64(f64)
+
+		i.Characteristic = r.PostForm.Get("characteristic")
+		i.ImgFSPath = filepath.Join("item", "img", fmt.Sprintf("%v.%v", r.PostForm.Get("gtin"), ftype))
+		i.Supplier.ID = r.PostForm.Get("supplier")
+
+		// add the item
+		if err = ap.data.AddItem(i); err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		time.Sleep(1600 * time.Millisecond)
+		http.Redirect(w, r, "/items", http.StatusSeeOther)
 	})
 }

@@ -27,7 +27,7 @@ Tạo hàng
 		</h3>
 	</div>
 
-	<form class="was-validated" method="post" action="" novalidate>
+	<form class="was-validated" method="post" enctype="multipart/form-data" novalidate>
 		<!-- Begin warehouse, supplier, expectedAt -->
 		<div class="row">
 			<div class="col-9">
@@ -55,12 +55,15 @@ Tạo hàng
 							<option value="{{.TShirt}}">{{.TShirt}}</option>
 							<option value="{{.JeanShirt}}">{{.JeanShirt}}</option>
 							<option value="{{.WoolShirt}}">{{.WoolShirt}}</option>
+							<option value="{{.DenimShirt}}">{{.DenimShirt}}</option>
 							<option value="{{.Jacket}}">{{.Jacket}}</option>
 							<option value="{{.Jeans}}">{{.Jeans}}</option>
 							<option value="{{.Trousers}}">{{.Trousers}}</option>
 							<option value="{{.Sweatpants}}">{{.Sweatpants}}</option>
+							<option value="{{.Denimpants}}">{{.Denimpants}}</option>
 							<option value="{{.Skirt}}">{{.Skirt}}</option>
 							<option value="{{.Dress}}">{{.Dress}}</option>
+							<option value="{{.Onesie}}">{{.Onesie}}</option>
 						</select>
 						<div class="invalid-feedback">
 							Không thể trống
@@ -177,13 +180,29 @@ Tạo hàng
 					</div>
 
 					<div class="col">
+						<label for="supplier" class="form-label">
+							<strong>Nhà cung cấp</strong>
+						</label>
+						<select class="form-select was-validated" name="supplier" id="supplier"
+							required>
+							<option class="d-none" value="" selected></option>
+							{{range .Page.Suppliers}}
+							<option value="{{.ID}}">{{.ID}} / {{.Name}}</option>
+							{{end}}
+						</select>
+						<div class="invalid-feedback">
+							Không thể trống
+						</div>
+					</div>
+
+					<div class="col">
 						<label for="characteristic" class="form-label">
 							<strong>Đặc điểm</strong>
 						</label>
 						<textarea class="form-control was-validated" name="characteristic"
-							id="characteristic" maxlength="70" required></textarea>
+							id="characteristic" maxlength="30" required></textarea>
 						<div class="invalid-feedback">
-							Max 70 ký tự
+							Max 30 ký tự
 						</div>
 					</div>
 				</div>
@@ -206,7 +225,7 @@ Tạo hàng
 
 		<!-- End warehouse, supplier, expectedAt -->
 
-		<div class="row my-4" id="submitBtn">
+		<div class="row my-4">
 			<div class="col-4 mx-auto">
 				<button class="btn btn-primary" type="submit" id="submitBtn">
 					Tạo hàng
@@ -230,7 +249,13 @@ Tạo hàng
 	let items = [];
 
 	function generateGTIN() {
-		document.querySelector('#gtin').value = IDCode.GTINIDCode + nanoid();
+		let gtin = '';
+		do {
+			gtin = IDCode.GTINIDCode + nanoid();
+		}
+		while (checkExistedGTIN(gtin));
+
+		document.querySelector('#gtin').value = gtin;
 	}
 
 	function checkExistedGTIN(input) {
@@ -260,6 +285,43 @@ Tạo hàng
 		console.log(items);
 	}
 
+	function btnToSpinner() {
+		const spinner = `
+		<div class="spinner-border" role="status">
+			<span class="visually-hidden">Loading...</span>
+		</div>`;
+		document.querySelector('#submitBtn').innerHTML = spinner;
+	}
+
+	function request(form) {
+		const payload = new FormData(form);
+		console.log([...payload]);
+
+		let ok = false;
+		fetch(domain + "/item/add", {
+			method: 'POST',
+			body: payload,
+			// headers: {
+			// 	'Content-Type': 'multipart/form-data; boundary=---WebKitFormBoundary7MA4YWxkTrZu0gW',
+			// }
+		})
+			.then(res => {
+				ok = res.ok;
+				if (res.redirected) {
+					window.location.replace(res.url);
+					return;
+				} else {
+					return res.text();
+				}
+			})
+			.then(msg => {
+				alert(msg);
+			})
+			.catch(err => {
+				alert(err);
+			});
+	}
+
 	// After getting items (above), begin others task from this point
 	document.addEventListener('DOMContentLoaded', function () {
 		let img = document.querySelector('#img');
@@ -276,8 +338,9 @@ Tạo hàng
 		// Initialize QR scanning
 		Scanner.init(addGTIN);
 
-		// Submit the purchase in JSON to server
-		document.querySelector('form').addEventListener('submit', (e) => {
+		// Submit the form to server
+		let form = document.querySelector('form');
+		form.addEventListener('submit', (e) => {
 			e.preventDefault();
 
 			if (!e.target.checkValidity()) {
@@ -289,9 +352,10 @@ Tạo hàng
 				return;
 			}
 
-			// if (confirm('Bạn đã chắc về thông tin của yêu cầu nhập?')) {
-			// 	request(input());
-			// }
+			if (confirm('Bạn đã chắc về thông tin của mặt hàng?')) {
+				btnToSpinner();
+				request(form);
+			}
 		});
 
 	});

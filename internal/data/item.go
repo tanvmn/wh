@@ -74,37 +74,42 @@ const (
 	TShirt     = "Áo thun"
 	JeanShirt  = "Áo jean"
 	WoolShirt  = "Áo len"
+	DenimShirt = "Áo da"
 	Jacket     = "Áo khoác"
 	Jeans      = "Quần jean"
 	Trousers   = "Quần tây"
 	Sweatpants = "Quần thun"
+	Denimpants = "Quần da"
 	Skirt      = "Váy"
 	Dress      = "Đầm"
 	Onesie     = "Onesie"
-	Cotton     = "Cotton"
-	Linen      = "Linen"
-	Polyester  = "Polyester"
-	Silk       = "Silk"
-	Wool       = "Wool"
-	Rayon      = "Cotton"
-	Denim      = "Denim"
-	S          = "S"
-	M          = "M"
-	L          = "L"
-	XL         = "XL"
-	XXL        = "XXL"
-	Red        = "Đỏ"
-	Orange     = "Cam"
-	Yellow     = "Vàng"
-	Green      = "Lục"
-	Blue       = "Lam"
-	Indigo     = "Chàm"
-	Purple     = "Tím"
-	Black      = "Đen"
-	White      = "Trắng"
-	Grey       = "Xám"
-	Brown      = "Nâu"
-	Pink       = "Hồng"
+
+	Cotton    = "Cotton"
+	Linen     = "Linen"
+	Polyester = "Polyester"
+	Silk      = "Silk"
+	Wool      = "Wool"
+	Rayon     = "Rayon"
+	Denim     = "Denim"
+
+	S   = "S"
+	M   = "M"
+	L   = "L"
+	XL  = "XL"
+	XXL = "XXL"
+
+	Red    = "Đỏ"
+	Orange = "Cam"
+	Yellow = "Vàng"
+	Green  = "Lục"
+	Blue   = "Lam"
+	Indigo = "Chàm"
+	Purple = "Tím"
+	Black  = "Đen"
+	White  = "Trắng"
+	Grey   = "Xám"
+	Brown  = "Nâu"
+	Pink   = "Hồng"
 )
 
 var (
@@ -126,17 +131,18 @@ var (
 	type||', '||brand||', màu '||color||', cỡ '||size||', '||characteristic,
 	'%v'||supplier_item.supplier_id
 	from item
-	join supplier_item on supplier_item.gtin = item.gtin`, SupplierIDCode)
+	left join supplier_item on supplier_item.gtin = item.gtin`, SupplierIDCode)
 )
 
 func (db *Data) Item(gtin string) (*Item, error) {
-	stmt := selectItemsStmt + "\nwhere supplier_item.gtin=$1"
+	stmt := selectItemsStmt + "\nwhere supplier_item.gtin=$1 or item.gtin = $1"
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	var (
-		i Item
+		i          Item
+		supplierID sql.NullString
 	)
 	err := db.DB.QueryRowContext(ctx, stmt, gtin).Scan(
 		&i.GTIN,
@@ -153,12 +159,18 @@ func (db *Data) Item(gtin string) (*Item, error) {
 		&i.Volume,
 		&i.Weight,
 		&i.Name,
-		&i.Supplier.ID,
+		&supplierID,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
+		db.logger.Error(err.Error())
 		return nil, fmt.Errorf("%w: %v", ErrNoItems, gtin)
 	} else if err != nil {
+		db.logger.Error(err.Error())
 		return nil, err
+	}
+
+	if supplierID.Valid {
+		i.Supplier.ID = supplierID.String
 	}
 
 	return &i, nil
@@ -186,7 +198,10 @@ func (db *Data) Items(gtins ...string) ([]Item, error) {
 
 	var is []Item
 	for rows.Next() {
-		var i Item
+		var (
+			i          Item
+			supplierID sql.NullString
+		)
 
 		err = rows.Scan(
 			&i.GTIN,
@@ -203,10 +218,14 @@ func (db *Data) Items(gtins ...string) ([]Item, error) {
 			&i.Volume,
 			&i.Weight,
 			&i.Name,
-			&i.Supplier.ID,
+			&supplierID,
 		)
 		if err != nil {
 			return nil, err
+		}
+
+		if supplierID.Valid {
+			i.Supplier.ID = supplierID.String
 		}
 
 		is = append(is, i)
@@ -1021,4 +1040,111 @@ func (db *Data) AllItems() ([]Item, error) {
 	}
 
 	return is, nil
+}
+
+func addItem(tx *sql.Tx, i *Item) error {
+	stmt := `
+	insert into item (
+	gtin
+	,characteristic
+	,volume
+	,weight
+	,brand
+	,material
+	,color
+	,size
+	,shelf_life
+	,img_fspath
+	,type
+	) values (
+	 $1
+	 ,$2
+	 ,$3
+	 ,$4
+	 ,$5
+	 ,$6
+	 ,$7
+	 ,$8
+	 ,$9
+	 ,$10
+	 ,$11
+	)
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err := tx.ExecContext(ctx, stmt,
+		i.GTIN,
+		i.Characteristic,
+		i.Volume,
+		i.Weight,
+		i.Brand,
+		i.Material,
+		i.Color,
+		i.Size,
+		i.ShelfLife,
+		i.ImgFSPath,
+		i.Type,
+	)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func addItemSupplier(tx *sql.Tx, i *Item) error {
+	sI, err := id64(i.Supplier.ID, SupplierIDCode)
+	if err != nil {
+		return err
+	}
+
+	stmt := `
+	insert into supplier_item (
+	supplier_id
+	,gtin
+	) values (
+	 $1
+	 ,$2
+	)
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err = tx.ExecContext(ctx, stmt,
+		sI,
+		i.GTIN,
+	)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (db *Data) AddItem(i *Item) error {
+	tx, err := db.DB.Begin()
+	if err != nil {
+		db.logger.Error(err.Error())
+		return err
+	}
+	defer tx.Rollback()
+
+	if err = addItem(tx, i); err != nil {
+		db.logger.Error(err.Error())
+		return err
+	}
+	if err = addItemSupplier(tx, i); err != nil {
+		db.logger.Error(err.Error())
+		return err
+	}
+
+	if err = tx.Commit(); err != nil {
+		db.logger.Error(err.Error())
+		return err
+	}
+
+	return nil
 }
