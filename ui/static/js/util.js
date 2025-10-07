@@ -17,6 +17,7 @@ const Status = {
 const IDCode = {
   AccountIDCode: "ACC-",
   ItemIDCode: "ITE-",
+  GTINIDCode: "GTI-",
   SerialIDCode: "SER-",
   BinIDCode: "BIN-",
   ToteIDCode: "TOT-",

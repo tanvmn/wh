@@ -73,6 +73,16 @@ type templData struct {
 	Grey               string
 	Brown              string
 	Pink               string
+	Shirt              string
+	TShirt             string
+	JeanShirt          string
+	WoolShirt          string
+	Jacket             string
+	Jeans              string
+	Trousers           string
+	Sweatpants         string
+	Skirt              string
+	Dress              string
 	Items              []data.Item
 	ItemQuantitys      []data.ItemQuantity
 	Serials            []data.Serial
@@ -388,6 +398,11 @@ type UnsafeStockPage struct {
 	UnsafeStocks []data.ItemQuantity
 }
 
+// Item Add Page
+type ItemAddPage struct {
+	Items []data.Item
+}
+
 func badgeBg(status string) string {
 	switch status {
 	case data.AwaitingResponse:
@@ -521,6 +536,16 @@ func (ap *application) newTemplData(r *http.Request) (templData, error) {
 		Grey:               data.Grey,
 		Brown:              data.Brown,
 		Pink:               data.Pink,
+		Shirt:              "Áo sơmi",
+		TShirt:             "Áo thun",
+		JeanShirt:          "Áo jean",
+		WoolShirt:          "Áo len",
+		Jacket:             "Áo khoác",
+		Jeans:              "Quần jean",
+		Trousers:           "Quần tây",
+		Sweatpants:         "Quần thun",
+		Skirt:              "Váy",
+		Dress:              "Đầm",
 		Account:            *ac,
 		Warehouses:         ws,
 		Suppliers:          ss,

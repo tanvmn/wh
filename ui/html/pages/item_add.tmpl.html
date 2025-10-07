@@ -35,7 +35,8 @@ Tạo hàng
 					<div class="col">
 						<label for="gtin" class="form-label"><strong>GTIN</strong></label>
 						&nbsp;&nbsp;
-						<button class="btn btn-dark" id="generateGTIN">Tạo</button>
+						<button class="btn btn-dark" id="generateGTINBtn">Tạo</button>
+
 						<input type="text" name="gtin" id="gtin"
 							class="form-control was-validated" required>
 						<div class="invalid-feedback">
@@ -44,13 +45,25 @@ Tạo hàng
 					</div>
 
 					<div class="col">
-						<label for="shelfLife" class="form-label">
-							<strong>Hạn trữ (tháng)</strong>
+						<label for="type" class="form-label">
+							<strong>Loại hàng</strong>
 						</label>
-						<input type="number" name="shelfLife" id="shelfLife" min="1" max="7"
-							class="form-control was-validated" required>
+						<select class="form-select was-validated" name="type" id="type"
+							required>
+							<option class="d-none" value="" selected></option>
+							<option value="{{.Shirt}}">{{.Shirt}}</option>
+							<option value="{{.TShirt}}">{{.TShirt}}</option>
+							<option value="{{.JeanShirt}}">{{.JeanShirt}}</option>
+							<option value="{{.WoolShirt}}">{{.WoolShirt}}</option>
+							<option value="{{.Jacket}}">{{.Jacket}}</option>
+							<option value="{{.Jeans}}">{{.Jeans}}</option>
+							<option value="{{.Trousers}}">{{.Trousers}}</option>
+							<option value="{{.Sweatpants}}">{{.Sweatpants}}</option>
+							<option value="{{.Skirt}}">{{.Skirt}}</option>
+							<option value="{{.Dress}}">{{.Dress}}</option>
+						</select>
 						<div class="invalid-feedback">
-							Min 1, Max 7
+							Không thể trống
 						</div>
 					</div>
 				</div>
@@ -150,6 +163,30 @@ Tạo hàng
 						</div>
 					</div>
 				</div>
+
+				<div class="row">
+					<div class="col">
+						<label for="shelfLife" class="form-label">
+							<strong>Hạn trữ (tháng)</strong>
+						</label>
+						<input type="number" name="shelfLife" id="shelfLife" min="1" max="7"
+							class="form-control was-validated" required>
+						<div class="invalid-feedback">
+							Min 1, Max 7
+						</div>
+					</div>
+
+					<div class="col">
+						<label for="characteristic" class="form-label">
+							<strong>Đặc điểm</strong>
+						</label>
+						<textarea class="form-control was-validated" name="characteristic"
+							id="characteristic" maxlength="70" required></textarea>
+						<div class="invalid-feedback">
+							Max 70 ký tự
+						</div>
+					</div>
+				</div>
 			</div>
 
 			<div class="col">
@@ -177,20 +214,78 @@ Tạo hàng
 			</div>
 		</div>
 	</form>
+
+	<div id="allItems" class="d-none">
+		{{range .Page.Items}}
+		<div class="existedItem">
+			<input type="text" name="existedGTIN" class="existedGTIN" value="{{.GTIN}}">
+		</div>
+		{{end}}
+	</div>
 </div>
 <script type="module">
+	import { nanoid } from 'https://cdn.jsdelivr.net/npm/nanoid/nanoid.js';
 	import { domain, IDCode, Scanner } from "/static/js/util.js";
+
+	let items = [];
+
+	function generateGTIN() {
+		document.querySelector('#gtin').value = IDCode.GTINIDCode + nanoid();
+	}
+
+	function checkExistedGTIN(input) {
+		for (let i of items) {
+			if (input === i.gtin) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	function addGTIN(input) {
+		if (checkExistedGTIN(input)) {
+			alert(`${input} ĐÃ TỒN TẠI`);
+			return;
+		}
+		document.querySelector('#gtin').value = input;
+	}
+
+	function getExistedItems(items) {
+		document.querySelector('#allItems').querySelectorAll('.existedItem').forEach((i, idx) => {
+			let item = {};
+			item.gtin = i.querySelector('.existedGTIN').value;
+
+			items.push(item);
+		});
+		console.log(items);
+	}
 
 	// After getting items (above), begin others task from this point
 	document.addEventListener('DOMContentLoaded', function () {
+		let img = document.querySelector('#img');
+		img.addEventListener('input', (e) => {
+			document.querySelector('img').src = URL.createObjectURL(img.files[0]);
+		});
+
+		getExistedItems(items);
+
+		document.querySelector('#generateGTINBtn').addEventListener('click', (e) => {
+			generateGTIN();
+		});
+
 		// Initialize QR scanning
-		// Scanner.init(addItem);
+		Scanner.init(addGTIN);
 
 		// Submit the purchase in JSON to server
 		document.querySelector('form').addEventListener('submit', (e) => {
 			e.preventDefault();
 
 			if (!e.target.checkValidity()) {
+				return;
+			}
+
+			if (checkExistedGTIN(document.querySelector('#gtin').value)) {
+				alert(`${document.querySelector('#gtin').value} ĐÃ TỒN TẠI`);
 				return;
 			}
 

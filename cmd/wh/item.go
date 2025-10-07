@@ -272,17 +272,38 @@ func (ap *application) outOfDateItems() http.Handler {
 
 func (ap *application) itemAddPage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		is, err := ap.data.AllItems()
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		
+		p := new(ItemAddPage)
+		p.Items= is
+		
 		t, err := ap.newTemplData(r)
 		if err != nil {
 			ap.logger.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
+		t.Page = p
 
 		err = ap.render(w, http.StatusOK, "item_add", t)
 		if err != nil {
 			ap.logger.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+	})
+}
+
+func (ap *application) addItem() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := r.ParseForm(); err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 	})
