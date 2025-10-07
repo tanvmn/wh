@@ -1,0 +1,101 @@
+{{define "main"}}
+<link rel="stylesheet" href="https://cdn.datatables.net/2.3.2/css/dataTables.dataTables.css" />
+<style>
+	ul {
+		list-style-type: none;
+		/* Remove bullets */
+		padding: 0;
+		/* Remove padding */
+		margin: 0;
+		/* Remove margins */
+	}
+</style>
+<div class="container-fluid">
+	<div class="col-3 p-3">
+		<h3 class="d-inline">
+			Serial giỏ trữ:&nbsp&nbsp
+			<span id="binID" class="badge text-bg-info">{{.Page.Bin.ID}}</span>
+		</h3>
+	</div>
+
+	<table id="serialsTable" class="display compact">
+		<thead>
+			<tr>
+				<th></th>
+				<th>Mặt hàng</th>
+				<th>Serial</th>
+				<th>Kho</th>
+				<th>Kệ</th>
+				<th>Hàng</th>
+				<th>Cột</th>
+			</tr>
+		</thead>
+		<tbody>
+			{{range .Page.Serials}}
+			<tr>
+				<td>
+					<img height="90" src="/rec/{{.Item.ImgFSPath}}" alt="/rec/{{.Item.ImgFSPath}}">
+				</td>
+				<td>
+					<ul>
+						<li>
+							<strong>GTIN:&nbsp;</strong>
+							<span>{{.Item.GTIN}}</span>
+						</li>
+						<li>
+							<span>{{.Item.Name}}</span>
+						</li>
+					</ul>
+				</td>
+				<td>{{.NanoID}}</td>
+				<td>
+					<ul>
+						<li><strong>ID: </strong>{{.Bin.Warehouse.ID}}</li>
+						<li><strong>Tên: </strong>{{.Bin.Warehouse.Name}}</li>
+					</ul>
+				</td>
+				<td>{{.Bin.Shelf}}</td>
+				<td>{{.Bin.Row}}</td>
+				<td>{{.Bin.Col}}</td>
+			</tr>
+			{{end}}
+		</tbody>
+	</table>
+</div>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script src="https://cdn.datatables.net/2.3.2/js/dataTables.js"></script>
+<script type="module">
+	import { Scanner } from "../static/js/util.js";
+
+	function filterItem(table) {
+		return function (code) {
+			table.search(code);
+			table.draw();
+		};
+	}
+
+	document.addEventListener('DOMContentLoaded', () => {
+		let table = new DataTable('#serialsTable', {
+			columnDefs: [
+				// {
+				// 	targets: '_all',
+				// 	className: 'dt-body-center'
+				// },
+				{
+					targets: '_all',
+					className: 'dt-center',
+				},
+			],
+			pageLength: 10,
+			lengthMenu: [5, 10, 15, 25, 50, 75, 100],
+		});
+
+		Scanner.init(filterItem(table));
+	});
+</script>
+{{end}}
+
+{{define "title"}}
+Serial
+{{end}}

@@ -895,3 +895,62 @@ func (db *Data) OutOfDateSerialsByGTIN(warehouseID, gtin string) ([]Serial, erro
 
 	return result, nil
 }
+
+func (db *Data) SerialsByBin(binID string) ([]Serial, error) {
+	bI, err := id64(binID, BinIDCode)
+	if err != nil {
+		db.logger.Error(err.Error())
+		return nil, err
+	}
+
+	stmt := `
+	select
+	nanoid
+	from serial
+	where bin_id = $1
+	and export_id is null
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	rows, err := db.DB.QueryContext(ctx, stmt, bI)
+	if err != nil {
+		db.logger.Error(err.Error())
+		return nil, err
+	}
+	defer func() {
+		err2 := rows.Close()
+		if err2 != nil {
+			panic(err2)
+		}
+	}()
+
+	ss := []Serial{}
+	for rows.Next() {
+		s := new(Serial)
+
+		err = rows.Scan(
+			&s.NanoID,
+		)
+		if err != nil {
+			db.logger.Error(err.Error())
+			return nil, err
+		}
+
+		s, err := db.Serial(s.NanoID)
+		if err != nil {
+			db.logger.Error(err.Error())
+			return nil, err
+		}
+
+		ss = append(ss, *s)
+	}
+
+	if err = rows.Err(); err != nil {
+		db.logger.Error(err.Error())
+		return nil, err
+	}
+
+	return ss, nil
+}

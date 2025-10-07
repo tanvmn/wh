@@ -301,9 +301,6 @@ Tạo hàng
 		fetch(domain + "/item/add", {
 			method: 'POST',
 			body: payload,
-			// headers: {
-			// 	'Content-Type': 'multipart/form-data; boundary=---WebKitFormBoundary7MA4YWxkTrZu0gW',
-			// }
 		})
 			.then(res => {
 				ok = res.ok;

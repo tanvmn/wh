@@ -404,7 +404,19 @@ type UnsafeStockPage struct {
 // Item Add Page
 type ItemAddPage struct {
 	Suppliers []data.Supplier
-	Items []data.Item
+	Items     []data.Item
+}
+
+// Bins Page
+type BinsPage struct {
+	*data.Warehouse
+	Bins []data.Bin
+}
+
+// Serials By Bin Page
+type SerialsByBinPage struct {
+	*data.Bin
+	Serials []data.Serial
 }
 
 func badgeBg(status string) string {

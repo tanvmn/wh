@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/tanNguyen2220022/wh/internal/data"
@@ -12,58 +13,15 @@ func (ap *application) routes() http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/t", func(w http.ResponseWriter, r *http.Request) {
-		// stmt := `insert into account (phone) values (0000000001)`
-		// _, err := ap.data.DB.Exec(stmt)
-		// if err != nil {
-		// 	var pErr *pq.Error
-		// 	if errors.As(err, &pErr) {
-		// 		fmt.Printf("%+v\n", pErr)
-		// 		fmt.Println(pErr.Code)
-		// 		fmt.Println(pErr.Code.Name())
-		// 		fmt.Println(pErr.Message)
-		// 		fmt.Println(pErr.SQLState())
-		// 		fmt.Println(pErr.Code.Class())
-		// 	}
-		// }
-
-		// o := struct {
-		// 	Bytes []byte `json:"bytes"`
-		// }{}
-
-		// err := json.NewDecoder(r.Body).Decode(&o)
-		// if err != nil {
-		// 	ap.logger.Error(err.Error())
-		// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-		// 	return
-		// }
-
-		// f, err := os.Create("./img.png")
-		// if err != nil {
-		// 	ap.logger.Error(err.Error())
-		// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-		// 	return
-		// }
-		// n, err := f.Write(o.Bytes)
-		// if err != nil {
-		// 	ap.logger.Error(err.Error())
-		// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-		// 	return
-		// }
-
-		rec, err := ap.data.Receive("REC-3")
+		ss, err := ap.data.SerialsByBin("BIN-2")
 		if err != nil {
 			ap.logger.Error(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		println(rec.ID)
-		for _, iq := range rec.Items {
-			println(iq.Item.GTIN, iq.Quantity)
-
-			for _, s := range iq.Serials {
-				println(s.NanoID, s.GTIN)
-			}
+		for _, s := range ss {
+			fmt.Println(s.NanoID, s.GTIN, s.Item.ImgFSPath, s.Bin.ID)
 		}
 	})
 
@@ -105,9 +63,11 @@ func (ap *application) routes() http.Handler {
 	// Serial
 	mux.Handle("GET /serials", identify.then(ap.serialsPage()))
 	mux.Handle("GET /serials/out-of-date", identify.then(ap.outOfDateSerialsPage()))
+	mux.Handle("GET /serials-by-bin", identify.then(ap.serialsByBinPage()))
 
 	// Warehouse
 	mux.Handle("GET /totes/{warehouse}/unused/json", identify.then(ap.unusedTotes()))
+	mux.Handle("GET /bins", identify.then(ap.binsPage()))
 
 	// Supplier
 	mux.Handle("GET /suppliers/json", identify.then(ap.suppliers()))

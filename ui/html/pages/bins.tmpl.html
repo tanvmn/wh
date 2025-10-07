@@ -1,0 +1,89 @@
+{{define "main"}}
+<link rel="stylesheet" href="https://cdn.datatables.net/2.3.2/css/dataTables.dataTables.css" />
+<style>
+	img {
+		margin: 0;
+		padding: 0;
+		border: 0;
+	}
+
+	h3 {
+		padding: 0;
+		margin: 0;
+		border: 0;
+	}
+</style>
+
+<div class="container-fluid">
+	<div class="col-3 p-3">
+		<h3 class="d-inline">
+			Giỏ trữ kho:&nbsp&nbsp
+			<span id="warehouseID" class="badge text-bg-info">{{.Page.Warehouse.ID}}</span>
+		</h3>
+	</div>
+
+	<table id="dataTable" class="display compact">
+		<thead>
+			<tr>
+				<th>ID</th>
+				<th>Kệ</th>
+				<th>Hàng</th>
+				<th>Cột</th>
+				<th>Sức chứa (cm3)</th>
+				<th>Còn trống (%)</th>
+				<th></th>
+			</tr>
+		</thead>
+		<tbody id="tbody">
+			{{$domain := .Domain}}
+			{{range .Page.Bins}}
+			<tr>
+				<td>{{.ID}}</td>
+				<td>{{.Shelf}}</td>
+				<td>{{.Row}}</td>
+				<td>{{.Col}}</td>
+				<td>{{.Capacity}}</td>
+				<td>{{.EmptyPercentageString}}</td>
+				<td>
+					<a class="btn btn-sm btn-primary" href="{{$domain}}/serials-by-bin?bin={{.ID}}">
+						Serials
+					</a>
+				</td>
+			</tr>
+			{{end}}
+		</tbody>
+	</table>
+</div>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script src="https://cdn.datatables.net/2.3.2/js/dataTables.js"></script>
+<script type="module">
+	import { Scanner } from "../static/js/util.js";
+
+	function filterItem(table) {
+		return function (code) {
+			table.search(code);
+			table.draw();
+		};
+	}
+
+	document.addEventListener('DOMContentLoaded', () => {
+		let table = new DataTable('#dataTable', {
+			columnDefs: [
+				{
+					targets: '_all',
+					className: 'dt-center',
+				},
+			],
+			pageLength: 10,
+			lengthMenu: [5, 10, 25, 50, 75, 100],
+		});
+
+		Scanner.init(filterItem(table));
+	});
+</script>
+{{end}}
+
+{{define "title"}}
+Giỏ trữ
+{{end}}

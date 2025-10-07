@@ -38,3 +38,46 @@ func (ap *application) unusedTotes() http.Handler {
 		}
 	})
 }
+
+func (ap *application) binsPage() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		warehouseID := r.URL.Query().Get("warehouse")
+
+		wh, err := ap.data.Warehouse(warehouseID)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			if errors.Is(err, data.ErrNoWarehouses) {
+				http.Error(w, fmt.Sprintf("Không tìm thấy kho %v", warehouseID), http.StatusNotFound)
+			} else {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
+			return
+		}
+
+		bs, err := ap.data.CurrentBinsEmptyPercentage(wh.ID)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		p := new(BinsPage)
+		p.Warehouse = wh
+		p.Bins = bs
+
+		t, err := ap.newTemplData(r)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		t.Page = p
+
+		err = ap.render(w, http.StatusOK, "bins", t)
+		if err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+	})
+}

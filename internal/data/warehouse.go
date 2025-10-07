@@ -18,13 +18,15 @@ type Warehouse struct {
 }
 
 type Bin struct {
-	ID        string  `json:"id,omitempty,omitzero"`
-	Capacity  float64 `json:"capacity,omitempty,omitzero"`
-	Shelf     int64   `json:"shelf,omitempty,omitzero"`
-	Row       int64   `json:"row,omitempty,omitzero"`
-	Col       int64   `json:"col,omitempty,omitzero"`
-	Version   int     `json:"version,omitempty,omitzero"`
-	Warehouse `json:"warehouse,omitempty,omitzero"`
+	ID                    string  `json:"id,omitempty,omitzero"`
+	Capacity              float64 `json:"capacity,omitempty,omitzero"`
+	Shelf                 int64   `json:"shelf,omitempty,omitzero"`
+	Row                   int64   `json:"row,omitempty,omitzero"`
+	Col                   int64   `json:"col,omitempty,omitzero"`
+	Version               int     `json:"version,omitempty,omitzero"`
+	EmptyPercentage       float64 `json:"emptyPercentage,omitempty,omitzero"`
+	EmptyPercentageString string  `json:"emptyPercentageString,omitempty,omitzero"`
+	Warehouse             `json:"warehouse,omitempty,omitzero"`
 }
 
 type Tote struct {
@@ -47,6 +49,7 @@ type Store struct {
 var (
 	ErrNoWarehouses = errors.New("data: no warehouses found")
 	ErrNoStores     = errors.New("data: no stores found")
+	ErrNoBins       = errors.New("data: no bins found")
 )
 
 func (db *Data) Warehouse(id string) (*Warehouse, error) {
@@ -318,6 +321,7 @@ func (db *Data) CurrentBinsCapaciy(warehouseID string) ([]Bin, error) {
 func (db *Data) Bin(id string) (*Bin, error) {
 	i, err := id64(id, BinIDCode)
 	if err != nil {
+		db.logger.Error(err.Error())
 		return nil, err
 	}
 
@@ -351,11 +355,16 @@ func (db *Data) Bin(id string) (*Bin, error) {
 		&b.Capacity,
 	)
 	if err != nil {
+		db.logger.Error(err.Error())
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrNoBins
+		}
 		return nil, err
 	}
 
 	w, err := db.Warehouse(b.Warehouse.ID)
 	if err != nil {
+		db.logger.Error(err.Error())
 		return nil, err
 	}
 	b.Warehouse = *w
@@ -400,6 +409,7 @@ func (db *Data) Store(id string) (*Store, error) {
 		&s.Warehouse.ID,
 	)
 	if err != nil {
+		db.logger.Error(err.Error())
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrNoStores
 		}
@@ -408,9 +418,80 @@ func (db *Data) Store(id string) (*Store, error) {
 
 	w, err := db.Warehouse(s.Warehouse.ID)
 	if err != nil {
+		db.logger.Error(err.Error())
 		return nil, err
 	}
 	s.Warehouse = *w
 
 	return &s, nil
+}
+
+func (db *Data) CurrentBinsEmptyPercentage(warehouseID string) ([]Bin, error) {
+	wI, err := id64(warehouseID, WarehouseIDCode)
+	if err != nil {
+		db.logger.Error(err.Error())
+		return nil, err
+	}
+
+	stmt := `
+	select
+	$1||bin.id
+	,case 
+	when (((bin.capacity - sum(item.volume))/bin.capacity)*100) is null then 100
+	else ((bin.capacity - sum(item.volume))/bin.capacity)*100
+	end
+	from serial
+	join item on item.gtin = serial.gtin
+	right join bin on bin.id = serial.bin_id
+	where bin.warehouse_id = $2
+	group by bin.id, bin.capacity
+	order by bin.id
+	;`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var bs []Bin
+
+	rows, err := db.DB.QueryContext(ctx, stmt, BinIDCode, wI)
+	if err != nil {
+		db.logger.Error(err.Error())
+		return nil, err
+	}
+	defer func() {
+		if err2 := rows.Close(); err2 != nil {
+			panic(err2)
+		}
+	}()
+
+	for rows.Next() {
+		b := new(Bin)
+		var empty float64
+
+		err = rows.Scan(
+			&b.ID,
+			&empty,
+		)
+		if err != nil {
+			db.logger.Error(err.Error())
+			return nil, err
+		}
+
+		b, err := db.Bin(b.ID)
+		if err != nil {
+			db.logger.Error(err.Error())
+			return nil, err
+		}
+		b.EmptyPercentage = empty
+		b.EmptyPercentageString = fmt.Sprintf("%.2f", empty)
+
+		bs = append(bs, *b)
+	}
+
+	if err = rows.Err(); err != nil {
+		db.logger.Error(err.Error())
+		return nil, err
+	}
+
+	return bs, nil
 }
