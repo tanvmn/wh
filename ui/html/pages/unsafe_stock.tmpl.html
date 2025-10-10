@@ -50,7 +50,7 @@ Unsafe stock
 		</div>
 		<!-- End warehouse, expectedAt -->
 
-		{{if (eq .Account.Role .Accountant)}}
+		{{if (or (eq .Account.Role .Accountant) (eq .Account.Role .Admin))}}
 		<div class="row my-4">
 			<div class=" col-4 mx-auto">
 				<button class="btn btn-primary" type="submit" id="submitBtn">

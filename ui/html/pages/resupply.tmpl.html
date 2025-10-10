@@ -20,6 +20,7 @@ Yêu cầu xuất
 		{{$declined := .Declined}}
 		{{$account := .Account}}
 		{{$manager := .Manager}}
+		{{$admin := .Admin}}
 		{{$validStoreID := (gt (len .Account.Store.ID) 4)}}
 		{{with .Page.Resupply}}
 		<div class="col-3">
@@ -37,7 +38,7 @@ Yêu cầu xuất
 		</div>
 		{{end}}
 
-		{{if (and (eq $account.Role $manager) (eq .Status $awaitingResponse))}}
+		{{if (and (or (eq $account.Role $manager) (eq $account.Role $admin)) (eq .Status $awaitingResponse))}}
 		<div class="col-2">
 			<button id="declineResupplyBtn" class="btn btn-warning ms-5"><strong>Từ chối</strong></button>
 		</div>
