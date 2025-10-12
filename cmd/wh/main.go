@@ -77,11 +77,9 @@ func main() {
 		lg.Error(util.ErrLine)
 		os.Exit(1)
 	}
-	// defer db.Close()
 	defer func() {
-		err := db.Close()
-		if err != nil {
-			panic(err)
+		if err2 := db.Close(); err2 != nil {
+			panic(err2)
 		}
 	}()
 	lg.Info("db connection pool established")
@@ -141,8 +139,7 @@ func openDB(cf *config, lg *slog.Logger) (*sql.DB, error) {
 	err = db.PingContext(ctx)
 	if err != nil {
 		lg.Error(err.Error())
-		err2 := db.Close()
-		if err2 != nil {
+		if err2 := db.Close(); err2 != nil {
 			panic(err2)
 		}
 
