@@ -847,7 +847,6 @@ alter table package_item add constraint fk_package_item_gtin foreign key(gtin) r
 alter table package_serial add constraint fk_package_serial_package_nanoid_gtin foreign key(package_nanoid, gtin) references package_item(package_nanoid, gtin);
 alter table package_serial add constraint fk_package_serial_serial_nanoid foreign key(serial_nanoid) references serial(nanoid);
 
-
 CREATE TABLE sessions (
 	token TEXT PRIMARY KEY,
 	data BYTEA NOT NULL,
