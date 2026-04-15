@@ -172,13 +172,13 @@ func (ap *application) addPurchase() http.Handler {
 		}
 
 		// Send purchase email to supplier in the background with a new go routine
-		ap.background(func() {
-			err = ap.mailer.Send(p.Supplier.Email, "purchase_mail", p)
-			if err != nil {
-				ap.logger.Error(err.Error())
-				return
-			}
-		})
+		// ap.background(func() {
+		// 	err = ap.mailer.Send(p.Supplier.Email, "purchase_mail", p)
+		// 	if err != nil {
+		// 		ap.logger.Error(err.Error())
+		// 		return
+		// 	}
+		// })
 
 		// w.WriteHeader(http.StatusCreated)
 		// fmt.Fprintf(w, "Đã thêm yêu cầu nhập ID: %v", id)
@@ -414,13 +414,13 @@ func (ap *application) setPurchase() http.Handler {
 		}
 
 		// Send purchase email to supplier in the background with a new go routine
-		ap.background(func() {
-			err = ap.mailer.Send(p.Supplier.Email, "purchase_mail", p)
-			if err != nil {
-				ap.logger.Error(err.Error())
-				return
-			}
-		})
+		// ap.background(func() {
+		// 	err = ap.mailer.Send(p.Supplier.Email, "purchase_mail", p)
+		// 	if err != nil {
+		// 		ap.logger.Error(err.Error())
+		// 		return
+		// 	}
+		// })
 
 		http.Redirect(w, r, fmt.Sprintf("%v/purchase/%v", domain, pc.ID), http.StatusSeeOther)
 	})
@@ -480,13 +480,13 @@ func (ap *application) delPurchase() http.Handler {
 		}
 
 		// Send purchase email to supplier in the background with a new go routine
-		ap.background(func() {
-			err = ap.mailer.Send(pc.Supplier.Email, "purchase_del_mail", pc)
-			if err != nil {
-				ap.logger.Error(err.Error())
-				return
-			}
-		})
+		// ap.background(func() {
+		// 	err = ap.mailer.Send(pc.Supplier.Email, "purchase_del_mail", pc)
+		// 	if err != nil {
+		// 		ap.logger.Error(err.Error())
+		// 		return
+		// 	}
+		// })
 
 		http.Redirect(w, r, "/purchases", http.StatusSeeOther)
 	})

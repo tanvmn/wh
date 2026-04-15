@@ -13,8 +13,12 @@ psql/stop:
 
 .PHONY: psql/init
 psql/init:
-	psql ${WH_DSN} -f sql/init.sql
+	sudo -u postgres psql -f sql/init.sql
+
+.PHONY: psql/reset
+psql/reset:
+	psql ${WH_DSN} -f sql/reset.sql
 
 .PHONY: run/wh
 run/wh:
-	go run ./cmd/wh -dsn=${WH_DSN} -smtp-password=${APP_PASS}
+	go run ./cmd/wh -dsn=${WH_DSN}

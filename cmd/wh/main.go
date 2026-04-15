@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/tanNguyen2220022/wh/internal/data"
-	"github.com/tanNguyen2220022/wh/internal/mailer"
 	"github.com/tanNguyen2220022/wh/internal/util"
 
 	"github.com/alexedwards/scs/postgresstore"
@@ -47,7 +46,7 @@ type application struct {
 	templCache      map[string]*template.Template
 	data            *data.Data
 	sessionsManager *scs.SessionManager
-	mailer          mailer.Mailer
+	// mailer          mailer.Mailer
 }
 
 func main() {
@@ -62,11 +61,11 @@ func main() {
 	flag.IntVar(&cf.db.maxIdleConns, "db-max-idle-conns", 25, "PostgreSQL max idle connections")
 	flag.DurationVar(&cf.db.maxIdleTime, "db-max-idle-time", 15*time.Minute, "PostgreSQL max connection idle time")
 
-	flag.StringVar(&cf.smtp.host, "smtp-host", "smtp.gmail.com", "SMTP host")
-	flag.IntVar(&cf.smtp.port, "smtp-port", 587, "SMTP port")
-	flag.StringVar(&cf.smtp.username, "smtp-username", "ljnvmt@gmail.com", "SMTP username")
-	flag.StringVar(&cf.smtp.password, "smtp-password", "", "SMTP password")
-	flag.StringVar(&cf.smtp.sender, "smtp-sender", "<ljnvmt@gmail.com>", "SMTP sender")
+	// flag.StringVar(&cf.smtp.host, "smtp-host", "smtp.gmail.com", "SMTP host")
+	// flag.IntVar(&cf.smtp.port, "smtp-port", 587, "SMTP port")
+	// flag.StringVar(&cf.smtp.username, "smtp-username", "ljnvmt@gmail.com", "SMTP username")
+	// flag.StringVar(&cf.smtp.password, "smtp-password", "", "SMTP password")
+	// flag.StringVar(&cf.smtp.sender, "smtp-sender", "<ljnvmt@gmail.com>", "SMTP sender")
 
 	flag.Parse()
 
@@ -101,7 +100,7 @@ func main() {
 		templCache:      cache,
 		data:            data.NewData(db, lg),
 		sessionsManager: sessionManager,
-		mailer:          mailer.New(cf.smtp.host, cf.smtp.port, cf.smtp.username, cf.smtp.password, cf.smtp.sender),
+		// mailer:          mailer.New(cf.smtp.host, cf.smtp.port, cf.smtp.username, cf.smtp.password, cf.smtp.sender),
 	}
 
 	sv := &http.Server{
