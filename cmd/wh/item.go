@@ -362,6 +362,12 @@ func (ap *application) addItem() http.Handler {
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
+		// Flushing file data to disk
+		if err = fOut.Sync(); err != nil {
+			ap.logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
 
 		// initialize an *Item for adding to db
 		i := new(data.Item)

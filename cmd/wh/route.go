@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/tanvmn/wh/internal/data"
@@ -11,19 +10,6 @@ import (
 
 func (ap *application) routes() http.Handler {
 	mux := http.NewServeMux()
-
-	mux.HandleFunc("/t", func(w http.ResponseWriter, r *http.Request) {
-		ss, err := ap.data.SerialsByBin("BIN-2")
-		if err != nil {
-			ap.logger.Error(err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		for _, s := range ss {
-			fmt.Println(s.NanoID, s.GTIN, s.Item.ImgFSPath, s.Bin.ID)
-		}
-	})
 
 	identify := middlewares{ap.sessionsManager.LoadAndSave, ap.identify}
 
