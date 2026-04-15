@@ -65,9 +65,7 @@ func (iq ItemQuantity) ExportItemDifference() int64 {
 	return int64(len(iq.Serials)) - iq.Quantity
 }
 
-var (
-	ErrNoItems = errors.New("data: no items found")
-)
+var ErrNoItems = errors.New("data: no items found")
 
 const (
 	Shirt      = "Áo sơmi"
@@ -112,8 +110,7 @@ const (
 	Pink   = "Hồng"
 )
 
-var (
-	selectItemsStmt = fmt.Sprintf(`
+var selectItemsStmt = fmt.Sprintf(`
 	select
 	item.gtin,
 	brand,
@@ -132,7 +129,6 @@ var (
 	'%v'||supplier_item.supplier_id
 	from item
 	left join supplier_item on supplier_item.gtin = item.gtin`, SupplierIDCode)
-)
 
 func (db *Data) Item(gtin string) (*Item, error) {
 	stmt := selectItemsStmt + "\nwhere supplier_item.gtin=$1 or item.gtin = $1"
@@ -662,10 +658,6 @@ func (db *Data) SafeStocks(warehouseID string) ([]ItemQuantity, error) {
 		db.logger.Error(err.Error())
 		return nil, err
 	}
-	println("daily consumption")
-	for _, iq := range dc {
-		println(iq.Item.GTIN, iq.Quantity)
-	}
 
 	rd, err := db.RestockDays(warehouseID)
 	if err != nil {
@@ -763,12 +755,6 @@ func (db *Data) UnsafeStocks(warehouseID string) ([]ItemQuantity, error) {
 		return nil, err
 	}
 
-	// is, err := db.AwaitingResponseAndAwaitingExportResupplyItems(warehouseID)
-	// if err != nil {
-	// 	db.logger.Error(err.Error())
-	// 	return nil, err
-	// }
-
 	s, err := db.CurrentItemQuantitiesInBinsByWarehouse(warehouseID)
 	if err != nil {
 		db.logger.Error(err.Error())
@@ -787,48 +773,26 @@ func (db *Data) UnsafeStocks(warehouseID string) ([]ItemQuantity, error) {
 	for i := range sf {
 		for _, iq2 := range s {
 			if sf[i].Item.GTIN == iq2.Item.GTIN {
-				println("current items in bin", iq2.Quantity, "safe stock", sf[i].SafeStock)
 				sf[i].Stock += iq2.Quantity
 				sf[i].Restock += sf[i].SafeStock - iq2.Quantity
-				println("match with wh stocks", sf[i].Item.GTIN, "stock", sf[i].Stock, "restock", sf[i].Restock)
-				// break
 			}
 		}
 		// this means that the item of safe stocks is not in the stocks of the warehouse,
 		// because this item has not been export
 		if sf[i].Stock == 0 {
 			sf[i].Restock += sf[i].SafeStock
-			println("unmatch with wh stocks", sf[i].Item.GTIN, "stock", sf[i].Stock, "restock", sf[i].Restock)
 		}
 	}
 
-	println()
 	// Add the items in the purchases whose receives have not been processed
 	for i := range sf {
 		for _, iq := range as {
 			if sf[i].Item.GTIN == iq.Item.GTIN {
-				println("current items in awaiting purchases", iq.Quantity, "restock", sf[i].Restock)
 				sf[i].Stock += iq.Quantity
 				sf[i].Restock -= iq.Quantity
-				println("match with awaiting stocks", sf[i].Item.GTIN, "stock", sf[i].Stock, "restock", sf[i].Restock)
-				// break
 			}
 		}
 	}
-
-	// println()
-	// // Minus the items in the resupply whose export have not been processed
-	// for i := range sf {
-	// 	for _, iq := range is {
-	// 		if sf[i].Item.GTIN == iq.Item.GTIN {
-	// 			println("current items in unprocessed resupply", iq.Quantity, "restock", sf[i].Restock)
-	// 			sf[i].Stock -= iq.Quantity
-	// 			sf[i].Restock += iq.Quantity
-	// 			println("match with awaiting not stocks", sf[i].Item.GTIN, "stock", sf[i].Stock, "restock", sf[i].Restock)
-	// 			// break
-	// 		}
-	// 	}
-	// }
 
 	// Add the calculated safe stock that > 0
 	for _, iq := range sf {

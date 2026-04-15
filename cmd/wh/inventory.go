@@ -262,14 +262,6 @@ func (ap *application) processInventoryBinResult() http.Handler {
 			return
 		}
 
-		println(inventoryBinResult.ID)
-		for _, is := range inventoryBinResult.InventorySerials {
-			println(is.Serial.NanoID)
-			println(is.Result)
-			println(is.Note)
-			println()
-		}
-
 		err = ap.data.UpdateAfterInventoryBinProcessing(&inventoryBinResult)
 		if err != nil {
 			ap.logger.Error(err.Error())
