@@ -8,7 +8,7 @@ import (
 	"slices"
 	"time"
 
-	"github.com/tanNguyen2220022/wh/internal/util"
+	"github.com/tanvmn/wh/internal/util"
 )
 
 type Item struct {

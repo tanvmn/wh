@@ -6,9 +6,9 @@ import (
 	"net/http"
 
 	"github.com/lib/pq"
-	"github.com/tanNguyen2220022/wh/internal/data"
-	"github.com/tanNguyen2220022/wh/internal/util"
-	"github.com/tanNguyen2220022/wh/internal/validator"
+	"github.com/tanvmn/wh/internal/data"
+	"github.com/tanvmn/wh/internal/util"
+	"github.com/tanvmn/wh/internal/validator"
 )
 
 func (ap *application) addReceivePage() http.Handler {

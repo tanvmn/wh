@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/tanNguyen2220022/wh/internal/data"
+	"github.com/tanvmn/wh/internal/data"
 )
 
 // account handles GET /account?id= and response a JSON of internal/data.Account

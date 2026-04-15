@@ -4,8 +4,8 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/tanNguyen2220022/wh/internal/data"
-	"github.com/tanNguyen2220022/wh/internal/validator"
+	"github.com/tanvmn/wh/internal/data"
+	"github.com/tanvmn/wh/internal/validator"
 )
 
 func (ap *application) loginPage() http.Handler {

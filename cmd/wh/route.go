@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/tanNguyen2220022/wh/internal/data"
-	"github.com/tanNguyen2220022/wh/rec"
-	"github.com/tanNguyen2220022/wh/ui"
+	"github.com/tanvmn/wh/internal/data"
+	"github.com/tanvmn/wh/rec"
+	"github.com/tanvmn/wh/ui"
 )
 
 func (ap *application) routes() http.Handler {

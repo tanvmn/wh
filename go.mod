@@ -1,4 +1,4 @@
-module github.com/tanNguyen2220022/wh
+module github.com/tanvmn/wh
 
 go 1.23.0
 

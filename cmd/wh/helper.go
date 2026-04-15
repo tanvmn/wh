@@ -11,8 +11,8 @@ import (
 	"runtime/debug"
 	"strings"
 
-	"github.com/tanNguyen2220022/wh/internal/data"
-	"github.com/tanNguyen2220022/wh/internal/util"
+	"github.com/tanvmn/wh/internal/data"
+	"github.com/tanvmn/wh/internal/util"
 )
 
 const (

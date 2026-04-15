@@ -7,7 +7,7 @@ import (
 	"log/slog"
 	"strconv"
 
-	"github.com/tanNguyen2220022/wh/internal/validator"
+	"github.com/tanvmn/wh/internal/validator"
 )
 
 const (

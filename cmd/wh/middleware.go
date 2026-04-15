@@ -8,7 +8,7 @@ import (
 	"runtime/debug"
 	"slices"
 
-	"github.com/tanNguyen2220022/wh/internal/data"
+	"github.com/tanvmn/wh/internal/data"
 )
 
 type middlewares []func(http.Handler) http.Handler
