@@ -1,24 +1,21 @@
 # include variables from .envrc file
 include .envrc
 
-.PHONY: psql/start
+.PHONY: psql/start psql/stop psql/init psql/reset run/wh init
 psql/start:
 	sudo systemctl start postgresql.service
-	psql ${WH_DSN}
 
-.PHONY: psql/stop
 psql/stop:
 	sudo systemctl stop postgresql.service
 	sudo systemctl status postgresql.service
 
-.PHONY: psql/init
 psql/init:
 	sudo -u postgres psql -f sql/init.sql
 
-.PHONY: psql/reset
-psql/reset:
+psql/reset: psql/init
 	psql ${WH_DSN} -f sql/reset.sql
 
-.PHONY: run/wh
-run/wh:
+init: psql/start psql/reset
+
+run:
 	go run ./cmd/wh -dsn=${WH_DSN}
