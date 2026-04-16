@@ -8,5 +8,8 @@
 1. Clone the project
 2. cd into it
 3. Run:
-    1. make init
-    2. make run
+    * make init
+    * make run
+4. To log in:
+    * Điện thoại (phone): 0000000001
+    * Mật khẩu (password): pa55word
