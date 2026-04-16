@@ -8,7 +8,7 @@ psql/start:
 
 .PHONY: psql/stop
 psql/stop:
-	sudo systemctl stop postgresql
+	sudo systemctl stop postgresql.service
 	sudo systemctl status postgresql.service
 
 .PHONY: psql/init
