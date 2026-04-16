@@ -54,7 +54,7 @@ func (ap *application) addHeaders(next http.Handler) http.Handler {
 
 func (ap *application) logRequest(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ap.logger.Info("request", "ip", r.RemoteAddr, "method", r.Method, "uri", r.URL.RequestURI(), "proto", r.Proto)
+		ap.logger.Info("request", "ip", r.RemoteAddr, "method", r.Method, "uri", r.URL.RequestURI())
 
 		next.ServeHTTP(w, r)
 	})

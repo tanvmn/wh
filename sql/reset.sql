@@ -546,7 +546,7 @@ insert into supplier (name, address, phone, email) values
 -- ;
 
 insert into item (gtin, characteristic, volume, weight, brand, material, color, size, price, type, shelf_life, img_fspath) values
-('619659115906', 'có túi', 1392, 200, 'Navy', 'Polyester', 'Lục', 'XL', 200000, 'Quần thun', 7, 'item/img/619659115906.jpeg'),			-- quần thun lục
+('8936040400574', 'có túi', 1392, 200, 'Navy', 'Polyester', 'Lục', 'XL', 200000, 'Quần thun', 7, 'item/img/8936040400574.jpeg'),			-- quần thun lục
 ('8888021200126', 'có cổ, tay dài', 1392, 200, 'Viettien', 'Cotton', 'Trắng', 'S', 150000, 'Áo sơmi', 7, 'item/img/8888021200126.jpeg'),	-- áo somi trắng tay dài
 ('4983435764166', 'không cổ, tay ngắn', 1392, 200, 'Gucci', 'Cotton', 'Vàng', 'L', 150000, 'Áo thun', 7, 'item/img/4983435764166.jpeg'),	-- áo thun vàng tay ngắn
 ('8904091104109', 'có túi', 1392, 200, 'GAP', 'Polyester', 'Lam', 'M', 200000, 'Quần tây', 7, 'item/img/8904091104109.jpeg'),			-- quần tây lam
@@ -554,7 +554,7 @@ insert into item (gtin, characteristic, volume, weight, brand, material, color, 
 ;
 
 insert into supplier_item (supplier_id, gtin) values
-(1, '619659115906'),
+(1, '8936040400574'),
 (1, '8904091104109'),
 (1, '8888021200126'),
 (2, '4983435764166'),
@@ -582,7 +582,7 @@ insert into purchase (warehouse_id, account_id, supplier_id, expected_at, status
 ;
 
 insert into purchase_item (purchase_id, gtin, quantity) values
-(1, '619659115906', 5)
+(1, '8936040400574', 5)
 ,(1, '8888021200126', 5)
 ;
 
@@ -591,7 +591,7 @@ insert into receive (purchase_id, account_id, expected_at, voucher_id) values
 ;
 
 insert into receive_item (purchase_id, receive_id, gtin, quantity) values
-(1, 1, '619659115906', 5)
+(1, 1, '8936040400574', 5)
 ,(1, 1, '8888021200126', 5)
 ;
 update purchase set status = 'CHỜ NHẬP' where id = 1;
@@ -603,11 +603,11 @@ insert into serial (nanoid, gtin, purchase_id, receive_id, receive_tote) values
 ,('SER-Ij2czMsg9ApYZI8kggcxL', '8888021200126', 1, 1, 1)
 ,('SER-G9jVbMaf5kMkjj_AbYwS-', '8888021200126', 1, 1, 1)
 ,('SER-XhjoVoESIan9Oy1NEm94v', '8888021200126', 1, 1, 1)
-,('SER-rMiGVGZIj4uVYePjnSZwW', '619659115906', 1, 1, 1)
-,('SER-0kzEXLSPez_NeSBybUT1A', '619659115906', 1, 1, 1)
-,('SER-uBobwbyVeKLVFAOMw4tkA', '619659115906', 1, 1, 1)
-,('SER-bR4nemcPjES_9RoR2OU5D', '619659115906', 1, 1, 1)
-,('SER-QDVSSh0u3BeNh4fdq4Jtv', '619659115906', 1, 1, 1)
+,('SER-rMiGVGZIj4uVYePjnSZwW', '8936040400574', 1, 1, 1)
+,('SER-0kzEXLSPez_NeSBybUT1A', '8936040400574', 1, 1, 1)
+,('SER-uBobwbyVeKLVFAOMw4tkA', '8936040400574', 1, 1, 1)
+,('SER-bR4nemcPjES_9RoR2OU5D', '8936040400574', 1, 1, 1)
+,('SER-QDVSSh0u3BeNh4fdq4Jtv', '8936040400574', 1, 1, 1)
 ;
 update purchase set status = 'KẾT THÚC' where id = 1;
 
@@ -673,7 +673,7 @@ insert into resupply (created_at, expected_at, account_id, store_id) values
 
 insert into resupply_item (resupply_id, gtin, quantity) values
 (1, 8888021200126, 1)
-,(1, 619659115906, 1)
+,(1, 8936040400574, 1)
 ;
 
 insert into export (account_id, created_at, expected_at, voucher_id, resupply_id) values
@@ -682,7 +682,7 @@ insert into export (account_id, created_at, expected_at, voucher_id, resupply_id
 
 insert into export_item (export_id, resupply_id, gtin, quantity) values
 (1, 1, 8888021200126, 1)
-,(1, 1, 619659115906, 1)
+,(1, 1, 8936040400574, 1)
 ;
 
 update resupply set status = 'CHỜ XUẤT' where id = 1;
@@ -693,7 +693,7 @@ picked_by = 3
 where id = 1
 ;
 
---SER-rMiGVGZIj4uVYePjnSZwW;619659115906
+--SER-rMiGVGZIj4uVYePjnSZwW;8936040400574
 update serial set
 pick_tote = 1
 ,export_id = 1
