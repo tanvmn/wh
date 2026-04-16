@@ -18,4 +18,4 @@ psql/reset: psql/init
 init: psql/start psql/reset
 
 run:
-	go run ./cmd/wh -dsn=${WH_DSN}
+	./bin/wh -dsn=${WH_DSN}
