@@ -1,4 +1,4 @@
-# This project was developed and operated on Ubuntu 22.04 LTS
+# This project was developed and assumed to be operated on Ubuntu 22.04 LTS or later.
 
 # Requirements:
 * Go 1.23.0 or later
