@@ -10,6 +10,7 @@
 3. Run:
     * make init
     * make run
-4. To log in:
+4. Use a browser to go to: http://localhost:4000/
+5. To log in:
     * Điện thoại (phone): 0000000001
     * Mật khẩu (password): pa55word
