@@ -2,6 +2,9 @@
 include .envrc
 
 .PHONY: psql/start psql/stop psql/init psql/reset run/wh init
+psql:
+	psql ${WH_DSN}
+
 psql/start:
 	sudo systemctl start postgresql.service
 
