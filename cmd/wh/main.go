@@ -4,10 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"flag"
-	"fmt"
 	"html/template"
 	"log/slog"
-	"net/http"
 	"os"
 	"time"
 
@@ -103,7 +101,7 @@ func main() {
 	sessionManager.Store = postgresstore.New(db)
 	sessionManager.Lifetime = 12 * time.Hour
 
-	ap := &app{
+	a := &app{
 		config:          cf,
 		log:             lg,
 		templCache:      cache,
@@ -112,19 +110,10 @@ func main() {
 		// mailer:          mailer.New(cf.smtp.host, cf.smtp.port, cf.smtp.username, cf.smtp.password, cf.smtp.sender),
 	}
 
-	sv := &http.Server{
-		Addr:         fmt.Sprintf("localhost:%d", cf.port),
-		Handler:      ap.routes(),
-		IdleTimeout:  5 * time.Minute,
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 10 * time.Second,
-		ErrorLog:     slog.NewLogLogger(lg.Handler(), slog.LevelError),
+	if err = a.serve(); err != nil {
+		a.log.Error(err.Error())
+		os.Exit(1)
 	}
-
-	lg.Info(fmt.Sprintf("http://localhost:%v", cf.port), "env", cf.env)
-	err = sv.ListenAndServe()
-	lg.Error(err.Error())
-	os.Exit(1)
 }
 
 func openDB(cf *config, lg *slog.Logger) (*sql.DB, error) {
