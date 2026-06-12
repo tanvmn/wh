@@ -9,28 +9,28 @@ import (
 )
 
 // account handles GET /account?id= and response a JSON of internal/data.Account
-func (ap *application) account() http.Handler {
+func (a *app) account() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
 
-		ac, err := ap.data.Account(id)
+		ac, err := a.data.Account(id)
 		if errors.Is(err, data.ErrNoAccounts) {
-			ap.logger.Error(fmt.Sprintf("Account %v not found", id))
+			a.log.Error(fmt.Sprintf("Account %v not found", id))
 			http.Error(w, "Không tìm thấy tài khoản "+id, http.StatusNotFound)
 			return
 		} else if errors.Is(err, data.ErrInvalidID) {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, fmt.Sprintf("Tài khoản ID '%v' không hợp lệ", id), http.StatusBadRequest)
 			return
 		} else if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
-		err = ap.writeJSON(w, http.StatusOK, ac, nil)
+		err = a.writeJSON(w, http.StatusOK, ac, nil)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}

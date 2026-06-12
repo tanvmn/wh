@@ -5,18 +5,18 @@ import (
 	"net/http"
 )
 
-func (ap *application) differenceActivitiesPage() http.Handler {
+func (a *app) differenceActivitiesPage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		wID, ok := r.Context().Value(authenticatedCtxWarehouseID).(string)
 		if !ok {
-			ap.logger.Error(fmt.Sprintf("%v; %v", ErrConvertCtxVal, wID))
+			a.log.Error(fmt.Sprintf("%v; %v", ErrConvertCtxVal, wID))
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
-		as, err := ap.data.DifferenceActivities(wID)
+		as, err := a.data.DifferenceActivities(wID)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -25,17 +25,17 @@ func (ap *application) differenceActivitiesPage() http.Handler {
 			DifferenceActivities: as,
 		}
 
-		td, err := ap.newTemplData(r)
+		td, err := a.newTemplData(r)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		td.Page = dap
 
-		err = ap.render(w, http.StatusOK, "difference_activities", td)
+		err = a.render(w, http.StatusOK, "difference_activities", td)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}

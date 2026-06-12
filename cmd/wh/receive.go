@@ -11,15 +11,15 @@ import (
 	"github.com/tanvmn/wh/internal/validator"
 )
 
-func (ap *application) addReceivePage() http.Handler {
+func (a *app) addReceivePage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// get the purchase ID
 		pID := r.URL.Query().Get("purchase")
 
 		// get the purchase data
-		pc, err := ap.data.Purchase(pID)
+		pc, err := a.data.Purchase(pID)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 
 			if errors.Is(err, data.ErrNoPurchases) {
 				http.Error(w, fmt.Sprintf("Không tìm thấy yêu cầu nhập ID: %v", pID), http.StatusBadRequest)
@@ -30,21 +30,21 @@ func (ap *application) addReceivePage() http.Handler {
 		}
 		aID, ok := r.Context().Value(authenticatedCtxID).(string)
 		if !ok {
-			ap.logger.Error(fmt.Sprintf("%v; %v", ErrConvertCtxVal.Error(), aID))
+			a.log.Error(fmt.Sprintf("%v; %v", ErrConvertCtxVal.Error(), aID))
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
 		// if all items of purchase are added to receives then response the client and return
-		upi, err := ap.data.UnreceivedPurchaseItems(pc)
+		upi, err := a.data.UnreceivedPurchaseItems(pc)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		if len(upi) == 0 {
 			s := fmt.Sprintf("Tất cả hàng của yêu cầu nhập ID %v đã được thêm vào các phiếu nhập", pc.ID)
-			ap.logger.Error(s)
+			a.log.Error(s)
 			http.Error(w, s, http.StatusUnprocessableEntity)
 			return
 		}
@@ -52,13 +52,13 @@ func (ap *application) addReceivePage() http.Handler {
 		// if purchase's receive add ID is not ACC-0 or the authenticated ID, then "another acc is adding receive to this pur, please wait and retry later"
 		if pc.ReceiveAddOwner != data.AccountIDCode+"0" && pc.ReceiveAddOwner != aID {
 			s := fmt.Sprintf("Một tài khoản khác đang thêm phiếu nhập cho yêu cầu nhập ID %v.\nHãy thử lại sau", pc.ID)
-			ap.logger.Error(s + "; add_receive_owner " + pc.ID)
+			a.log.Error(s + "; add_receive_owner " + pc.ID)
 			http.Error(w, s, http.StatusUnprocessableEntity)
 			return
 		} else if pc.ReceiveAddOwner == data.AccountIDCode+"0" { // if receive_add_owner is 0 then claim receive_add_owner
-			err = ap.data.ClaimReceiveAddOwner(pc.ID, aID)
+			err = a.data.ClaimReceiveAddOwner(pc.ID, aID)
 			if err != nil {
-				ap.logger.Error(err.Error())
+				a.log.Error(err.Error())
 
 				if errors.Is(err, data.ErrAddReceiveConflict) {
 					http.Error(w, fmt.Sprintf("Yêu cầu nhập ID %v có thể đang được thêm phiếu bởi 1 tài khoản khác.\nHãy thử lại sau", pc.ID), http.StatusUnprocessableEntity)
@@ -84,26 +84,26 @@ func (ap *application) addReceivePage() http.Handler {
 		}
 
 		// else serve the add receive page if there items of purchase that are not added to receive
-		td, err := ap.newTemplData(r)
+		td, err := a.newTemplData(r)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		td.Purchase = *pc
 		td.ItemQuantitys = upi
 
-		err = ap.render(w, http.StatusOK, "receive_add", td)
+		err = a.render(w, http.StatusOK, "receive_add", td)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 	})
 }
 
-func (ap *application) validateReceive(rc *data.Receive) error {
-	pc, err := ap.data.Purchase(rc.Purchase.ID)
+func (a *app) validateReceive(rc *data.Receive) error {
+	pc, err := a.data.Purchase(rc.Purchase.ID)
 	if err != nil {
 		return err
 	}
@@ -124,16 +124,16 @@ func (ap *application) validateReceive(rc *data.Receive) error {
 	return nil
 }
 
-func (ap *application) addReceive() http.Handler {
+func (a *app) addReceive() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var (
 			rc  data.Receive
 			err error
 		)
 
-		err = ap.decodeJSON(w, r, &rc)
+		err = a.decodeJSON(w, r, &rc)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 
 			var mr *util.MalformedRequest
 			if errors.As(err, &mr) {
@@ -144,47 +144,47 @@ func (ap *application) addReceive() http.Handler {
 			return
 		}
 
-		err = ap.validateReceive(&rc)
+		err = a.validateReceive(&rc)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
 		// Check if the account is eligible to add receive for purchase
-		pc, err := ap.data.Purchase(rc.Purchase.ID)
+		pc, err := a.data.Purchase(rc.Purchase.ID)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		aID, ok := r.Context().Value(authenticatedCtxID).(string)
 		if !ok {
-			ap.logger.Error(ErrConvertCtxVal.Error())
+			a.log.Error(ErrConvertCtxVal.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		if pc.ReceiveAddOwner == data.AccountIDCode+"0" {
 			s := fmt.Sprintf("Đã hết hạn 7ph để tạo phiếu cho yêu cầu nhập ID %v.\nHãy tải lại trang và thực hiện lại", pc.ID)
-			ap.logger.Error(s)
+			a.log.Error(s)
 			http.Error(w, s, http.StatusUnprocessableEntity)
 			return
 		} else if pc.ReceiveAddOwner != aID {
-			ap.logger.Error(fmt.Sprintf("Account %v received the add receive page and made an add receive request to server, yet the current add receive owner is %v", aID, pc.ReceiveAddOwner))
+			a.log.Error(fmt.Sprintf("Account %v received the add receive page and made an add receive request to server, yet the current add receive owner is %v", aID, pc.ReceiveAddOwner))
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
 		// Check if purchase still has items that have not been added to receives.
 		// If there aren't, but this request is still present then there has to be an logic error somewhere
-		uri, err := ap.data.UnreceivedPurchaseItems(pc)
+		uri, err := a.data.UnreceivedPurchaseItems(pc)
 		if err != nil {
-			ap.logger.Error(ErrConvertCtxVal.Error())
+			a.log.Error(ErrConvertCtxVal.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		if len(uri) == 0 {
-			ap.logger.Error("All items of purchase %v are added to receives, but somehow add receive request (POST) is still made")
+			a.log.Error("All items of purchase %v are added to receives, but somehow add receive request (POST) is still made")
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -192,9 +192,9 @@ func (ap *application) addReceive() http.Handler {
 		// Start to add the receive
 		// Also unclaims receive add owner at this step
 		rc.Account.ID = aID
-		err = ap.data.AddReceive(&rc)
+		err = a.data.AddReceive(&rc)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 
 			var pgErr *pq.Error
 			if errors.As(err, &pgErr) {
@@ -207,14 +207,14 @@ func (ap *application) addReceive() http.Handler {
 
 		// Update purchase status to data.AwaitingReceive if the current status is data.AwaintingResponse
 		if pc.Status == data.AwaitingResponse {
-			err = ap.data.UpdatePurchaseStatus(pc.ID, pc.Status, data.AwaitingReceive)
+			err = a.data.UpdatePurchaseStatus(pc.ID, pc.Status, data.AwaitingReceive)
 			if err != nil {
-				ap.logger.Error(err.Error())
+				a.log.Error(err.Error())
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				return
 			}
 		} else if pc.Status != data.AwaitingReceive && pc.Status != data.Receiving {
-			ap.logger.Error(fmt.Sprintf("Purchase %v's current status is %v, but there is a request to add receive made to it", pc.ID, pc.Status))
+			a.log.Error(fmt.Sprintf("Purchase %v's current status is %v, but there is a request to add receive made to it", pc.ID, pc.Status))
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -223,13 +223,13 @@ func (ap *application) addReceive() http.Handler {
 	})
 }
 
-func (ap *application) receivePage() http.Handler {
+func (a *app) receivePage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
 
-		rc, err := ap.data.Receive(id)
+		rc, err := a.data.Receive(id)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 
 			if errors.Is(err, data.ErrNoReceives) {
 				http.Error(w, fmt.Sprintf("Không tìm thấy phiếu nhập ID: %v", id), http.StatusNotFound)
@@ -239,37 +239,37 @@ func (ap *application) receivePage() http.Handler {
 			return
 		}
 
-		td, err := ap.newTemplData(r)
+		td, err := a.newTemplData(r)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		td.Receive = *rc
 
-		td.ItemQuantitys, err = ap.data.UnreceivedPurchaseItemsOpt(rc)
+		td.ItemQuantitys, err = a.data.UnreceivedPurchaseItemsOpt(rc)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
-		err = ap.render(w, http.StatusOK, "receive", td)
+		err = a.render(w, http.StatusOK, "receive", td)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 	})
 }
 
-func (ap *application) setReceive() http.Handler {
+func (a *app) setReceive() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var rc data.Receive
 
-		err := ap.decodeJSON(w, r, &rc)
+		err := a.decodeJSON(w, r, &rc)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 
 			var mr *util.MalformedRequest
 			if errors.As(err, &mr) {
@@ -280,7 +280,7 @@ func (ap *application) setReceive() http.Handler {
 			return
 		}
 
-		rcp, err := ap.data.Receive(rc.ID)
+		rcp, err := a.data.Receive(rc.ID)
 		if err != nil {
 			if errors.Is(err, data.ErrNoReceives) {
 				http.Error(w, fmt.Sprintf("Không tìm thấy phiếu nhập ID %v", rc.ID), http.StatusUnprocessableEntity)
@@ -291,9 +291,9 @@ func (ap *application) setReceive() http.Handler {
 		}
 		rc.Purchase = rcp.Purchase
 
-		err = ap.data.SetReceive(&rc)
+		err = a.data.SetReceive(&rc)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 
 			if errors.Is(err, data.ErrNoReceives) {
 				http.Error(w, fmt.Sprintf("Phiếu nhập ID %v có thể đã hoặc đang được điều chỉnh bởi 1 tài khoản khác. Hãy tải lại trang và thử lại", rc.ID), http.StatusUnprocessableEntity)
@@ -307,13 +307,13 @@ func (ap *application) setReceive() http.Handler {
 	})
 }
 
-func (ap *application) delReceive() http.Handler {
+func (a *app) delReceive() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
 
-		rc, err := ap.data.Receive(id)
+		rc, err := a.data.Receive(id)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 
 			if errors.Is(err, data.ErrNoReceives) || errors.Is(err, data.ErrInvalidID) {
 				http.Error(w, fmt.Sprintf("Không tìm thấy phiếu nhập ID %v", id), http.StatusNotFound)
@@ -323,23 +323,23 @@ func (ap *application) delReceive() http.Handler {
 			return
 		}
 
-		err = ap.data.DelReceive(rc.ID)
+		err = a.data.DelReceive(rc.ID)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
-		rcs, err := ap.data.ReceivesByPurchase(rc.Purchase.ID)
+		rcs, err := a.data.ReceivesByPurchase(rc.Purchase.ID)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		if len(rcs) == 0 {
-			err = ap.data.UpdatePurchaseStatus(rc.Purchase.ID, rc.Purchase.Status, data.AwaitingResponse)
+			err = a.data.UpdatePurchaseStatus(rc.Purchase.ID, rc.Purchase.Status, data.AwaitingResponse)
 			if err != nil {
-				ap.logger.Error(err.Error())
+				a.log.Error(err.Error())
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				return
 			}
@@ -349,82 +349,82 @@ func (ap *application) delReceive() http.Handler {
 	})
 }
 
-func (ap *application) receivesPage() http.Handler {
+func (a *app) receivesPage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		wID, ok := r.Context().Value(authenticatedCtxWarehouseID).(string)
 		if !ok {
-			ap.logger.Error(fmt.Sprintf("%v; %v", ErrConvertCtxVal, authenticatedCtxWarehouseID))
+			a.log.Error(fmt.Sprintf("%v; %v", ErrConvertCtxVal, authenticatedCtxWarehouseID))
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
-		rs, err := ap.data.Receives(wID)
+		rs, err := a.data.Receives(wID)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
-		tdata, err := ap.newTemplData(r)
+		tdata, err := a.newTemplData(r)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		tdata.Receives = rs
 
-		err = ap.render(w, http.StatusOK, "receives", tdata)
+		err = a.render(w, http.StatusOK, "receives", tdata)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 	})
 }
 
-func (ap *application) receivesByPurchasePage() http.Handler {
+func (a *app) receivesByPurchasePage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		purchaseID := r.PathValue("purchase")
 
-		pc, err := ap.data.Purchase(purchaseID)
+		pc, err := a.data.Purchase(purchaseID)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
-		rs, err := ap.data.ReceivesByPurchase(purchaseID)
+		rs, err := a.data.ReceivesByPurchase(purchaseID)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
-		tdata, err := ap.newTemplData(r)
+		tdata, err := a.newTemplData(r)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		tdata.Receives = rs
 		tdata.Purchase = *pc
 
-		err = ap.render(w, http.StatusOK, "receives_by_purchase", tdata)
+		err = a.render(w, http.StatusOK, "receives_by_purchase", tdata)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 	})
 }
 
-func (ap *application) receiveProcessPage() http.Handler {
+func (a *app) receiveProcessPage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
 
-		rc, err := ap.data.Receive(id)
+		rc, err := a.data.Receive(id)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 
 			if errors.Is(err, data.ErrNoReceives) {
 				http.Error(w, fmt.Sprintf("Không tìm thấy phiếu nhập ID: %v", id), http.StatusNotFound)
@@ -435,14 +435,14 @@ func (ap *application) receiveProcessPage() http.Handler {
 		}
 
 		if not01011000(rc.ActualAt) {
-			ap.logger.Error(fmt.Sprintf("Receive %v already processed yet this req is made", rc.ID))
+			a.log.Error(fmt.Sprintf("Receive %v already processed yet this req is made", rc.ID))
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
-		td, err := ap.newTemplData(r)
+		td, err := a.newTemplData(r)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -455,22 +455,22 @@ func (ap *application) receiveProcessPage() http.Handler {
 		// 	return
 		// }
 
-		err = ap.render(w, http.StatusOK, "receive_process", td)
+		err = a.render(w, http.StatusOK, "receive_process", td)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 	})
 }
 
-func (ap *application) processReceive() http.Handler {
+func (a *app) processReceive() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var rc data.Receive
 
-		err := ap.decodeJSON(w, r, &rc)
+		err := a.decodeJSON(w, r, &rc)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 
 			var mr *util.MalformedRequest
 			if errors.As(err, &mr) {
@@ -482,9 +482,9 @@ func (ap *application) processReceive() http.Handler {
 		}
 
 		// Get receive to get the receive's purchase ID
-		rcp, err := ap.data.Receive(rc.ID)
+		rcp, err := a.data.Receive(rc.ID)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -499,32 +499,32 @@ func (ap *application) processReceive() http.Handler {
 		}
 
 		// Update corresponding purchase status
-		rs, err := ap.data.UnprocessedReceivesByPurchase(rcp.Purchase.ID)
+		rs, err := a.data.UnprocessedReceivesByPurchase(rcp.Purchase.ID)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		if len(rs) == 0 {
-			err = ap.data.UpdatePurchaseStatus(rcp.Purchase.ID, rcp.Purchase.Status, data.Ended)
+			err = a.data.UpdatePurchaseStatus(rcp.Purchase.ID, rcp.Purchase.Status, data.Ended)
 			if err != nil {
-				ap.logger.Error(err.Error())
+				a.log.Error(err.Error())
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				return
 			}
 		} else {
-			err = ap.data.UpdatePurchaseStatus(rcp.Purchase.ID, rcp.Purchase.Status, data.Receiving)
+			err = a.data.UpdatePurchaseStatus(rcp.Purchase.ID, rcp.Purchase.Status, data.Receiving)
 			if err != nil {
-				ap.logger.Error(err.Error())
+				a.log.Error(err.Error())
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				return
 			}
 		}
 
 		// Set receive actual_at
-		err = ap.data.SetActualAt(rcp)
+		err = a.data.SetActualAt(rcp)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -532,22 +532,22 @@ func (ap *application) processReceive() http.Handler {
 		// Set receive processed_by
 		aID, ok := r.Context().Value(authenticatedCtxID).(string)
 		if !ok {
-			ap.logger.Error(fmt.Sprintf("%v; %v", ErrConvertCtxVal.Error(), aID))
+			a.log.Error(fmt.Sprintf("%v; %v", ErrConvertCtxVal.Error(), aID))
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		rcp.ProcessedAccount.ID = aID
-		err = ap.data.SetReceiveProcessedBy(rcp)
+		err = a.data.SetReceiveProcessedBy(rcp)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
 		// Set receive_item note
-		err = ap.data.SetReceiveItemsNote(rcp)
+		err = a.data.SetReceiveItemsNote(rcp)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -557,9 +557,9 @@ func (ap *application) processReceive() http.Handler {
 			for _, s := range iq.Serials {
 				s.Purchase.ID = rcp.Purchase.ID
 
-				err = ap.data.AddSerial(&s)
+				err = a.data.AddSerial(&s)
 				if err != nil {
-					ap.logger.Error(err.Error())
+					a.log.Error(err.Error())
 					http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 					return
 				}
@@ -570,13 +570,13 @@ func (ap *application) processReceive() http.Handler {
 	})
 }
 
-func (ap *application) receiveProcessResultPage() http.Handler {
+func (a *app) receiveProcessResultPage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
 
-		rc, err := ap.data.Receive(id)
+		rc, err := a.data.Receive(id)
 		if err != nil {
-			ap.logger.Error(err.Error(), ";", id)
+			a.log.Error(err.Error(), ";", id)
 
 			if errors.Is(err, data.ErrNoReceives) {
 				http.Error(w, fmt.Sprintf("Không tìm thấy yêu cầu nhập %v", id), http.StatusNotFound)
@@ -585,9 +585,9 @@ func (ap *application) receiveProcessResultPage() http.Handler {
 			}
 		}
 
-		err = ap.data.AddDifferenceSerialsByGTINOfPutawayReceive(rc)
+		err = a.data.AddDifferenceSerialsByGTINOfPutawayReceive(rc)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -596,30 +596,30 @@ func (ap *application) receiveProcessResultPage() http.Handler {
 			Receive: rc,
 		}
 
-		td, err := ap.newTemplData(r)
+		td, err := a.newTemplData(r)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		td.Page = p
 
-		err = ap.render(w, http.StatusOK, "receive_process_result", td)
+		err = a.render(w, http.StatusOK, "receive_process_result", td)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 	})
 }
 
-func (ap *application) receive() http.Handler {
+func (a *app) receive() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
 
-		rc, err := ap.data.Receive(id)
+		rc, err := a.data.Receive(id)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 
 			if errors.Is(err, data.ErrNoReceives) {
 				http.Error(w, fmt.Sprintf("Không tìm thấy phiếu nhập ID: %v", id), http.StatusNotFound)
@@ -629,9 +629,9 @@ func (ap *application) receive() http.Handler {
 			return
 		}
 
-		err = ap.writeJSON(w, http.StatusOK, rc, nil)
+		err = a.writeJSON(w, http.StatusOK, rc, nil)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}

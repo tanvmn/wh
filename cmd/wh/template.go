@@ -169,7 +169,7 @@ type PutawayResultPage struct {
 	TRs []*PutawayResultPageTR
 }
 
-func (ap *application) newPutawayResultPageByReceive(rc *data.Receive) (*PutawayResultPage, error) {
+func (a *app) newPutawayResultPageByReceive(rc *data.Receive) (*PutawayResultPage, error) {
 	if rc == nil {
 		return nil, fmt.Errorf("parameter *Receive cannot be nil")
 	}
@@ -179,7 +179,7 @@ func (ap *application) newPutawayResultPageByReceive(rc *data.Receive) (*Putaway
 	}
 	for _, iq := range p.Receive.Items {
 		// add difference serials of the putaway by gtin
-		ss, err := ap.data.DifferenceSerialsByGTINOfPutawayReceive(p.Receive.Purchase.Warehouse.ID, p.Receive.ID, iq.Item.GTIN)
+		ss, err := a.data.DifferenceSerialsByGTINOfPutawayReceive(p.Receive.Purchase.Warehouse.ID, p.Receive.ID, iq.Item.GTIN)
 		if err != nil {
 			return nil, err
 		}
@@ -293,6 +293,7 @@ func (p *ExportsPage) NeededQuantity() int64 {
 
 	return sum
 }
+
 func (p *ExportsPage) ActualQuantity() int64 {
 	var sum int64
 	for _, e := range p.Exports {
@@ -453,7 +454,7 @@ var fns = template.FuncMap{
 	"differenceActivityBadgeBg": differenceActivityBadgeBg,
 }
 
-func (ap *application) newTemplData(r *http.Request) (templData, error) {
+func (a *app) newTemplData(r *http.Request) (templData, error) {
 	aID, ok := r.Context().Value(authenticatedCtxID).(string)
 	if !ok {
 		return templData{}, fmt.Errorf("%w: account ID %v", ErrConvertCtxVal, aID)
@@ -463,13 +464,13 @@ func (ap *application) newTemplData(r *http.Request) (templData, error) {
 		return templData{}, fmt.Errorf("%w: account's warehouse ID %v", ErrConvertCtxVal, wID)
 	}
 
-	ac, err := ap.data.Account(aID)
+	ac, err := a.data.Account(aID)
 	if err != nil {
 		return templData{}, err
 	}
 
 	if ac.Warehouse.ID != "" {
-		wh, err := ap.data.Warehouse(wID)
+		wh, err := a.data.Warehouse(wID)
 		if !errors.Is(err, data.ErrNoWarehouses) && err != nil {
 			return templData{}, err
 		}
@@ -478,7 +479,7 @@ func (ap *application) newTemplData(r *http.Request) (templData, error) {
 		}
 	}
 	if ac.Store.ID != "" {
-		s, err := ap.data.Store(ac.Store.ID)
+		s, err := a.data.Store(ac.Store.ID)
 		if !errors.Is(err, data.ErrNoStores) && err != nil {
 			return templData{}, err
 		}
@@ -487,12 +488,12 @@ func (ap *application) newTemplData(r *http.Request) (templData, error) {
 		}
 	}
 
-	ws, err := ap.data.Warehouses()
+	ws, err := a.data.Warehouses()
 	if err != nil {
 		return templData{}, err
 	}
 
-	ss, err := ap.data.Suppliers()
+	ss, err := a.data.Suppliers()
 	if err != nil {
 		return templData{}, err
 	}

@@ -1,6 +1,6 @@
 module github.com/tanvmn/wh
 
-go 1.23.0
+go 1.25.0
 
 require (
 	github.com/alexedwards/scs/postgresstore v0.0.0-20250417082927-ab20b3feb5e9
@@ -12,6 +12,8 @@ require (
 )
 
 require (
+	github.com/tomasen/realip v0.0.0-20180522021738-f0c99a92ddce // indirect
+	golang.org/x/time v0.15.0 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/mail.v2 v2.3.1 // indirect
 )

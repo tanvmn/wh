@@ -38,11 +38,16 @@ type config struct {
 		password string
 		sender   string
 	}
+	limiter struct {
+		rps     float64
+		burst   int
+		enabled bool
+	}
 }
 
-type application struct {
+type app struct {
 	config          config
-	logger          *slog.Logger
+	log             *slog.Logger
 	templCache      map[string]*template.Template
 	data            *data.Data
 	sessionsManager *scs.SessionManager
@@ -60,6 +65,10 @@ func main() {
 	flag.IntVar(&cf.db.maxOpenConns, "db-max-open-conns", 25, "PostgreSQL max open connections")
 	flag.IntVar(&cf.db.maxIdleConns, "db-max-idle-conns", 25, "PostgreSQL max idle connections")
 	flag.DurationVar(&cf.db.maxIdleTime, "db-max-idle-time", 15*time.Minute, "PostgreSQL max connection idle time")
+
+	flag.Float64Var(&cf.limiter.rps, "limiter-rps", 2, "Rate limiter max requests per second")
+	flag.IntVar(&cf.limiter.burst, "limiter-burst", 4, "Rate limiter max burst requests")
+	flag.BoolVar(&cf.limiter.enabled, "limiter-enabled", true, "Enable rate limiter")
 
 	// flag.StringVar(&cf.smtp.host, "smtp-host", "smtp.gmail.com", "SMTP host")
 	// flag.IntVar(&cf.smtp.port, "smtp-port", 587, "SMTP port")
@@ -94,9 +103,9 @@ func main() {
 	sessionManager.Store = postgresstore.New(db)
 	sessionManager.Lifetime = 12 * time.Hour
 
-	ap := &application{
+	ap := &app{
 		config:          cf,
-		logger:          lg,
+		log:             lg,
 		templCache:      cache,
 		data:            data.NewData(db, lg),
 		sessionsManager: sessionManager,
@@ -104,7 +113,7 @@ func main() {
 	}
 
 	sv := &http.Server{
-		Addr:         fmt.Sprintf(":%d", cf.port),
+		Addr:         fmt.Sprintf("localhost:%d", cf.port),
 		Handler:      ap.routes(),
 		IdleTimeout:  5 * time.Minute,
 		ReadTimeout:  10 * time.Second,

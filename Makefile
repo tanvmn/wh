@@ -21,4 +21,5 @@ psql/reset: psql/init
 init: psql/start psql/reset
 
 run:
-	./bin/wh -dsn=${WH_DSN}
+	@go build -o ./bin/ ./cmd/wh/
+	@./bin/wh -dsn=${WH_DSN}

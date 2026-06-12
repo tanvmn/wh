@@ -9,61 +9,61 @@ import (
 	"github.com/tanvmn/wh/internal/util"
 )
 
-func (ap *application) serialsPage() http.Handler {
+func (a *app) serialsPage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		wID, ok := r.Context().Value(authenticatedCtxWarehouseID).(string)
 		if !ok {
-			ap.logger.Error(fmt.Sprintf("%v, authenticatedCtxWarehouseID", ErrConvertCtxVal))
+			a.log.Error(fmt.Sprintf("%v, authenticatedCtxWarehouseID", ErrConvertCtxVal))
 		}
 
 		gtin := r.URL.Query().Get("gtin")
 
-		td, err := ap.newTemplData(r)
+		td, err := a.newTemplData(r)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
-		ss, err := ap.data.SerialsByGTINAndWarehouse(gtin, wID)
+		ss, err := a.data.SerialsByGTINAndWarehouse(gtin, wID)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		td.Serials = ss
 
-		it, err := ap.data.Item(gtin)
+		it, err := a.data.Item(gtin)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		td.Item = *it
 
-		err = ap.render(w, http.StatusOK, "serials", td)
+		err = a.render(w, http.StatusOK, "serials", td)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 	})
 }
 
-func (ap *application) outOfDateSerialsPage() http.Handler {
+func (a *app) outOfDateSerialsPage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		wID, ok := r.Context().Value(authenticatedCtxWarehouseID).(string)
 		if !ok {
-			ap.logger.Error(fmt.Sprintf("%v, authenticatedCtxWarehouseID", ErrConvertCtxVal))
+			a.log.Error(fmt.Sprintf("%v, authenticatedCtxWarehouseID", ErrConvertCtxVal))
 		}
 
 		gtin := r.URL.Query().Get("gtin")
 
 		p := new(OutOfDateSerialsPage)
 
-		is, err := ap.data.OutOfDateItems(wID)
+		is, err := a.data.OutOfDateItems(wID)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -72,7 +72,7 @@ func (ap *application) outOfDateSerialsPage() http.Handler {
 				for i := range iq.Serials {
 					t, err := util.FormatRFC3339(iq.Serials[i].Receive.ActualAt, util.DDMMYYYY24HMI)
 					if err != nil {
-						ap.logger.Error(err.Error())
+						a.log.Error(err.Error())
 						http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 						return
 					}
@@ -84,30 +84,30 @@ func (ap *application) outOfDateSerialsPage() http.Handler {
 			}
 		}
 
-		t, err := ap.newTemplData(r)
+		t, err := a.newTemplData(r)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		t.Page = p
 
-		err = ap.render(w, http.StatusOK, "outofdate_serials", t)
+		err = a.render(w, http.StatusOK, "outofdate_serials", t)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 	})
 }
 
-func (ap *application) serialsByBinPage() http.Handler {
+func (a *app) serialsByBinPage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		binID := r.URL.Query().Get("bin")
 
-		b, err := ap.data.Bin(binID)
+		b, err := a.data.Bin(binID)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			if errors.Is(err, data.ErrNoBins) {
 				http.Error(w, fmt.Sprintf("Không tìm thấy Bin %v", binID), http.StatusNotFound)
 			} else {
@@ -116,9 +116,9 @@ func (ap *application) serialsByBinPage() http.Handler {
 			return
 		}
 
-		ss, err := ap.data.SerialsByBin(binID)
+		ss, err := a.data.SerialsByBin(binID)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -127,17 +127,17 @@ func (ap *application) serialsByBinPage() http.Handler {
 		p.Bin = b
 		p.Serials = ss
 
-		t, err := ap.newTemplData(r)
+		t, err := a.newTemplData(r)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		t.Page = p
 
-		err = ap.render(w, http.StatusOK, "serials_by_bin", t)
+		err = a.render(w, http.StatusOK, "serials_by_bin", t)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}

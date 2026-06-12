@@ -8,10 +8,10 @@ import (
 	"github.com/tanvmn/wh/internal/validator"
 )
 
-func (ap *application) loginPage() http.Handler {
+func (a *app) loginPage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if err := ap.render(w, http.StatusOK, "login", templData{}); err != nil {
-			ap.logger.Error(err.Error())
+		if err := a.render(w, http.StatusOK, "login", templData{}); err != nil {
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -19,11 +19,11 @@ func (ap *application) loginPage() http.Handler {
 }
 
 // login handles login form
-func (ap *application) login() http.Handler {
+func (a *app) login() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err := r.ParseForm()
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, "Không thể xử lý form đăng nhập", http.StatusBadRequest)
 			return
 		}
@@ -37,49 +37,49 @@ func (ap *application) login() http.Handler {
 		va.Check(validator.NotBlank(password), "Mật khẩu không thể rỗng")
 
 		if !va.Valid() {
-			ap.logger.Error(va.Message())
+			a.log.Error(va.Message())
 			http.Error(w, va.Message(), http.StatusUnprocessableEntity)
 			return
 		}
 
 		// i here is just the int64 part of account id
-		id, err := ap.data.Authenticate(phone, password)
+		id, err := a.data.Authenticate(phone, password)
 		if errors.Is(err, data.ErrInvalidCredentials) {
-			ap.logger.Error(data.ErrInvalidCredentials.Error() + ", " + phone + ":" + password)
+			a.log.Error(data.ErrInvalidCredentials.Error() + ", " + phone + ":" + password)
 			http.Error(w, "Thông tin đăng nhập không chính xác", http.StatusUnprocessableEntity)
 			return
 		} else if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
 		// Renew token everytime authentication status or permission changes is good practice
-		err = ap.sessionsManager.RenewToken(r.Context())
+		err = a.sessionsManager.RenewToken(r.Context())
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
-		ap.sessionsManager.Put(r.Context(), "authenticatedID", id)
+		a.sessionsManager.Put(r.Context(), "authenticatedID", id)
 
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	})
 }
 
-func (ap *application) logout() http.Handler {
+func (a *app) logout() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Renew the current session to change the session ID again
-		err := ap.sessionsManager.RenewToken(r.Context())
+		err := a.sessionsManager.RenewToken(r.Context())
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
 		// Remove the authenticatedID from the session data so the user is 'logged out'
-		ap.sessionsManager.Remove(r.Context(), "authenticatedID")
+		a.sessionsManager.Remove(r.Context(), "authenticatedID")
 
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 	})

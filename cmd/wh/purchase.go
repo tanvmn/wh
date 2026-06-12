@@ -18,7 +18,7 @@ var (
 
 // validatePurchaseAdd validates *data.Purchase against the current data
 // and set ExpectedAt to datetime if the received input is valid
-func (ap *application) validatePurchaseAdd(pc *data.Purchase) error {
+func (a *app) validatePurchaseAdd(pc *data.Purchase) error {
 	var err error
 	va := validator.Validator{}
 
@@ -29,18 +29,18 @@ func (ap *application) validatePurchaseAdd(pc *data.Purchase) error {
 	}
 
 	// Validate warehouse's existence
-	wh, err := ap.data.Warehouse(pc.Warehouse.ID)
+	wh, err := a.data.Warehouse(pc.Warehouse.ID)
 	if errors.Is(err, data.ErrNoWarehouses) {
 		va.AddErr(err.Error())
 	} else if err != nil {
-		ap.logger.Error(err.Error())
+		a.log.Error(err.Error())
 		return err
 	}
 
 	// Validate account's existence
-	ac, err := ap.data.Account(pc.Account.ID)
+	ac, err := a.data.Account(pc.Account.ID)
 	if err != nil {
-		ap.logger.Error(err.Error())
+		a.log.Error(err.Error())
 		return err
 	}
 
@@ -48,9 +48,9 @@ func (ap *application) validatePurchaseAdd(pc *data.Purchase) error {
 	if ac != nil && wh != nil {
 		// Validate if the account is from the warehouse when account's role isn't Admin and isn't HeadAccount
 		if ac.Role != data.Admin && ac.Role != data.HeadAccountant {
-			from, err := ap.data.IsAccountFromWarehouse(ac.ID, wh.ID)
+			from, err := a.data.IsAccountFromWarehouse(ac.ID, wh.ID)
 			if err != nil {
-				ap.logger.Error(err.Error())
+				a.log.Error(err.Error())
 				return err
 			}
 			va.Check(from, fmt.Sprintf("Account %v isn't from warehouse %v, yet the account still made the purchase", pc.Account.ID, pc.Warehouse.ID))
@@ -58,11 +58,11 @@ func (ap *application) validatePurchaseAdd(pc *data.Purchase) error {
 	}
 
 	// Validate supplier's existence
-	sp, err := ap.data.Supplier(pc.Supplier.ID)
+	sp, err := a.data.Supplier(pc.Supplier.ID)
 	if errors.Is(err, data.ErrNoSuppliers) {
 		va.AddErr(err.Error())
 	} else if err != nil {
-		ap.logger.Error(err.Error())
+		a.log.Error(err.Error())
 		return err
 	}
 
@@ -72,18 +72,18 @@ func (ap *application) validatePurchaseAdd(pc *data.Purchase) error {
 	} else if sp != nil {
 		for _, i := range pc.Items {
 			// Validate item's existence
-			it, err := ap.data.Item(i.Item.GTIN)
+			it, err := a.data.Item(i.Item.GTIN)
 			if errors.Is(err, data.ErrNoItems) {
 				va.AddErr(err.Error())
 			} else if err != nil {
-				ap.logger.Error(err.Error())
+				a.log.Error(err.Error())
 				return err
 			}
 
 			if it != nil {
-				from, err := ap.data.IsGTINBySupplier(i.Item.GTIN, pc.Supplier.ID)
+				from, err := a.data.IsGTINBySupplier(i.Item.GTIN, pc.Supplier.ID)
 				if err != nil {
-					ap.logger.Error(err.Error())
+					a.log.Error(err.Error())
 					return err
 				}
 				va.Check(from, fmt.Sprintf("GTIN %v isn't supplied by supplier %v, yet it's still in purchase", i.Item.GTIN, pc.Supplier.ID))
@@ -99,13 +99,13 @@ func (ap *application) validatePurchaseAdd(pc *data.Purchase) error {
 	return nil
 }
 
-func (ap *application) addPurchase() http.Handler {
+func (a *app) addPurchase() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var pc data.Purchase
 
-		err := ap.decodeJSON(w, r, &pc)
+		err := a.decodeJSON(w, r, &pc)
 		if err != nil {
-			ap.logger.Error(util.ErrLine)
+			a.log.Error(util.ErrLine)
 
 			var mr *util.MalformedRequest
 			if errors.As(err, &mr) {
@@ -119,16 +119,16 @@ func (ap *application) addPurchase() http.Handler {
 		// Get account ID in context for validating purchase before adding
 		aID, ok := r.Context().Value(authenticatedCtxID).(string)
 		if !ok {
-			ap.logger.Error(fmt.Errorf("%w: %v", ErrConvertCtxVal, "cannot convert context accountID to string").Error())
+			a.log.Error(fmt.Errorf("%w: %v", ErrConvertCtxVal, "cannot convert context accountID to string").Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		pc.Account.ID = aID
 
 		// Validate the purchase
-		err = ap.validatePurchaseAdd(&pc)
+		err = a.validatePurchaseAdd(&pc)
 		if errors.Is(err, ErrInvalidPurchase) {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		} else if err != nil {
@@ -137,36 +137,36 @@ func (ap *application) addPurchase() http.Handler {
 		}
 
 		// Check against warehouse capacity
-		enough, err := ap.data.CheckCapacity(pc.Items, pc.Warehouse.ID)
+		enough, err := a.data.CheckCapacity(pc.Items, pc.Warehouse.ID)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		if !enough {
-			ap.logger.Error("Not enough capacity")
+			a.log.Error("Not enough capacity")
 			http.Error(w, fmt.Sprintf("Kho %v hiện không đủ sức chứa", pc.Warehouse.ID), http.StatusUnprocessableEntity)
 			return
 		}
 
 		// Add the purchase
-		id, _, err := ap.data.AddPurchase(&pc)
+		id, _, err := a.data.AddPurchase(&pc)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
 		// Get the newly added purchase to supply data for template
-		p, err := ap.data.Purchase(id)
+		p, err := a.data.Purchase(id)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		p.ExpectedAt, err = util.FormatDateTTime(p.ExpectedAt, util.DDMMYYYY24HMI)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -186,12 +186,12 @@ func (ap *application) addPurchase() http.Handler {
 	})
 }
 
-func (ap *application) purchasePage() http.Handler {
+func (a *app) purchasePage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
-		pc, err := ap.data.Purchase(id)
+		pc, err := a.data.Purchase(id)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 
 			if errors.Is(err, data.ErrNoPurchases) {
 				http.Error(w, fmt.Sprintf("Không tìm thấy yêu cầu nhập ID: %v", id), http.StatusNotFound)
@@ -201,9 +201,9 @@ func (ap *application) purchasePage() http.Handler {
 			return
 		}
 
-		data, err := ap.newTemplData(r)
+		data, err := a.newTemplData(r)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -211,9 +211,9 @@ func (ap *application) purchasePage() http.Handler {
 		if pc != nil {
 			data.Purchase = *pc
 
-			is, err := ap.data.ItemsBySupplier(pc.Supplier.ID)
+			is, err := a.data.ItemsBySupplier(pc.Supplier.ID)
 			if err != nil {
-				ap.logger.Error(err.Error())
+				a.log.Error(err.Error())
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				return
 			}
@@ -235,37 +235,37 @@ func (ap *application) purchasePage() http.Handler {
 			}
 		}
 
-		if err := ap.render(w, http.StatusOK, "purchase", data); err != nil {
-			ap.logger.Error(err.Error())
+		if err := a.render(w, http.StatusOK, "purchase", data); err != nil {
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 	})
 }
 
-func (ap *application) addPurchasePage() http.Handler {
+func (a *app) addPurchasePage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		data, err := ap.newTemplData(r)
+		data, err := a.newTemplData(r)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
-		if err := ap.render(w, http.StatusOK, "purchase_add", data); err != nil {
-			ap.logger.Error(err.Error())
+		if err := a.render(w, http.StatusOK, "purchase_add", data); err != nil {
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 	})
 }
 
-func (ap *application) validatePurchaseSet(pc *data.Purchase) error {
-	pur, err := ap.data.Purchase(pc.ID)
+func (a *app) validatePurchaseSet(pc *data.Purchase) error {
+	pur, err := a.data.Purchase(pc.ID)
 	if errors.Is(err, data.ErrNoPurchases) {
 		return fmt.Errorf("%w:\n%v: ID %v", ErrInvalidPurchase, err.Error(), pc.ID)
 	} else if err != nil {
-		ap.logger.Error(err.Error())
+		a.log.Error(err.Error())
 		return err
 	}
 
@@ -278,12 +278,12 @@ func (ap *application) validatePurchaseSet(pc *data.Purchase) error {
 	// Check if the new ExpectedAt is the same or after the old one
 	newT, err := time.Parse(util.DateTTime, pc.ExpectedAt)
 	if err != nil {
-		ap.logger.Error(err.Error())
+		a.log.Error(err.Error())
 		return err
 	}
 	oldT, err := time.Parse(util.DateTTime, pur.ExpectedAt)
 	if err != nil {
-		ap.logger.Error(err.Error())
+		a.log.Error(err.Error())
 		return err
 	}
 	va.Check(oldT.Compare(newT) <= 0, fmt.Sprintf("Thời điểm muốn nhận: mới %v không thể trước cũ %v", pc.ExpectedAt, pur.ExpectedAt))
@@ -291,19 +291,19 @@ func (ap *application) validatePurchaseSet(pc *data.Purchase) error {
 	// Check if the status of the old purchase is still awaiting response or awaiting receive
 	va.Check(pur.Status == data.AwaitingResponse || pur.Status == data.AwaitingReceive, fmt.Sprintf("Yêu cầu nhập ID %v đã có ít nhất 1 phiếu nhập được xử lý", pc.ID))
 
-	err = ap.validatePurchaseAdd(pc)
+	err = a.validatePurchaseAdd(pc)
 	if errors.Is(err, ErrInvalidPurchase) {
 		va.AddErr(err.Error())
 	} else if err != nil {
-		ap.logger.Error(err.Error())
+		a.log.Error(err.Error())
 		return err
 	}
 
-	err = ap.validatePurchaseItemsSet(pc)
+	err = a.validatePurchaseItemsSet(pc)
 	if errors.Is(err, ErrInvalidPurchaseItems) {
 		va.AddErr(err.Error())
 	} else if err != nil {
-		ap.logger.Error(err.Error())
+		a.log.Error(err.Error())
 		return err
 	}
 
@@ -314,10 +314,10 @@ func (ap *application) validatePurchaseSet(pc *data.Purchase) error {
 	return nil
 }
 
-func (ap *application) validatePurchaseItemsSet(pc *data.Purchase) error {
-	is, err := ap.data.ReceiveItemsByPurchase(pc.ID)
+func (a *app) validatePurchaseItemsSet(pc *data.Purchase) error {
+	is, err := a.data.ReceiveItemsByPurchase(pc.ID)
 	if err != nil {
-		ap.logger.Error(err.Error())
+		a.log.Error(err.Error())
 		return err
 	}
 
@@ -349,13 +349,13 @@ func (ap *application) validatePurchaseItemsSet(pc *data.Purchase) error {
 	return nil
 }
 
-func (ap *application) setPurchase() http.Handler {
+func (a *app) setPurchase() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var pc data.Purchase
 
-		err := ap.decodeJSON(w, r, &pc)
+		err := a.decodeJSON(w, r, &pc)
 		if err != nil {
-			ap.logger.Error(util.ErrLine)
+			a.log.Error(util.ErrLine)
 
 			var mr *util.MalformedRequest
 			if errors.As(err, &mr) {
@@ -369,46 +369,46 @@ func (ap *application) setPurchase() http.Handler {
 		// Get account ID in context for validating purchase before setting
 		aID, ok := r.Context().Value(authenticatedCtxID).(string)
 		if !ok {
-			ap.logger.Error(fmt.Errorf("%w: %v", ErrConvertCtxVal, "cannot convert context accountID to string").Error())
+			a.log.Error(fmt.Errorf("%w: %v", ErrConvertCtxVal, "cannot convert context accountID to string").Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		pc.Account.ID = aID
 
 		// Begin validating purchase before setting
-		err = ap.validatePurchaseSet(&pc)
+		err = a.validatePurchaseSet(&pc)
 		if errors.Is(err, ErrInvalidPurchase) {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		} else if err != nil {
-			ap.logger.Error(util.ErrLine)
+			a.log.Error(util.ErrLine)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
 		// Setting the purchase
-		err = ap.data.SetPurchase(&pc)
+		err = a.data.SetPurchase(&pc)
 		if errors.Is(err, data.ErrSetConflict) {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, fmt.Sprintf("Yêu cầu nhập ID: %v có thể đã được sửa bởi tài khoản khác khi bạn chưa hoàn thành.\nHãy tải lại và thực hiện lại", pc.ID), http.StatusUnprocessableEntity)
 			return
 		} else if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, err.Error(), 520)
 			return
 		}
 
 		// Get the set purchase to supply data for template
-		p, err := ap.data.Purchase(pc.ID)
+		p, err := a.data.Purchase(pc.ID)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		p.ExpectedAt, err = util.FormatDateTTime(p.ExpectedAt, util.DDMMYYYY24HMI)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -426,31 +426,31 @@ func (ap *application) setPurchase() http.Handler {
 	})
 }
 
-func (ap *application) purchase() http.Handler {
+func (a *app) purchase() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		pc, err := ap.data.Purchase(r.PathValue("id"))
+		pc, err := a.data.Purchase(r.PathValue("id"))
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		err = ap.writeJSON(w, http.StatusOK, pc, nil)
+		err = a.writeJSON(w, http.StatusOK, pc, nil)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 	})
 }
 
-func (ap *application) delPurchase() http.Handler {
+func (a *app) delPurchase() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
 
-		pc, err := ap.data.Purchase(id)
+		pc, err := a.data.Purchase(id)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 
 			if errors.Is(err, data.ErrNoPurchases) || errors.Is(err, data.ErrInvalidID) {
 				http.Error(w, fmt.Sprintf("Không tìm thấy yêu cầu nhập ID: %v", id), http.StatusNotFound)
@@ -460,21 +460,21 @@ func (ap *application) delPurchase() http.Handler {
 			return
 		}
 		if !(pc.Status == data.AwaitingResponse || pc.Status == data.AwaitingReceive) {
-			ap.logger.Error(fmt.Sprintf("%v; ID: %v", data.ErrPurchaseReceived, id))
+			a.log.Error(fmt.Sprintf("%v; ID: %v", data.ErrPurchaseReceived, id))
 			http.Error(w, fmt.Sprintf("Yêu cầu nhập ID: %v đã nhập ít nhất 1 lần", id), http.StatusBadRequest)
 			return
 		}
 
-		err = ap.data.DelPurchase(id)
+		err = a.data.DelPurchase(id)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
 		pc.ExpectedAt, err = util.FormatDateTTime(pc.ExpectedAt, util.DDMMYYYY24HMI)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -492,33 +492,33 @@ func (ap *application) delPurchase() http.Handler {
 	})
 }
 
-func (ap *application) purchasesPage() http.Handler {
+func (a *app) purchasesPage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		wID, ok := r.Context().Value(authenticatedCtxWarehouseID).(string)
 		if !ok {
-			ap.logger.Error(fmt.Sprintf("%v; %v", ErrConvertCtxVal, authenticatedCtxWarehouseID))
+			a.log.Error(fmt.Sprintf("%v; %v", ErrConvertCtxVal, authenticatedCtxWarehouseID))
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
-		ps, err := ap.data.Purchases(wID)
+		ps, err := a.data.Purchases(wID)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
-		data, err := ap.newTemplData(r)
+		data, err := a.newTemplData(r)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		data.Purchases = ps
 
-		err = ap.render(w, http.StatusOK, "purchases", data)
+		err = a.render(w, http.StatusOK, "purchases", data)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}

@@ -9,34 +9,34 @@ import (
 	"github.com/tanvmn/wh/internal/util"
 )
 
-func (ap *application) suppliers() http.Handler {
+func (a *app) suppliers() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ss, err := ap.data.Suppliers()
+		ss, err := a.data.Suppliers()
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		if ss == nil {
-			ap.logger.Error(data.ErrNoSuppliers.Error())
+			a.log.Error(data.ErrNoSuppliers.Error())
 			http.Error(w, "Không tìm thấy nhà cung cấp nào", http.StatusNotFound)
 			return
 		}
 
-		err = ap.writeJSON(w, http.StatusOK, ss, nil)
+		err = a.writeJSON(w, http.StatusOK, ss, nil)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 	})
 }
 
-func (ap *application) addSupplierPage() http.Handler {
+func (a *app) addSupplierPage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		is, err := ap.data.AllItems()
+		is, err := a.data.AllItems()
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -44,30 +44,30 @@ func (ap *application) addSupplierPage() http.Handler {
 		p := new(SupplierAddPage)
 		p.Items = is
 
-		t, err := ap.newTemplData(r)
+		t, err := a.newTemplData(r)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		t.Page = p
 
-		err = ap.render(w, http.StatusOK, "supplier_add", t)
+		err = a.render(w, http.StatusOK, "supplier_add", t)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 	})
 }
 
-func (ap *application) addSupplier() http.Handler {
+func (a *app) addSupplier() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var input data.Supplier
 
-		err := ap.decodeJSON(w, r, &input)
+		err := a.decodeJSON(w, r, &input)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			var mr *util.MalformedRequest
 			if errors.As(err, &mr) {
 				http.Error(w, mr.Msg, mr.Status)
@@ -77,9 +77,9 @@ func (ap *application) addSupplier() http.Handler {
 			return
 		}
 
-		id, err := ap.data.AddSupplier(&input)
+		id, err := a.data.AddSupplier(&input)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -88,13 +88,13 @@ func (ap *application) addSupplier() http.Handler {
 	})
 }
 
-func (ap *application) supplierPage() http.Handler {
+func (a *app) supplierPage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
 
-		s, err := ap.data.Supplier(id)
+		s, err := a.data.Supplier(id)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			if errors.Is(err, data.ErrNoSuppliers) {
 				http.Error(w, fmt.Sprintf("Không tìm thấy nhà cung cấp %v", id), http.StatusNotFound)
 			} else {
@@ -106,28 +106,28 @@ func (ap *application) supplierPage() http.Handler {
 		p := new(SupplierPage)
 		p.Supplier = s
 
-		t, err := ap.newTemplData(r)
+		t, err := a.newTemplData(r)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		t.Page = p
 
-		err = ap.render(w, http.StatusOK, "supplier", t)
+		err = a.render(w, http.StatusOK, "supplier", t)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 	})
 }
 
-func (ap *application) suppliersPage() http.Handler {
+func (a *app) suppliersPage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ss, err := ap.data.Suppliers()
+		ss, err := a.data.Suppliers()
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -135,17 +135,17 @@ func (ap *application) suppliersPage() http.Handler {
 		p := new(SuppliersPage)
 		p.Suppliers = ss
 
-		t, err := ap.newTemplData(r)
+		t, err := a.newTemplData(r)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		t.Page = p
 
-		err = ap.render(w, http.StatusOK, "suppliers", t)
+		err = a.render(w, http.StatusOK, "suppliers", t)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}

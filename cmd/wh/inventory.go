@@ -9,16 +9,16 @@ import (
 	"github.com/tanvmn/wh/internal/util"
 )
 
-func (ap *application) addInventoryPage() http.Handler {
+func (a *app) addInventoryPage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		wID, ok := r.Context().Value(authenticatedCtxWarehouseID).(string)
 		if !ok {
-			ap.logger.Error(fmt.Sprintf("%v, authenticatedCtxWarehouseID: %v", ErrConvertCtxVal, wID))
+			a.log.Error(fmt.Sprintf("%v, authenticatedCtxWarehouseID: %v", ErrConvertCtxVal, wID))
 		}
 
-		is, err := ap.data.NotExportedStockItems(wID)
+		is, err := a.data.NotExportedStockItems(wID)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -30,33 +30,33 @@ func (ap *application) addInventoryPage() http.Handler {
 		p := new(InventoryAddPage)
 		p.Items = is
 
-		td, err := ap.newTemplData(r)
+		td, err := a.newTemplData(r)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		td.Page = p
 
-		err = ap.render(w, http.StatusOK, "inventory_add", td)
+		err = a.render(w, http.StatusOK, "inventory_add", td)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 	})
 }
 
-func (ap *application) addInventory() http.Handler {
+func (a *app) addInventory() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
 			ExpectedAt string              `json:"expectedAt,omitempty,omitzero"`
 			Items      []data.ItemQuantity `json:"items,omitempty,omitzero"`
 		}
 
-		err := ap.decodeJSON(w, r, &req)
+		err := a.decodeJSON(w, r, &req)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			var mr *util.MalformedRequest
 			if errors.As(err, &mr) {
 				http.Error(w, mr.Msg, mr.Status)
@@ -71,7 +71,7 @@ func (ap *application) addInventory() http.Handler {
 
 		wID, ok := r.Context().Value(authenticatedCtxWarehouseID).(string)
 		if !ok {
-			ap.logger.Error(fmt.Sprintf("%v; authenticatedCtxWarehouseID: %v", ErrConvertCtxVal, wID))
+			a.log.Error(fmt.Sprintf("%v; authenticatedCtxWarehouseID: %v", ErrConvertCtxVal, wID))
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -79,7 +79,7 @@ func (ap *application) addInventory() http.Handler {
 
 		aID, ok := r.Context().Value(authenticatedCtxID).(string)
 		if !ok {
-			ap.logger.Error(fmt.Sprintf("%v; authenticatedCtxID: %v", ErrConvertCtxVal, aID))
+			a.log.Error(fmt.Sprintf("%v; authenticatedCtxID: %v", ErrConvertCtxVal, aID))
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -87,9 +87,9 @@ func (ap *application) addInventory() http.Handler {
 
 		inventoryAddRequest.Items = req.Items
 
-		id, err := ap.data.AddInventory(inventoryAddRequest)
+		id, err := a.data.AddInventory(inventoryAddRequest)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -98,13 +98,13 @@ func (ap *application) addInventory() http.Handler {
 	})
 }
 
-func (ap *application) inventoryPage() http.Handler {
+func (a *app) inventoryPage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
 
-		i, err := ap.data.Inventory(id)
+		i, err := a.data.Inventory(id)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			if errors.Is(err, data.ErrNoInventories) {
 				http.Error(w, fmt.Sprintf("Không tìm thấy phiên kiểm %v", id), http.StatusNotFound)
 			} else {
@@ -116,17 +116,17 @@ func (ap *application) inventoryPage() http.Handler {
 		p := new(InventoryPage)
 		p.Inventory = i
 
-		t, err := ap.newTemplData(r)
+		t, err := a.newTemplData(r)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		t.Page = p
 
-		err = ap.render(w, http.StatusOK, "inventory", t)
+		err = a.render(w, http.StatusOK, "inventory", t)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -186,23 +186,23 @@ func (ap *application) inventoryPage() http.Handler {
 // 	}
 // }
 
-func (ap *application) inventoryProcessPage() http.Handler {
+func (a *app) inventoryProcessPage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		inventoryID := r.PathValue("id")
 
 		// ap.writeAnotherInventoryBinProcessPage(w, r, inventoryID)
 
-		iss, err := ap.data.UncheckedInventorySerialsOf1RandomBin(inventoryID)
+		iss, err := a.data.UncheckedInventorySerialsOf1RandomBin(inventoryID)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		// If there aren't any unchecked inventory serials (aka no unchecked bins) response 404
 		if len(iss) == 0 {
-			err = ap.data.UpdateInventoryEndedAt(inventoryID)
+			err = a.data.UpdateInventoryEndedAt(inventoryID)
 			if err != nil {
-				ap.logger.Error(err.Error())
+				a.log.Error(err.Error())
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				return
 			}
@@ -211,15 +211,15 @@ func (ap *application) inventoryProcessPage() http.Handler {
 			return
 		}
 
-		i, err := ap.data.Inventory(inventoryID)
+		i, err := a.data.Inventory(inventoryID)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
-		if err = ap.data.UpdateInventoryStartedAt(inventoryID); err != nil {
-			ap.logger.Error(err.Error())
+		if err = a.data.UpdateInventoryStartedAt(inventoryID); err != nil {
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -228,30 +228,30 @@ func (ap *application) inventoryProcessPage() http.Handler {
 		p.Inventory = i
 		p.UncheckedInventorySerials = iss
 
-		t, err := ap.newTemplData(r)
+		t, err := a.newTemplData(r)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		t.Page = p
 
-		err = ap.render(w, http.StatusOK, "inventory_process", t)
+		err = a.render(w, http.StatusOK, "inventory_process", t)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 	})
 }
 
-func (ap *application) processInventoryBinResult() http.Handler {
+func (a *app) processInventoryBinResult() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var inventoryBinResult data.Inventory
 
-		err := ap.decodeJSON(w, r, &inventoryBinResult)
+		err := a.decodeJSON(w, r, &inventoryBinResult)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 
 			var mr *util.MalformedRequest
 			if errors.As(err, &mr) {
@@ -262,9 +262,9 @@ func (ap *application) processInventoryBinResult() http.Handler {
 			return
 		}
 
-		err = ap.data.UpdateAfterInventoryBinProcessing(&inventoryBinResult)
+		err = a.data.UpdateAfterInventoryBinProcessing(&inventoryBinResult)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -274,13 +274,13 @@ func (ap *application) processInventoryBinResult() http.Handler {
 	})
 }
 
-func (ap *application) inventoryProcessResultPage() http.Handler {
+func (a *app) inventoryProcessResultPage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		inventoryID := r.PathValue("id")
 
-		i, err := ap.data.Inventory(inventoryID)
+		i, err := a.data.Inventory(inventoryID)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -288,33 +288,33 @@ func (ap *application) inventoryProcessResultPage() http.Handler {
 		p := new(InventoryProcessPage)
 		p.Inventory = i
 
-		t, err := ap.newTemplData(r)
+		t, err := a.newTemplData(r)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		t.Page = p
 
-		err = ap.render(w, http.StatusOK, "inventory_process_result", t)
+		err = a.render(w, http.StatusOK, "inventory_process_result", t)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 	})
 }
 
-func (ap *application) inventoriesPage() http.Handler {
+func (a *app) inventoriesPage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		wID, ok := r.Context().Value(authenticatedCtxWarehouseID).(string)
 		if !ok {
-			ap.logger.Error(fmt.Sprintf("%v, authenticatedCtxWarehouseID: %v", ErrConvertCtxVal, wID))
+			a.log.Error(fmt.Sprintf("%v, authenticatedCtxWarehouseID: %v", ErrConvertCtxVal, wID))
 		}
 
-		is, err := ap.data.Inventories(wID)
+		is, err := a.data.Inventories(wID)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -322,7 +322,7 @@ func (ap *application) inventoriesPage() http.Handler {
 		for i := range is {
 			t, err := util.FormatRFC3339(is[i].ExpectedAt, util.DDMMYYYY24HMI)
 			if err != nil {
-				ap.logger.Error(err.Error())
+				a.log.Error(err.Error())
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				return
 			}
@@ -330,7 +330,7 @@ func (ap *application) inventoriesPage() http.Handler {
 
 			t, err = util.FormatRFC3339(is[i].StartedAt, util.DDMMYYYY24HMI)
 			if err != nil {
-				ap.logger.Error(err.Error())
+				a.log.Error(err.Error())
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				return
 			}
@@ -338,7 +338,7 @@ func (ap *application) inventoriesPage() http.Handler {
 
 			t, err = util.FormatRFC3339(is[i].EndedAt, util.DDMMYYYY24HMI)
 			if err != nil {
-				ap.logger.Error(err.Error())
+				a.log.Error(err.Error())
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				return
 			}
@@ -348,17 +348,17 @@ func (ap *application) inventoriesPage() http.Handler {
 		p := new(InventoriesPage)
 		p.Inventories = is
 
-		t, err := ap.newTemplData(r)
+		t, err := a.newTemplData(r)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		t.Page = p
 
-		err = ap.render(w, http.StatusOK, "inventories", t)
+		err = a.render(w, http.StatusOK, "inventories", t)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}

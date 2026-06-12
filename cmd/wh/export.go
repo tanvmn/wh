@@ -9,20 +9,20 @@ import (
 	"github.com/tanvmn/wh/internal/util"
 )
 
-func (ap *application) addExport() http.Handler {
+func (a *app) addExport() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resupplyID := r.URL.Query().Get("resupply")
 
-		exportID, err := ap.data.AddExport(resupplyID)
+		exportID, err := a.data.AddExport(resupplyID)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
-		err = ap.data.SetResupplyStatus(resupplyID, data.AwaitingExport)
+		err = a.data.SetResupplyStatus(resupplyID, data.AwaitingExport)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -31,14 +31,14 @@ func (ap *application) addExport() http.Handler {
 	})
 }
 
-func (ap *application) exportPage() http.Handler {
+func (a *app) exportPage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
 
 		p := new(ExportPage)
-		e, err := ap.data.Export(id)
+		e, err := a.data.Export(id)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			if errors.Is(err, data.ErrNoExports) {
 				http.Error(w, fmt.Sprintf("Không tìm thấy phiếu nhập %v", id), http.StatusNotFound)
 			} else {
@@ -48,35 +48,35 @@ func (ap *application) exportPage() http.Handler {
 		}
 		p.Export = e
 
-		t, err := ap.newTemplData(r)
+		t, err := a.newTemplData(r)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		t.Page = p
 
-		err = ap.render(w, http.StatusOK, "export", t)
+		err = a.render(w, http.StatusOK, "export", t)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 	})
 }
 
-func (ap *application) exportsByWarehousePage() http.Handler {
+func (a *app) exportsByWarehousePage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		wID, ok := r.Context().Value(authenticatedCtxWarehouseID).(string)
 		if !ok {
-			ap.logger.Error(fmt.Sprintf("%v; authenticatedCtxWarehouseID: %v", ErrConvertCtxVal, wID))
+			a.log.Error(fmt.Sprintf("%v; authenticatedCtxWarehouseID: %v", ErrConvertCtxVal, wID))
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
-		es, err := ap.data.ExportsByWarehouse(wID)
+		es, err := a.data.ExportsByWarehouse(wID)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -84,7 +84,7 @@ func (ap *application) exportsByWarehousePage() http.Handler {
 		for i := range es {
 			t, err := util.FormatRFC3339(es[i].ExpectedAt, util.DDMMYYYY24HMI)
 			if err != nil {
-				ap.logger.Error(err.Error())
+				a.log.Error(err.Error())
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				return
 			}
@@ -92,7 +92,7 @@ func (ap *application) exportsByWarehousePage() http.Handler {
 
 			t, err = util.FormatRFC3339(es[i].PickedAt, util.DDMMYYYY24HMI)
 			if err != nil {
-				ap.logger.Error(err.Error())
+				a.log.Error(err.Error())
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				return
 			}
@@ -100,15 +100,15 @@ func (ap *application) exportsByWarehousePage() http.Handler {
 
 			t, err = util.FormatRFC3339(es[i].PackedAt, util.DDMMYYYY24HMI)
 			if err != nil {
-				ap.logger.Error(err.Error())
+				a.log.Error(err.Error())
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				return
 			}
 			es[i].PackedAt = t
 
-			ps, err := ap.data.Packages(es[i].ID)
+			ps, err := a.data.Packages(es[i].ID)
 			if err != nil {
-				ap.logger.Error(err.Error())
+				a.log.Error(err.Error())
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				return
 			}
@@ -118,51 +118,51 @@ func (ap *application) exportsByWarehousePage() http.Handler {
 		p := new(ExportsPage)
 		p.Exports = es
 
-		t, err := ap.newTemplData(r)
+		t, err := a.newTemplData(r)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		t.Page = p
 
-		err = ap.render(w, http.StatusOK, "exports", t)
+		err = a.render(w, http.StatusOK, "exports", t)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 	})
 }
 
-func (ap *application) exportPickPage() http.Handler {
+func (a *app) exportPickPage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		exportID := r.PathValue("id")
 
-		picks, err := ap.data.CalculatedPicks(exportID)
+		picks, err := a.data.CalculatedPicks(exportID)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
-		e, err := ap.data.Export(exportID)
+		e, err := a.data.Export(exportID)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
-		ss, err := ap.data.SerialsByWarehouse(e.Resupply.Account.Store.Warehouse.ID)
+		ss, err := a.data.SerialsByWarehouse(e.Resupply.Account.Store.Warehouse.ID)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
-		ts, err := ap.data.UnusedTotes(e.Resupply.Account.Store.Warehouse.ID)
+		ts, err := a.data.UnusedTotes(e.Resupply.Account.Store.Warehouse.ID)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -173,30 +173,30 @@ func (ap *application) exportPickPage() http.Handler {
 		p.Serials = ss
 		p.UnusedTotes = ts
 
-		t, err := ap.newTemplData(r)
+		t, err := a.newTemplData(r)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		t.Page = p
 
-		err = ap.render(w, http.StatusOK, "export_pick", t)
+		err = a.render(w, http.StatusOK, "export_pick", t)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 	})
 }
 
-func (ap *application) pickExport() http.Handler {
+func (a *app) pickExport() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var pickResult data.Export
 
-		err := ap.decodeJSON(w, r, &pickResult)
+		err := a.decodeJSON(w, r, &pickResult)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			var mr *util.MalformedRequest
 			if errors.As(err, &mr) {
 				http.Error(w, mr.Msg, mr.Status)
@@ -206,31 +206,31 @@ func (ap *application) pickExport() http.Handler {
 			return
 		}
 
-		ac, err := ap.authenticatedAccount(r)
+		ac, err := a.authenticatedAccount(r)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		pickResult.PickedBy = *ac
 
-		ex, err := ap.data.Export(pickResult.ID)
+		ex, err := a.data.Export(pickResult.ID)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
-		rs, err := ap.data.Resupply(ex.Resupply.ID)
+		rs, err := a.data.Resupply(ex.Resupply.ID)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		pickResult.Resupply = *rs
 
-		err = ap.data.PickExport(&pickResult)
+		err = a.data.PickExport(&pickResult)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -239,13 +239,13 @@ func (ap *application) pickExport() http.Handler {
 	})
 }
 
-func (ap *application) exportPickResultPage() http.Handler {
+func (a *app) exportPickResultPage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
 
-		e, err := ap.data.Export(id)
+		e, err := a.data.Export(id)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			if errors.Is(err, data.ErrNoExports) {
 				http.Error(w, fmt.Sprintf("Không tìm thấy phiếu xuất %v", id), http.StatusNotFound)
 			} else {
@@ -257,32 +257,32 @@ func (ap *application) exportPickResultPage() http.Handler {
 		p := new(ExportPickResultPage)
 		p.Export = e
 
-		t, err := ap.newTemplData(r)
+		t, err := a.newTemplData(r)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		t.Page = p
 
-		err = ap.render(w, http.StatusOK, "export_pick_result", t)
+		err = a.render(w, http.StatusOK, "export_pick_result", t)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 	})
 }
 
-func (ap *application) exportPackPage() http.Handler {
+func (a *app) exportPackPage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
 
 		p := new(ExportPackPage)
 
-		e, err := ap.data.Export(id)
+		e, err := a.data.Export(id)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			if errors.Is(err, data.ErrNoExports) {
 				http.Error(w, fmt.Sprintf("Không tìm thấy phiếu nhập %v", id), http.StatusNotFound)
 			} else {
@@ -292,16 +292,16 @@ func (ap *application) exportPackPage() http.Handler {
 		}
 		// If the export is already packed
 		if !util.Is01011000(e.PackedAt) {
-			ap.logger.Error(fmt.Sprintf("Export %v is already packed at %v", e.ID, e.PackedAt))
+			a.log.Error(fmt.Sprintf("Export %v is already packed at %v", e.ID, e.PackedAt))
 			http.Error(w, fmt.Sprintf("Phiếu nhập %v đã đóng gói lúc %v", e.ID, e.PackedAt), http.StatusBadRequest)
 			return
 		}
 		p.Export = e
 
 		// Get the calcualted packages
-		ps, err := ap.data.CalculatedPackages(id)
+		ps, err := a.data.CalculatedPackages(id)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -309,42 +309,42 @@ func (ap *application) exportPackPage() http.Handler {
 
 		eI, err := data.ID64(id, data.ExportIDCode)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
-		ss, err := ap.data.SerialsByExport(eI)
+		ss, err := a.data.SerialsByExport(eI)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		p.Serials = ss
 
-		t, err := ap.newTemplData(r)
+		t, err := a.newTemplData(r)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		t.Page = p
 
-		err = ap.render(w, http.StatusOK, "export_pack", t)
+		err = a.render(w, http.StatusOK, "export_pack", t)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 	})
 }
 
-func (ap *application) packExport() http.Handler {
+func (ap *app) packExport() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var packResult data.Export
 
 		err := ap.decodeJSON(w, r, &packResult)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			ap.log.Error(err.Error())
 
 			var mr *util.MalformedRequest
 			if errors.As(err, &mr) {
@@ -358,13 +358,13 @@ func (ap *application) packExport() http.Handler {
 		// Add the account that packed the export
 		aID, ok := r.Context().Value(authenticatedCtxID).(string)
 		if !ok {
-			ap.logger.Error(fmt.Sprintf("%v; authenticatedCtxID: %v", ErrConvertCtxVal, aID))
+			ap.log.Error(fmt.Sprintf("%v; authenticatedCtxID: %v", ErrConvertCtxVal, aID))
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		a, err := ap.data.Account(aID)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			ap.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -372,7 +372,7 @@ func (ap *application) packExport() http.Handler {
 
 		err = ap.data.PackExport(&packResult)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			ap.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -397,16 +397,16 @@ func (ap *application) packExport() http.Handler {
 	})
 }
 
-func (ap *application) exportPackResultPage() http.Handler {
+func (a *app) exportPackResultPage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// id of the export
 		id := r.PathValue("id")
 
 		p := new(ExportPackResultPage)
 
-		e, err := ap.data.Export(id)
+		e, err := a.data.Export(id)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			if errors.Is(err, data.ErrNoExports) {
 				http.Error(w, fmt.Sprintf("Không tìm thấy phiếu nhập %v", id), http.StatusNotFound)
 			} else {
@@ -416,56 +416,56 @@ func (ap *application) exportPackResultPage() http.Handler {
 		}
 		p.Export = e
 
-		ps, err := ap.data.Packages(id)
+		ps, err := a.data.Packages(id)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		p.Packages = ps
 
-		t, err := ap.newTemplData(r)
+		t, err := a.newTemplData(r)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		t.Page = p
 
-		err = ap.render(w, http.StatusOK, "export_pack_result", t)
+		err = a.render(w, http.StatusOK, "export_pack_result", t)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 	})
 }
 
-func (ap *application) exportPackPromptPage() http.Handler {
+func (a *app) exportPackPromptPage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		t, err := ap.newTemplData(r)
+		t, err := a.newTemplData(r)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
-		err = ap.render(w, http.StatusOK, "export_pack_prompt", t)
+		err = a.render(w, http.StatusOK, "export_pack_prompt", t)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 	})
 }
 
-func (ap *application) exportPackPageByPrompt() http.Handler {
+func (a *app) exportPackPageByPrompt() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		nanoID := r.URL.Query().Get("serial")
 
-		e, err := ap.data.ExportByPickedSerial(nanoID)
+		e, err := a.data.ExportByPickedSerial(nanoID)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			if errors.Is(err, data.ErrNoExports) {
 				http.Error(w, fmt.Sprintf("Không tìm thấy phiếu nhập có Serial %v", nanoID), http.StatusNotFound)
 			} else {

@@ -9,31 +9,31 @@ import (
 	"github.com/tanvmn/wh/internal/util"
 )
 
-func (ap *application) putawayPromptPage() http.Handler {
+func (a *app) putawayPromptPage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		td, err := ap.newTemplData(r)
+		td, err := a.newTemplData(r)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
-		err = ap.render(w, http.StatusOK, "putaway_prompt", td)
+		err = a.render(w, http.StatusOK, "putaway_prompt", td)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 	})
 }
 
-func (ap *application) putawayPageBySerial() http.Handler {
+func (a *app) putawayPageBySerial() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sr := r.URL.Query().Get("serial")
 
-		rc, err := ap.data.UnputawayReceiveBySerial(sr)
+		rc, err := a.data.UnputawayReceiveBySerial(sr)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 
 			if errors.Is(err, data.ErrNoReceives) {
 				http.Error(w, fmt.Sprintf("Không tìm thấy phiếu nhập chưa cất với serial %v", sr), http.StatusNotFound)
@@ -44,7 +44,7 @@ func (ap *application) putawayPageBySerial() http.Handler {
 		}
 
 		if notProcessed(rc.ActualAt) || not01011000(rc.PutawayAt) {
-			ap.logger.Error(fmt.Sprintf("Receive %v is NOT processed or ALREADY PUTAWAY but somehow there is an serial %v from it", rc.ID, sr))
+			a.log.Error(fmt.Sprintf("Receive %v is NOT processed or ALREADY PUTAWAY but somehow there is an serial %v from it", rc.ID, sr))
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -52,32 +52,32 @@ func (ap *application) putawayPageBySerial() http.Handler {
 	})
 }
 
-func (ap *application) putawayPage() http.Handler {
+func (a *app) putawayPage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rID := r.PathValue("receive")
 
-		rc, err := ap.data.Receive(rID)
+		rc, err := a.data.Receive(rID)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		if notProcessed(rc.ActualAt) || not01011000(rc.PutawayAt) {
-			ap.logger.Error(fmt.Sprintf("Receive %v is NOT PROCESSED or ALREADY PUTAWAY but somehow reached this page is reached", rc.ID))
+			a.log.Error(fmt.Sprintf("Receive %v is NOT PROCESSED or ALREADY PUTAWAY but somehow reached this page is reached", rc.ID))
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
-		pbs, err := ap.data.PutawayBins(rc.ID)
+		pbs, err := a.data.PutawayBins(rc.ID)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
-		td, err := ap.newTemplData(r)
+		td, err := a.newTemplData(r)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -88,22 +88,22 @@ func (ap *application) putawayPage() http.Handler {
 		}
 		td.Page = p
 
-		err = ap.render(w, http.StatusOK, "putaway", td)
+		err = a.render(w, http.StatusOK, "putaway", td)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 	})
 }
 
-func (ap *application) putaway() http.Handler {
+func (a *app) putaway() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var putawayResult data.Receive
 
-		err := ap.decodeJSON(w, r, &putawayResult)
+		err := a.decodeJSON(w, r, &putawayResult)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 
 			var mr *util.MalformedRequest
 			if errors.As(err, &mr) {
@@ -116,29 +116,29 @@ func (ap *application) putaway() http.Handler {
 
 		aID, ok := r.Context().Value(authenticatedCtxID).(string)
 		if !ok {
-			ap.logger.Error(fmt.Sprintf("%v;%v", ErrConvertCtxVal, aID))
+			a.log.Error(fmt.Sprintf("%v;%v", ErrConvertCtxVal, aID))
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		putawayResult.PutawayAccount.ID = aID
 
-		err = ap.data.Putaway(&putawayResult) // rc was used to catch JSON, NOT was queried from db
+		err = a.data.Putaway(&putawayResult) // rc was used to catch JSON, NOT was queried from db
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
-		err = ap.data.AddPutawayDifferenceSerials(&putawayResult)
+		err = a.data.AddPutawayDifferenceSerials(&putawayResult)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 
-		err = ap.data.DelUnputawaySerials(&putawayResult)
+		err = a.data.DelUnputawaySerials(&putawayResult)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -147,13 +147,13 @@ func (ap *application) putaway() http.Handler {
 	})
 }
 
-func (ap *application) putawayResultPage() http.Handler {
+func (a *app) putawayResultPage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("receive")
 
-		rec, err := ap.data.Receive(id)
+		rec, err := a.data.Receive(id)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -167,17 +167,17 @@ func (ap *application) putawayResultPage() http.Handler {
 
 		for i := range rec.Items {
 			it := &rec.Items[i]
-			putaway, err := ap.data.SuccessfullyPutawayQuantityByGTINAndReceive(rec.ID, it.Item.GTIN)
+			putaway, err := a.data.SuccessfullyPutawayQuantityByGTINAndReceive(rec.ID, it.Item.GTIN)
 			if err != nil {
-				ap.logger.Error(err.Error())
+				a.log.Error(err.Error())
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				return
 			}
 			it.SuccessfullyPutawayQuantity = putaway
 
-			notPutaway, err := ap.data.UnsuccessfullyPutawayQuantityByGTINAndReceive(rec.ID, it.Item.GTIN)
+			notPutaway, err := a.data.UnsuccessfullyPutawayQuantityByGTINAndReceive(rec.ID, it.Item.GTIN)
 			if err != nil {
-				ap.logger.Error(err.Error())
+				a.log.Error(err.Error())
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				return
 			}
@@ -189,17 +189,17 @@ func (ap *application) putawayResultPage() http.Handler {
 		p := new(PutawayResultPage)
 		p.Receive = rec
 
-		td, err := ap.newTemplData(r)
+		td, err := a.newTemplData(r)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		td.Page = p
 
-		err = ap.render(w, http.StatusOK, "putaway_result", td)
+		err = a.render(w, http.StatusOK, "putaway_result", td)
 		if err != nil {
-			ap.logger.Error(err.Error())
+			a.log.Error(err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
