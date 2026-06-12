@@ -51,7 +51,8 @@ func (a *app) serve() error {
 		return err
 	}
 
-	// if err != nil, graceful shutdown failed.
+	// will block until shutdownErr is ready to receive.
+	// If err != nil, graceful shutdown failed, so return the error.
 	if err = <-shutdownErr; err != nil {
 		return err
 	}
